@@ -63,7 +63,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <span className="text-gray-900 dark:text-white">{t(course.title, course.titleEn)}</span>
         </div>
 
-        <div className="relative aspect-[16/5] min-h-48 overflow-hidden rounded-2xl mb-8 border border-gray-200/60 dark:border-gray-800/60">
+        <div className="relative w-full h-48 sm:h-auto sm:aspect-[16/5] overflow-hidden rounded-2xl mb-8 border border-gray-200/60 dark:border-gray-800/60">
           <img
             src={course.image}
             alt={t(course.title, course.titleEn)}
