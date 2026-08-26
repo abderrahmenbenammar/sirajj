@@ -22,13 +22,14 @@ export default function Navbar() {
   const navLinks = [
     { href: "/", label: t("الرئيسية", "Home") },
     { href: "/courses", label: t("الدورات", "Courses") },
+    { href: "/paths", label: t("المسارات", "Paths") },
     { href: "/library", label: t("المكتبة", "Library") },
     { href: "/about", label: t("عن سراج", "About") },
     { href: "/contact", label: t("اتصل بنا", "Contact") },
   ];
 
   const searchResults = searchQuery.length > 1 ? [
-    { type: t("دورة", "Course"), title: t("مدخل إلى العقيدة الإسلامية", "Introduction to Islamic Creed"), href: "/courses/aqeedah-101" },
+    { type: t("دورة", "Course"), title: t("شرح الأصول الثلاثة", "Explanation of The Three Fundamental Principles"), href: "/courses/aqeedah-101" },
     { type: t("كتاب", "Book"), title: t("العقيدة الواسطية", "The Wasseetiyyah Creed"), href: "/library/b1" },
     { type: t("دورة", "Course"), title: t("أصول الفقه للمبتدئين", "Principles of Islamic Jurisprudence"), href: "/courses/usool-fiqh-101" },
     { type: t("مقال", "Article"), title: t("أهمية العلم الشرعي", "The Importance of Religious Knowledge"), href: "/library/a1" },

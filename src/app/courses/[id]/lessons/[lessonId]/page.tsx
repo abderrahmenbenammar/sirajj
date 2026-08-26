@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
-import { courses } from "@/lib/mock-data";
+import { courses, isCourseUnlocked } from "@/lib/mock-data";
 import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle } from "lucide-react";
 
 export default function LessonPage({
@@ -25,6 +25,22 @@ export default function LessonPage({
         </h1>
         <Link href={`/courses/${id}`} className="text-emerald-700 dark:text-emerald-400 hover:underline">
           {t("العودة للدورة", "Back to course")}
+        </Link>
+      </div>
+    );
+  }
+
+  if (!isCourseUnlocked(course)) {
+    return (
+      <div className="py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          {t("هذا الدرس مقفل", "This lesson is locked")}
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          {t("أتمم دورة من المستوى السابق للانتقال إلى هذا المسار.", "Complete a course from the previous level to continue on this path.")}
+        </p>
+        <Link href="/courses" className="text-emerald-700 dark:text-emerald-400 hover:underline">
+          {t("العودة للدورات", "Back to courses")}
         </Link>
       </div>
     );
@@ -55,17 +71,51 @@ export default function LessonPage({
         </div>
 
         {/* Video Player */}
-        <div className="aspect-video bg-gray-900 dark:bg-gray-950 rounded-2xl flex items-center justify-center mb-8 border border-gray-800 relative overflow-hidden group cursor-pointer">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-emerald-950/10" />
-          <div className="relative z-10 flex flex-col items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:bg-emerald-600/80 transition-all duration-300 group-hover:scale-110">
-              <Play size={32} className="text-white ms-1" />
+        <div className="aspect-video bg-gray-900 dark:bg-gray-950 rounded-2xl overflow-hidden mb-8 border border-gray-800">
+          {lesson.videoUrl?.endsWith(".mp4") ? (
+            <video
+              src={lesson.videoUrl}
+              title={t(lesson.title, lesson.titleEn)}
+              className="w-full h-full"
+              controls
+              preload="metadata"
+            />
+          ) : lesson.videoUrl ? (
+            <iframe
+              src={lesson.videoUrl}
+              title={t(lesson.title, lesson.titleEn)}
+              className="w-full h-full"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-emerald-950/10" />
+              <div className="relative z-10 flex flex-col items-center gap-4">
+                <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                  <Play size={32} className="text-white ms-1" />
+                </div>
+                <span className="text-sm text-gray-400">
+                  {t(lesson.title, lesson.titleEn)}
+                </span>
+              </div>
             </div>
-            <span className="text-sm text-gray-400">
-              {t(lesson.title, lesson.titleEn)}
-            </span>
-          </div>
+          )}
         </div>
+        {lesson.videoUrl && !lesson.videoUrl.endsWith(".mp4") && (
+          <p className="-mt-4 mb-8 text-sm text-gray-500 dark:text-gray-400">
+            {t("إذا لم يعمل التشغيل داخل الصفحة، افتح الفيديو مباشرة على YouTube.", "If playback does not work here, open the video directly on YouTube.")} {" "}
+            <a
+              href="https://www.youtube.com/watch?v=IpzTN7zf6uw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-700 dark:text-emerald-400 hover:underline"
+            >
+              {t("فتح الفيديو", "Open video")}
+            </a>
+          </p>
+        )}
 
         {/* Lesson Info */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8 mb-6">

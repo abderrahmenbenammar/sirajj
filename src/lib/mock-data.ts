@@ -27,6 +27,7 @@ export interface CurriculumItem {
   titleEn: string;
   duration: string;
   type: "video" | "reading" | "quiz";
+  videoUrl?: string;
 }
 
 export interface Book {
@@ -114,12 +115,12 @@ export interface Certificate {
 export const courses: Course[] = [
   {
     id: "aqeedah-101",
-    title: "مدخل إلى العقيدة الإسلامية",
-    titleEn: "Introduction to Islamic Creed",
-    instructor: "د. عبدالله بن أحمد الشرقي",
-    instructorEn: "Dr. Abdullah Al-Sharqi",
-    description: "دورة شاملة في أصول العقيدة الإسلامية تغطي المفاهيم الأساسية للتوحيد والعقيدة السلفية مع الاستدلال من القرآن الكريم والسنة النبوية.",
-    descriptionEn: "A comprehensive course covering the fundamentals of Islamic creed, including Tawheed and Salafi creed with evidence from the Quran and Sunnah.",
+    title: "شرح الأصول الثلاثة",
+    titleEn: "Explanation of The Three Fundamental Principles",
+    instructor: "الشيخ سليمان الرحيلي",
+    instructorEn: "Sheikh Sulaiman Al-Ruhayli",
+    description: "شرح تأصيلي لرسالة الأصول الثلاثة، يتناول معرفة الله ودين الإسلام ونبيه محمد صلى الله عليه وسلم بالأدلة من الكتاب والسنة.",
+    descriptionEn: "A foundational explanation of The Three Fundamental Principles, covering knowledge of Allah, Islam, and Prophet Muhammad through evidence from the Quran and Sunnah.",
     image: "/courses/aqeedah.jpg",
     level: "مبتدئ",
     levelEn: "Beginner",
@@ -129,24 +130,24 @@ export const courses: Course[] = [
     categoryEn: "Creed",
     progress: 65,
     curriculum: [
-      { id: "c1", title: "مقدمة في العقيدة الإسلامية", titleEn: "Introduction to Islamic Creed", duration: "45 دقيقة", type: "video" },
-      { id: "c2", title: "حقيقة التوحيد", titleEn: "The Essence of Tawheed", duration: "50 دقيقة", type: "video" },
-      { id: "c3", title: "أقسام التوحيد", titleEn: "Categories of Tawheed", duration: "55 دقيقة", type: "video" },
-      { id: "c4", title: "الألوهية والربوبية", titleEn: "Divine Lordship", duration: "40 دقيقة", type: "reading" },
+      { id: "c1", title: "الأصل الأول: معرفة الله", titleEn: "The First Principle: Knowing Allah", duration: "45 دقيقة", type: "video", videoUrl: "https://www.youtube.com/embed/0MxQD-0kJcY?rel=0" },
+      { id: "c2", title: "الأصل الثاني: معرفة دين الإسلام", titleEn: "The Second Principle: Knowing Islam", duration: "50 دقيقة", type: "video" },
+      { id: "c3", title: "مراتب الدين", titleEn: "The Levels of Religion", duration: "55 دقيقة", type: "video" },
+      { id: "c4", title: "الأصل الثالث: معرفة النبي صلى الله عليه وسلم", titleEn: "The Third Principle: Knowing the Prophet", duration: "40 دقيقة", type: "reading" },
       { id: "c5", title: "اختبار الوحدة الأولى", titleEn: "Unit 1 Assessment", duration: "20 دقيقة", type: "quiz" },
       { id: "c6", title: " أنواع الكفر", titleEn: "Types of Disbelief", duration: "50 دقيقة", type: "video" },
       { id: "c7", title: "الشرك وأقسامه", titleEn: "Shirk and its Categories", duration: "55 دقيقة", type: "video" },
       { id: "c8", title: "اختبار الوحدة الثانية", titleEn: "Unit 2 Assessment", duration: "20 دقيقة", type: "quiz" },
     ],
     objectives: [
-      "فهم مفهوم التوحيد وأقسامه",
-      "تمييز أنواع الكفر والشرك",
-      "الۂتمام بعقيدة السلف الصالح",
+      "معرفة الأصول الثلاثة بالأدلة الشرعية",
+      "فهم مراتب الدين وأركان الإسلام والإيمان",
+      "تطبيق ما تضمنته الرسالة من العلم والعمل والدعوة",
     ],
     objectivesEn: [
-      "Understand the concept of Tawheed and its categories",
-      "Distinguish types of disbelief and shirk",
-      "Adhere to the creed of the righteous predecessors",
+      "Learn the three fundamental principles with their proofs",
+      "Understand the levels of religion and the pillars of Islam and faith",
+      "Apply the message's guidance through knowledge, action, and da'wah",
     ],
     references: ["كتاب التوحيد للشيخ محمد بن عبد الوهاب", "العقيدة الواسطية لشيخ الإسلام ابن تيمية", "شرح العقيدة الطحاوية"],
   },
@@ -511,6 +512,59 @@ export const courses: Course[] = [
       "Distinguish between real and hypothetical cases",
     ],
     references: ["إعلام الموقعين لابن قيم الجوزية", "الإفتاء والifeeq", "منهج الفتوى للقرضاوي"],
+  },
+  {
+    id: "nawaqid-islam-101",
+    title: "شرح نواقض الإسلام",
+    titleEn: "Explanation of The Nullifiers of Islam",
+    instructor: "الشيخ د. سليمان الرحيلي",
+    instructorEn: "Sheikh Dr. Sulaiman Al-Ruhayli",
+    description: "شرح علمي لرسالة نواقض الإسلام، يوضح مسائلها وأدلتها وينبه إلى خطورة النواقض وضوابط فهمها.",
+    descriptionEn: "A scholarly explanation of The Nullifiers of Islam, presenting its issues and proofs while highlighting their seriousness and the principles for understanding them.",
+    image: "/Photos/BMC.png",
+    level: "مبتدئ",
+    levelEn: "Beginner",
+    duration: "23 فيديو",
+    lessons: 23,
+    category: "العقيدة",
+    categoryEn: "Creed",
+    progress: 0,
+    curriculum: [
+      { id: "n1", title: "تمهيد", titleEn: "Introduction", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/0MxQD-0kJcY?rel=0" },
+      { id: "n2", title: "المقدمة الأولى", titleEn: "First Introduction", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/rurWObdRvG0?rel=0" },
+      { id: "n3", title: "المقدمة الثانية", titleEn: "Second Introduction", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/CzuqYnVmRm8?rel=0" },
+      { id: "n4", title: "المقدمة الثالثة", titleEn: "Third Introduction", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/jNyD1ngk7Rc?rel=0" },
+      { id: "n5", title: "المقدمة الرابعة", titleEn: "Fourth Introduction", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/fqr0ZO319rg?rel=0" },
+      { id: "n6", title: "مقدمة المصنف", titleEn: "The Author's Introduction", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/x8cF3zWXcvI?rel=0" },
+      { id: "n7", title: "الناقض الأول", titleEn: "The First Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/djDy0208zWU?rel=0" },
+      { id: "n8", title: "الناقض الثاني", titleEn: "The Second Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/LWdn01npPBk?rel=0" },
+      { id: "n9", title: "الناقض الثالث", titleEn: "The Third Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/arEKoCZWrO0?rel=0" },
+      { id: "n10", title: "الناقض الرابع ج1", titleEn: "The Fourth Nullifier, Part 1", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/5hG_KsYQIgo?rel=0" },
+      { id: "n11", title: "الناقض الرابع ج2", titleEn: "The Fourth Nullifier, Part 2", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/-YxHCrbo23M?rel=0" },
+      { id: "n12", title: "الناقض الرابع ج3", titleEn: "The Fourth Nullifier, Part 3", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/tb2v88BX-6k?rel=0" },
+      { id: "n13", title: "الناقض الرابع ج4", titleEn: "The Fourth Nullifier, Part 4", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/tGSv9v3CTF4?rel=0" },
+      { id: "n14", title: "الناقض الخامس", titleEn: "The Fifth Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/CcaF6_zfaxw?rel=0" },
+      { id: "n15", title: "الناقض السادس", titleEn: "The Sixth Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/6J5zESs-ZF0?rel=0" },
+      { id: "n16", title: "الناقض السابع", titleEn: "The Seventh Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/6fjDR0HZPJU?rel=0" },
+      { id: "n17", title: "الناقض الثامن", titleEn: "The Eighth Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/B8xJ-3Hjd-4?rel=0" },
+      { id: "n18", title: "الناقض التاسع", titleEn: "The Ninth Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/bM7oznkK5as?rel=0" },
+      { id: "n19", title: "الناقض العاشر", titleEn: "The Tenth Nullifier", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/KY7J5KgTtDc?rel=0" },
+      { id: "n20", title: "خطورة نواقض الإسلام", titleEn: "The Seriousness of the Nullifiers of Islam", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/mB9-p6pLDpU?rel=0" },
+      { id: "n21", title: "العذر بالجهل", titleEn: "Excuse Due to Ignorance", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/tV_GBrKPy_U?rel=0" },
+      { id: "n22", title: "خاتمة", titleEn: "Conclusion", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/-DYuSB-9WY0?rel=0" },
+      { id: "n23", title: "الإجابة على الأسئلة", titleEn: "Answering the Questions", duration: "فيديو", type: "video", videoUrl: "https://www.youtube.com/embed/0RoN3qTwYbI?rel=0" },
+    ],
+    objectives: [
+      "معرفة نواقض الإسلام وأدلتها",
+      "فهم ضوابط الحكم على مسائل النواقض",
+      "التنبه إلى خطورة الجهل بأصول العقيدة",
+    ],
+    objectivesEn: [
+      "Learn the nullifiers of Islam and their proofs",
+      "Understand the principles for judging issues related to the nullifiers",
+      "Recognize the danger of ignorance regarding the foundations of creed",
+    ],
+    references: ["نواقض الإسلام للإمام محمد بن عبدالوهاب", "شروح العلماء على نواقض الإسلام"],
   },
 ];
 
@@ -1225,11 +1279,23 @@ export const studentData = {
     averageGrade: 88,
   },
   recentActivity: [
-    { type: "lesson", title: "حقيقة التوحيد", titleEn: "The Essence of Tawheed", course: "مدخل إلى العقيدة الإسلامية", courseEn: "Introduction to Islamic Creed", date: "2024-06-20" },
+    { type: "lesson", title: "الأصل الأول: معرفة الله", titleEn: "The First Principle: Knowing Allah", course: "شرح الأصول الثلاثة", courseEn: "Explanation of The Three Fundamental Principles", date: "2024-06-20" },
     { type: "quiz", title: "اختبار الوحدة الأولى", titleEn: "Unit 1 Assessment", course: "أصول الفقه للمبتدئين", courseEn: "Principles of Islamic Jurisprudence", date: "2024-06-19" },
     { type: "lesson", title: "الدليل الشرعي الأول: الكتاب", titleEn: "The First Evidence: The Quran", course: "أصول الفقه للمبتدئين", courseEn: "Principles of Islamic Jurisprudence", date: "2024-06-18" },
   ],
 };
+
+export function isCourseUnlocked(course: Course) {
+  if (course.level === "مبتدئ") return true;
+
+  const previousLevel = course.level === "متوسط" ? "مبتدئ" : "متوسط";
+  const previousLevelCourses = courses.filter((candidate) => candidate.level === previousLevel);
+
+  return previousLevelCourses.length > 0 && previousLevelCourses.every(
+    (candidate) =>
+      studentData.completedCourses.includes(candidate.id) || candidate.progress === 100
+  );
+}
 
 export const faqData = [
   {

@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
-import { courses } from "@/lib/mock-data";
+import { courses, isCourseUnlocked } from "@/lib/mock-data";
 import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, CheckCircle, PlayCircle, FileText, HelpCircle } from "lucide-react";
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +17,22 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           {t("الدورة غير موجودة", "Course not found")}
         </h1>
+        <Link href="/courses" className="text-emerald-700 dark:text-emerald-400 hover:underline">
+          {t("العودة للدورات", "Back to courses")}
+        </Link>
+      </div>
+    );
+  }
+
+  if (!isCourseUnlocked(course)) {
+    return (
+      <div className="py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          {t("هذه الدورة مقفلة", "This course is locked")}
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          {t("أتمم دورة من المستوى السابق للانتقال إلى هذا المسار.", "Complete a course from the previous level to continue on this path.")}
+        </p>
         <Link href="/courses" className="text-emerald-700 dark:text-emerald-400 hover:underline">
           {t("العودة للدورات", "Back to courses")}
         </Link>
@@ -47,6 +63,18 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <span className="text-gray-900 dark:text-white">{t(course.title, course.titleEn)}</span>
         </div>
 
+        <div className="relative aspect-[16/5] min-h-48 overflow-hidden rounded-2xl mb-8 border border-gray-200/60 dark:border-gray-800/60">
+          <img
+            src={course.image}
+            alt={t(course.title, course.titleEn)}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          <h1 className="absolute bottom-6 start-6 end-6 text-2xl sm:text-3xl font-bold text-white drop-shadow-md">
+            {t(course.title, course.titleEn)}
+          </h1>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -55,9 +83,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/80 dark:bg-gray-900/80 text-emerald-700 dark:text-emerald-400 inline-block mb-4">
                 {t(course.category, course.categoryEn)}
               </span>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                {t(course.title, course.titleEn)}
-              </h1>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
                 {t(course.description, course.descriptionEn)}
               </p>
