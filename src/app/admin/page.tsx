@@ -25,6 +25,9 @@ export default function AdminPage() {
   const [lessonForm, setLessonForm] = useState({ courseId: "", title: "", position: "1", videoUrl: "" });
   const [quizForm, setQuizForm] = useState({ lessonId: "", question: "", options: "", correctIndex: "0" });
   const [libraryForm, setLibraryForm] = useState({ type: "BOOK", title: "", author: "", category: "", description: "", content: "", mediaUrl: "" });
+  const [courseImage, setCourseImage] = useState<File | null>(null);
+  const [lessonVideo, setLessonVideo] = useState<File | null>(null);
+  const [libraryFile, setLibraryFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/auth/login?admin=1");
@@ -62,6 +65,42 @@ export default function AdminPage() {
     setDetailsLoading(false);
   };
 
+  const uploadFile = async (file: File, kind: "image" | "video" | "document") => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("kind", kind);
+    const response = await fetch("/api/admin/upload", { method: "POST", body: formData });
+    if (!response.ok) throw new Error("upload failed");
+    return (await response.json()).url as string;
+  };
+
+  const submitCourse = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      const image = courseImage ? await uploadFile(courseImage, "image") : courseForm.image;
+      await submit(event, "/api/admin/courses", { ...courseForm, image }, t("تمت إضافة الدورة", "Course added"));
+      setCourseImage(null);
+    } catch { setMessage(t("تعذر رفع الصورة", "Could not upload image")); }
+  };
+
+  const submitLesson = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      const videoUrl = lessonVideo ? await uploadFile(lessonVideo, "video") : lessonForm.videoUrl;
+      await submit(event, "/api/admin/lessons", { ...lessonForm, videoUrl, position: Number(lessonForm.position) }, t("تمت إضافة الدرس", "Lesson added"));
+      setLessonVideo(null);
+    } catch { setMessage(t("تعذر رفع الفيديو", "Could not upload video")); }
+  };
+
+  const submitLibrary = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      const mediaUrl = libraryFile ? await uploadFile(libraryFile, libraryForm.type === "BOOK" ? "image" : libraryForm.type === "LECTURE" ? "video" : "document") : libraryForm.mediaUrl;
+      await submit(event, "/api/admin/library", { ...libraryForm, mediaUrl }, t("تمت إضافة عنصر المكتبة", "Library item added"));
+      setLibraryFile(null);
+    } catch { setMessage(t("تعذر رفع الملف", "Could not upload file")); }
+  };
+
   const submit = async (event: FormEvent, url: string, body: object, success: string) => {
     event.preventDefault();
     const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -81,22 +120,24 @@ export default function AdminPage() {
         {message && <p className="mb-6 p-3 rounded-xl bg-emerald-50 text-emerald-700 text-sm">{message}</p>}
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <form onSubmit={(event) => submit(event, "/api/admin/courses", courseForm, t("تمت إضافة الدورة", "Course added"))} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
+          <form onSubmit={submitCourse} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
             <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><BookPlus size={18} />{t("إضافة دورة", "Add course")}</h2>
             <input required placeholder="slug" value={courseForm.slug} onChange={(e) => setCourseForm({ ...courseForm, slug: e.target.value })} className="admin-input" />
             <input required placeholder={t("العنوان", "Title")} value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} className="admin-input" />
             <input placeholder={t("الوصف", "Description")} value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} className="admin-input" />
             <select value={courseForm.level} onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value })} className="admin-input"><option value="BEGINNER">مبتدئ</option><option value="INTERMEDIATE">متوسط</option><option value="ADVANCED">متقدم</option></select>
             <input placeholder={t("مسار الصورة", "Image path")} value={courseForm.image} onChange={(e) => setCourseForm({ ...courseForm, image: e.target.value })} className="admin-input" />
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
             <button className="admin-button"><ImagePlus size={16} />{t("حفظ الدورة", "Save course")}</button>
           </form>
 
-          <form onSubmit={(event) => submit(event, "/api/admin/lessons", { ...lessonForm, position: Number(lessonForm.position) }, t("تمت إضافة الدرس", "Lesson added"))} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
+          <form onSubmit={submitLesson} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
             <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><Film size={18} />{t("إضافة درس وفيديو", "Add lesson and video")}</h2>
             <select required value={lessonForm.courseId} onChange={(e) => setLessonForm({ ...lessonForm, courseId: e.target.value })} className="admin-input"><option value="">{t("اختر الدورة", "Select course")}</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</select>
             <input required placeholder={t("عنوان الدرس", "Lesson title")} value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} className="admin-input" />
             <input required type="number" min="1" placeholder="position" value={lessonForm.position} onChange={(e) => setLessonForm({ ...lessonForm, position: e.target.value })} className="admin-input" />
             <input placeholder="YouTube أو /videos/file.mp4" value={lessonForm.videoUrl} onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })} className="admin-input" />
+            <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setLessonVideo(e.target.files?.[0] ?? null)} className="admin-input" />
             <button className="admin-button"><ListPlus size={16} />{t("حفظ الدرس", "Save lesson")}</button>
           </form>
 
@@ -109,13 +150,14 @@ export default function AdminPage() {
             <button className="admin-button"><ListPlus size={16} />{t("حفظ السؤال", "Save question")}</button>
           </form>
 
-          <form onSubmit={(event) => submit(event, "/api/admin/library", libraryForm, t("تمت إضافة عنصر المكتبة", "Library item added"))} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
+          <form onSubmit={submitLibrary} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
             <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><LibraryBig size={18} />{t("إضافة عنصر للمكتبة", "Add library item")}</h2>
             <select value={libraryForm.type} onChange={(e) => setLibraryForm({ ...libraryForm, type: e.target.value })} className="admin-input"><option value="BOOK">كتاب</option><option value="ARTICLE">مقال</option><option value="RESEARCH">بحث</option><option value="LECTURE">محاضرة</option></select>
             <input required placeholder={t("العنوان", "Title")} value={libraryForm.title} onChange={(e) => setLibraryForm({ ...libraryForm, title: e.target.value })} className="admin-input" />
             <input placeholder={t("المؤلف أو المحاضر", "Author or speaker")} value={libraryForm.author} onChange={(e) => setLibraryForm({ ...libraryForm, author: e.target.value })} className="admin-input" />
             <input placeholder={t("التصنيف", "Category")} value={libraryForm.category} onChange={(e) => setLibraryForm({ ...libraryForm, category: e.target.value })} className="admin-input" />
             <input placeholder={t("رابط الغلاف أو الملف", "Cover or media URL")} value={libraryForm.mediaUrl} onChange={(e) => setLibraryForm({ ...libraryForm, mediaUrl: e.target.value })} className="admin-input" />
+            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,text/plain" onChange={(e) => setLibraryFile(e.target.files?.[0] ?? null)} className="admin-input" />
             <textarea placeholder={t("الوصف أو المحتوى", "Description or content")} value={libraryForm.content} onChange={(e) => setLibraryForm({ ...libraryForm, content: e.target.value })} className="admin-input min-h-24" />
             <button className="admin-button"><LibraryBig size={16} />{t("حفظ عنصر المكتبة", "Save library item")}</button>
           </form>
