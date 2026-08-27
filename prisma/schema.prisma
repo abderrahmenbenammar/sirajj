@@ -12,9 +12,23 @@ model User {
   name         String
   email        String         @unique
   passwordHash String
+  emailVerified DateTime?
+  role         UserRole       @default(STUDENT)
   createdAt    DateTime       @default(now())
   enrollments  Enrollment[]
   progress     LessonProgress[]
+  tokens       AuthToken[]
+}
+
+model AuthToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  type      AuthTokenType
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
 }
 
 model Course {
@@ -23,6 +37,7 @@ model Course {
   title       String
   description String?
   level       CourseLevel
+  image       String?
   createdAt   DateTime     @default(now())
   lessons     Lesson[]
   enrollments Enrollment[]
@@ -36,8 +51,18 @@ model Lesson {
   videoUrl    String?
   course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   progress    LessonProgress[]
+  quizzes     QuizQuestion[]
 
   @@unique([courseId, position])
+}
+
+model QuizQuestion {
+  id          String   @id @default(cuid())
+  lessonId    String
+  question    String
+  options     String
+  correctIndex Int
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
 model Enrollment {
@@ -67,4 +92,14 @@ enum CourseLevel {
   BEGINNER
   INTERMEDIATE
   ADVANCED
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
 }
