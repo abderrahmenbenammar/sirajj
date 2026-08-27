@@ -50,3 +50,42 @@ html {
 body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
+
+.admin-input {
+  width: 100%;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.75rem;
+  background: rgb(249 250 251);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: rgb(17 24 39);
+  outline: none;
+}
+
+.admin-input:focus {
+  border-color: rgb(16 185 129);
+}
+
+.admin-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background: rgb(4 120 87);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+}
+
+.admin-button:hover {
+  background: rgb(6 95 70);
+}
+
+.dark .admin-input {
+  border-color: rgb(55 65 81);
+  background: rgb(31 41 55);
+  color: white;
+}
