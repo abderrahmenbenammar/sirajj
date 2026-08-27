@@ -21,8 +21,17 @@ export async function POST(request: Request) {
   const kind = formData.get("kind");
   const rule = typeof kind === "string" && kind in rules ? rules[kind as keyof typeof rules] : null;
 
-  if (!(file instanceof File) || !rule || !rule.types.has(file.type) || file.size > rule.maxSize) {
-    return NextResponse.json({ error: "نوع الملف أو حجمه غير مسموح" }, { status: 400 });
+  if (!(file instanceof File)) {
+    return NextResponse.json({ error: "لم يتم اختيار ملف" }, { status: 400 });
+  }
+  if (!rule) {
+    return NextResponse.json({ error: "نوع الرفع غير صحيح" }, { status: 400 });
+  }
+  if (!rule.types.has(file.type)) {
+    return NextResponse.json({ error: `نوع الملف غير مسموح: ${file.type || "غير معروف"}` }, { status: 415 });
+  }
+  if (file.size > rule.maxSize) {
+    return NextResponse.json({ error: `حجم الملف أكبر من الحد المسموح (${Math.round(rule.maxSize / 1024 / 1024)}MB)` }, { status: 413 });
   }
 
   const extension = path.extname(file.name).toLowerCase() || (file.type === "image/png" ? ".png" : ".bin");
