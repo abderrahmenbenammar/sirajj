@@ -1,9 +1,9 @@
 "use client";
 
 import { useLang } from "@/lib/lang-context";
-import { courses } from "@/lib/mock-data";
 import CourseCard from "@/components/courses/CourseCard";
-import { useState } from "react";
+import type { Course } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
 import { Search, Filter } from "lucide-react";
 
 export default function CoursesPage() {
@@ -11,6 +11,11 @@ export default function CoursesPage() {
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState("all");
   const [category, setCategory] = useState("all");
+  const [courses, setCourses] = useState<Course[]>([]);
+
+  useEffect(() => {
+    fetch("/api/courses").then((response) => response.json()).then(setCourses);
+  }, []);
 
   const levels = [
     { value: "all", label: t("الكل", "All") },
