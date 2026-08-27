@@ -3,14 +3,21 @@
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { courses, studentData } from "@/lib/mock-data";
 import { GraduationCap, Clock, Award, TrendingUp, BookOpen, PlayCircle, HelpCircle, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
 export default function DashboardPage() {
   const { t, lang } = useLang();
   const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
 
-  if (!isAuthenticated) {
+  useEffect(() => {
+    if (user?.role === "ADMIN") router.replace("/admin");
+  }, [user, router]);
+
+  if (!isAuthenticated || user?.role === "ADMIN") {
     return (
       <div className="py-20 text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t("يرجى تسجيل الدخول", "Please sign in")}</h1>
