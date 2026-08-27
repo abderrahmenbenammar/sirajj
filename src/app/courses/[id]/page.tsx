@@ -3,13 +3,18 @@
 import { use } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
-import { courses, isCourseUnlocked } from "@/lib/mock-data";
+import type { Course } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, CheckCircle, PlayCircle, FileText, HelpCircle } from "lucide-react";
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t, lang } = useLang();
-  const course = courses.find((c) => c.id === id);
+  const [course, setCourse] = useState<Course | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/courses/${id}`).then((response) => response.ok ? response.json() : null).then(setCourse);
+  }, [id]);
 
   if (!course) {
     return (
@@ -17,22 +22,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           {t("الدورة غير موجودة", "Course not found")}
         </h1>
-        <Link href="/courses" className="text-emerald-700 dark:text-emerald-400 hover:underline">
-          {t("العودة للدورات", "Back to courses")}
-        </Link>
-      </div>
-    );
-  }
-
-  if (!isCourseUnlocked(course)) {
-    return (
-      <div className="py-20 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          {t("هذه الدورة مقفلة", "This course is locked")}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
-          {t("أتمم دورة من المستوى السابق للانتقال إلى هذا المسار.", "Complete a course from the previous level to continue on this path.")}
-        </p>
         <Link href="/courses" className="text-emerald-700 dark:text-emerald-400 hover:underline">
           {t("العودة للدورات", "Back to courses")}
         </Link>
