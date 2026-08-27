@@ -1,5 +1,20 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Authentication and database
+
+The project uses Auth.js credentials authentication with Prisma and SQLite for local development. Passwords are hashed with bcrypt, and email verification and password reset tokens are stored hashed in the database.
+
+```powershell
+Copy-Item .env.example .env
+npm run db:push
+npm run db:seed
+npm run dev
+```
+
+Set `AUTH_SECRET` to a long random value before deployment. Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, and `APP_URL` to enable verification and password-reset emails. Without SMTP in development, links are printed in the server terminal.
+
+Use `npm run db:studio` to inspect local data. For production, change `DATABASE_URL` to a PostgreSQL connection string and use a managed email provider.
+
 ## Getting Started
 
 First, run the development server:
