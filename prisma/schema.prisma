@@ -65,6 +65,18 @@ model QuizQuestion {
   lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
+model LibraryItem {
+  id          String      @id @default(cuid())
+  type        LibraryType
+  title       String
+  author      String?
+  category    String?
+  description String?
+  content     String?
+  mediaUrl    String?
+  createdAt   DateTime    @default(now())
+}
+
 model Enrollment {
   id        String   @id @default(cuid())
   userId    String
@@ -102,4 +114,11 @@ enum AuthTokenType {
 enum UserRole {
   STUDENT
   ADMIN
+}
+
+enum LibraryType {
+  BOOK
+  ARTICLE
+  RESEARCH
+  LECTURE
 }
