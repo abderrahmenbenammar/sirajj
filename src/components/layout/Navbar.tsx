@@ -7,7 +7,7 @@ import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
-import { Menu, X, Search, Sun, Moon, User, LogOut } from "lucide-react";
+import { Menu, X, Search, Sun, Moon, User, LogOut, ShieldCheck } from "lucide-react";
 
 export default function Navbar() {
   const { lang, toggleLang, t } = useLang();
@@ -111,6 +111,12 @@ export default function Navbar() {
                   </button>
                   {userMenuOpen && (
                     <div className="absolute top-full mt-2 end-0 w-52 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 py-2 z-50">
+                      {user?.role === "ADMIN" && (
+                        <Link href="/admin" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" onClick={() => setUserMenuOpen(false)}>
+                          <ShieldCheck size={15} />
+                          {t("لوحة الإدارة", "Admin Panel")}
+                        </Link>
+                      )}
                       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setUserMenuOpen(false)}>
                         <User size={15} />
                         {t("لوحة التحكم", "Dashboard")}
