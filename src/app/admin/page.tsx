@@ -70,7 +70,10 @@ export default function AdminPage() {
     formData.append("file", file);
     formData.append("kind", kind);
     const response = await fetch("/api/admin/upload", { method: "POST", body: formData });
-    if (!response.ok) throw new Error("upload failed");
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "upload failed");
+    }
     return (await response.json()).url as string;
   };
 
@@ -80,7 +83,7 @@ export default function AdminPage() {
       const image = courseImage ? await uploadFile(courseImage, "image") : courseForm.image;
       await submit(event, "/api/admin/courses", { ...courseForm, image }, t("تمت إضافة الدورة", "Course added"));
       setCourseImage(null);
-    } catch { setMessage(t("تعذر رفع الصورة", "Could not upload image")); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image")); }
   };
 
   const submitLesson = async (event: FormEvent) => {
@@ -89,16 +92,17 @@ export default function AdminPage() {
       const videoUrl = lessonVideo ? await uploadFile(lessonVideo, "video") : lessonForm.videoUrl;
       await submit(event, "/api/admin/lessons", { ...lessonForm, videoUrl, position: Number(lessonForm.position) }, t("تمت إضافة الدرس", "Lesson added"));
       setLessonVideo(null);
-    } catch { setMessage(t("تعذر رفع الفيديو", "Could not upload video")); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الفيديو", "Could not upload video")); }
   };
 
   const submitLibrary = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      const mediaUrl = libraryFile ? await uploadFile(libraryFile, libraryForm.type === "BOOK" ? "image" : libraryForm.type === "LECTURE" ? "video" : "document") : libraryForm.mediaUrl;
+      const fileKind = libraryFile?.type.startsWith("image/") ? "image" : libraryFile?.type.startsWith("video/") ? "video" : "document";
+      const mediaUrl = libraryFile ? await uploadFile(libraryFile, fileKind) : libraryForm.mediaUrl;
       await submit(event, "/api/admin/library", { ...libraryForm, mediaUrl }, t("تمت إضافة عنصر المكتبة", "Library item added"));
       setLibraryFile(null);
-    } catch { setMessage(t("تعذر رفع الملف", "Could not upload file")); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الملف", "Could not upload file")); }
   };
 
   const submit = async (event: FormEvent, url: string, body: object, success: string) => {
