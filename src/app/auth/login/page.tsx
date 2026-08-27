@@ -16,17 +16,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError(t("يرجى ملء جميع الحقول", "Please fill in all fields"));
       return;
     }
-    const success = login(email, password);
+    const success = await login(email, password);
     if (success) {
       router.push("/dashboard");
     } else {
-      setError(t("خطأ في البريد الإلكتروني أو كلمة المرور", "Invalid email or password"));
+      setError(t("بيانات الدخول غير صحيحة أو لم يتم تأكيد البريد الإلكتروني", "Invalid credentials or email not verified"));
     }
   };
 
