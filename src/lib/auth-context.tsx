@@ -5,7 +5,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { name: string; nameEn: string; email: string } | null;
+  user: { name: string; nameEn: string; email: string; role?: string } | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const user = session?.user ? { name: session.user.name ?? "", nameEn: session.user.name ?? "", email: session.user.email ?? "" } : null;
+  const user = session?.user ? { name: session.user.name ?? "", nameEn: session.user.name ?? "", email: session.user.email ?? "", role: session.user.role } : null;
 
   const login = async (email: string, password: string) => {
     const result = await signIn("credentials", { email, password, redirect: false });
