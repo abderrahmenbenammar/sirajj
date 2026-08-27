@@ -1,9 +1,9 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
-import { courses, isCourseUnlocked } from "@/lib/mock-data";
+import type { Course } from "@/lib/mock-data";
 import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle } from "lucide-react";
 
 export default function LessonPage({
@@ -13,7 +13,10 @@ export default function LessonPage({
 }) {
   const { id, lessonId } = use(params);
   const { t, lang } = useLang();
-  const course = courses.find((c) => c.id === id);
+  const [course, setCourse] = useState<Course | null>(null);
+  useEffect(() => {
+    fetch(`/api/courses/${id}`).then((response) => response.ok ? response.json() : null).then(setCourse);
+  }, [id]);
   const lessonIndex = course?.curriculum.findIndex((l) => l.id === lessonId) ?? -1;
   const lesson = lessonIndex >= 0 ? course?.curriculum[lessonIndex] : null;
 
@@ -25,22 +28,6 @@ export default function LessonPage({
         </h1>
         <Link href={`/courses/${id}`} className="text-emerald-700 dark:text-emerald-400 hover:underline">
           {t("العودة للدورة", "Back to course")}
-        </Link>
-      </div>
-    );
-  }
-
-  if (!isCourseUnlocked(course)) {
-    return (
-      <div className="py-20 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          {t("هذا الدرس مقفل", "This lesson is locked")}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
-          {t("أتمم دورة من المستوى السابق للانتقال إلى هذا المسار.", "Complete a course from the previous level to continue on this path.")}
-        </p>
-        <Link href="/courses" className="text-emerald-700 dark:text-emerald-400 hover:underline">
-          {t("العودة للدورات", "Back to courses")}
         </Link>
       </div>
     );
