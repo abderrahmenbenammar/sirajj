@@ -17,19 +17,21 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
       setError(t("يرجى ملء جميع الحقول", "Please fill in all fields"));
       return;
     }
-    if (password.length < 6) {
-      setError(t("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "Password must be at least 6 characters"));
+    if (password.length < 8) {
+      setError(t("كلمة المرور يجب أن تكون 8 أحرف على الأقل", "Password must be at least 8 characters"));
       return;
     }
-    const success = register(name, email, password);
+    const success = await register(name, email, password);
     if (success) {
-      router.push("/dashboard");
+      router.push("/auth/login?registered=1");
+    } else {
+      setError(t("تعذر إنشاء الحساب أو البريد مستخدم مسبقًا", "Could not create account or email is already in use"));
     }
   };
 
