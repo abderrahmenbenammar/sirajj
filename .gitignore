@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# siraj - local/production artifacts (do not track)
+public/videos/
+public/uploads/
+prisma/dev.db
+*.backup
+*.dump
