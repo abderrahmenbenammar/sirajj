@@ -18,11 +18,14 @@ export default function LessonPage({
   const [completed, setCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completeError, setCompleteError] = useState("");
+  const [loadingCourse, setLoadingCourse] = useState(true);
   const { isAuthenticated } = useAuth();
   useEffect(() => {
+    setLoadingCourse(true);
     fetchCourse(id).then((data) => {
       setCourse(data);
       setCompleted(data?.completedLessonIds?.includes(lessonId) ?? false);
+      setLoadingCourse(false);
     });
   }, [id, lessonId]);
 
@@ -46,6 +49,20 @@ export default function LessonPage({
   };
   const lessonIndex = course?.curriculum.findIndex((l) => l.id === lessonId) ?? -1;
   const lesson = lessonIndex >= 0 ? course?.curriculum[lessonIndex] : null;
+
+  if (loadingCourse) {
+    return (
+      <div className="py-8 sm:py-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+            <div className="aspect-video bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+            <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!course || !lesson) {
     return (
@@ -85,51 +102,102 @@ export default function LessonPage({
         </div>
 
         {/* Video Player */}
-        <div className="aspect-video bg-gray-900 dark:bg-gray-950 rounded-2xl overflow-hidden mb-8 border border-gray-800">
-          {lesson.videoUrl?.endsWith(".mp4") ? (
-            <video
-              src={lesson.videoUrl}
-              title={t(lesson.title, lesson.titleEn)}
-              className="w-full h-full"
-              controls
-              preload="metadata"
-            />
-          ) : lesson.videoUrl ? (
-            <iframe
-              src={lesson.videoUrl}
-              title={t(lesson.title, lesson.titleEn)}
-              className="w-full h-full"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-emerald-950/10" />
-              <div className="relative z-10 flex flex-col items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                  <Play size={32} className="text-white ms-1" />
-                </div>
-                <span className="text-sm text-gray-400">
-                  {t(lesson.title, lesson.titleEn)}
-                </span>
+        {(() => {
+          const getEmbedUrl = (url: string): string | null => {
+            if (!url) return null;
+            if (url.endsWith(".mp4")) return null;
+            try {
+              const u = new URL(url);
+              // youtu.be/ID
+              if (u.hostname === "youtu.be" || u.hostname === "www.youtu.be") {
+                const id = u.pathname.split("/").filter(Boolean)[0];
+                if (id) return `https://www.youtube.com/embed/${id}`;
+              }
+              // youtube.com
+              if (u.hostname.includes("youtube.com")) {
+                if (u.pathname.startsWith("/embed/")) return url;
+                const v = u.searchParams.get("v");
+                if (v) return `https://www.youtube.com/embed/${v}`;
+                // /shorts/ID or /v/ID
+                const parts = u.pathname.split("/").filter(Boolean);
+                if (parts.length >= 2 && (parts[0] === "shorts" || parts[0] === "v")) {
+                  return `https://www.youtube.com/embed/${parts[1]}`;
+                }
+              }
+              return url;
+            } catch {
+              return url;
+            }
+          };
+          const embedUrl = lesson.videoUrl ? getEmbedUrl(lesson.videoUrl) : null;
+          const isMp4 = lesson.videoUrl?.endsWith(".mp4");
+          // Derive watch URL for "Open on YouTube" link
+          const getWatchUrl = (url: string): string => {
+            if (!url) return url;
+            try {
+              const u = new URL(url);
+              if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/embed/")) {
+                const id = u.pathname.split("/")[2];
+                return `https://www.youtube.com/watch?v=${id}`;
+              }
+              if (u.hostname === "youtu.be" || u.hostname === "www.youtu.be") {
+                const id = u.pathname.split("/").filter(Boolean)[0];
+                return `https://www.youtube.com/watch?v=${id}`;
+              }
+              return url;
+            } catch { return url; }
+          };
+          return (
+            <>
+              <div className="aspect-video bg-gray-900 dark:bg-gray-950 rounded-2xl overflow-hidden mb-8 border border-gray-800">
+                {isMp4 ? (
+                  <video
+                    src={lesson.videoUrl}
+                    title={t(lesson.title, lesson.titleEn)}
+                    className="w-full h-full"
+                    controls
+                    preload="metadata"
+                  />
+                ) : embedUrl ? (
+                  <iframe
+                    src={embedUrl}
+                    title={t(lesson.title, lesson.titleEn)}
+                    className="w-full h-full"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 to-emerald-950/10" />
+                    <div className="relative z-10 flex flex-col items-center gap-4 p-6 text-center">
+                      <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                        <Play size={32} className="text-white ms-1" />
+                      </div>
+                      <span className="text-sm text-gray-400">
+                        {t(lesson.title, lesson.titleEn)}
+                      </span>
+                      <span className="text-xs text-gray-500">{t("لا يوجد فيديو لهذا الدرس بعد", "No video available for this lesson yet")}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
-        {lesson.videoUrl && !lesson.videoUrl.endsWith(".mp4") && (
-          <p className="-mt-4 mb-8 text-sm text-gray-500 dark:text-gray-400">
-            {t("إذا لم يعمل التشغيل داخل الصفحة، افتح الفيديو مباشرة على YouTube.", "If playback does not work here, open the video directly on YouTube.")} {" "}
-            <a
-              href="https://www.youtube.com/watch?v=IpzTN7zf6uw"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-emerald-700 dark:text-emerald-400 hover:underline"
-            >
-              {t("فتح الفيديو", "Open video")}
-            </a>
-          </p>
-        )}
+              {embedUrl && (
+                <p className="-mt-4 mb-8 text-sm text-gray-500 dark:text-gray-400">
+                  {t("إذا لم يعمل التشغيل داخل الصفحة، افتح الفيديو مباشرة على YouTube.", "If playback does not work here, open the video directly on YouTube.")} {" "}
+                  <a
+                    href={getWatchUrl(lesson.videoUrl!)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-700 dark:text-emerald-400 hover:underline"
+                  >
+                    {t("فتح الفيديو", "Open video")}
+                  </a>
+                </p>
+              )}
+            </>
+          );
+        })()}
 
         {/* Lesson Info */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8 mb-6">
@@ -186,10 +254,10 @@ export default function LessonPage({
                     "Test your knowledge with this short quiz. It contains multiple choice questions to assess your understanding of the study material."
                   )}
                 </p>
-                <button className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors">
+                <Link href="/exams" className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors">
                   <HelpCircle size={18} />
                   {t("ابدأ الاختبار", "Start Quiz")}
-                </button>
+                </Link>
               </div>
             )}
           </div>

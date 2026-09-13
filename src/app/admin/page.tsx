@@ -7,7 +7,7 @@ import { BookPlus, Film, ImagePlus, ListPlus, ShieldCheck, Trash2, Users, X, Lib
 import { useLang } from "@/lib/lang-context";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
-type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; coverImageUrl: string | null; lessons: AdminLesson[] };
+type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; coverImageUrl: string | null; categoryId: string | null; lessons: AdminLesson[] };
 type Subscriber = { id: string; fullName: string; email: string; authProvider: string; role: string; status: string; createdAt: string; _count: { courseProgress: number; certificates: number } };
 type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
@@ -52,7 +52,9 @@ export default function AdminPage() {
   const [certSearch, setCertSearch] = useState("");
   const [message, setMessage] = useState("");
   const [userSearch, setUserSearch] = useState("");
-  const [courseForm, setCourseForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "" });
+  const [courseForm, setCourseForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
+  const [editingCourseId, setEditingCourseId] = useState("");
+  const [courseDraft, setCourseDraft] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
   const [quizForm, setQuizForm] = useState({ question: "", options: "", correctIndex: "0" });
   const [exams, setExams] = useState<AdminExam[]>([]);
@@ -409,9 +411,45 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const coverImageUrl = courseImage ? await uploadFile(courseImage, "image") : courseForm.coverImageUrl;
-      await submit(event, "/api/admin/courses", { ...courseForm, coverImageUrl }, t("تمت إضافة الدورة", "Course added"));
-      setCourseImage(null);
+      const payload = { ...courseForm, coverImageUrl, categoryId: courseForm.categoryId || null };
+      if (editingCourseId) {
+        const response = await fetch(`/api/admin/courses/${editingCourseId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => null);
+        setMessage(response.ok ? t("تم تحديث الدورة", "Course updated") : (result?.error ?? t("تعذر تحديث الدورة", "Could not update course")));
+        if (response.ok) {
+          setEditingCourseId("");
+          setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
+          setCourseImage(null);
+          await loadCourses();
+        }
+      } else {
+        await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
+        setCourseImage(null);
+        setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
+      }
     } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image")); }
+  };
+
+  const startEditCourse = (course: Course) => {
+    setEditingCourseId(course.id);
+    setCourseForm({
+      titleAr: course.titleAr,
+      titleEn: course.titleEn,
+      shortDescriptionAr: course.shortDescriptionAr ?? "",
+      coverImageUrl: course.coverImageUrl ?? "",
+      categoryId: course.categoryId ?? "",
+    });
+    setCourseDraft({
+      titleAr: course.titleAr,
+      titleEn: course.titleEn,
+      shortDescriptionAr: course.shortDescriptionAr ?? "",
+      coverImageUrl: course.coverImageUrl ?? "",
+      categoryId: course.categoryId ?? "",
+    });
   };
 
   const submitLesson = async (event: FormEvent) => {
@@ -453,13 +491,20 @@ export default function AdminPage() {
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           <form onSubmit={submitCourse} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
-            <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><BookPlus size={18} />{t("إضافة دورة", "Add course")}</h2>
+            <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><BookPlus size={18} />{editingCourseId ? t("تعديل دورة", "Edit course") : t("إضافة دورة", "Add course")}</h2>
             <input required placeholder={t("العنوان بالعربية", "Arabic title")} value={courseForm.titleAr} onChange={(e) => setCourseForm({ ...courseForm, titleAr: e.target.value })} className="admin-input" />
             <input placeholder={t("العنوان بالإنجليزية", "English title")} value={courseForm.titleEn} onChange={(e) => setCourseForm({ ...courseForm, titleEn: e.target.value })} className="admin-input" />
             <input placeholder={t("الوصف", "Description")} value={courseForm.shortDescriptionAr} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionAr: e.target.value })} className="admin-input" />
+            <select value={courseForm.categoryId} onChange={(e) => setCourseForm({ ...courseForm, categoryId: e.target.value })} className="admin-input">
+              <option value="">{t("اختر المسار / التصنيف", "Select path / category")}</option>
+              {categories.map((cat) => <option key={cat.id} value={cat.id}>{t(cat.nameAr, cat.nameEn)}</option>)}
+            </select>
             <input placeholder={t("مسار الصورة", "Image path")} value={courseForm.coverImageUrl} onChange={(e) => setCourseForm({ ...courseForm, coverImageUrl: e.target.value })} className="admin-input" />
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
-            <button className="admin-button"><ImagePlus size={16} />{t("حفظ الدورة", "Save course")}</button>
+            <div className="flex gap-2">
+              <button className="admin-button flex-1"><ImagePlus size={16} />{editingCourseId ? t("تحديث الدورة", "Update course") : t("حفظ الدورة", "Save course")}</button>
+              {editingCourseId && <button type="button" onClick={() => { setEditingCourseId(""); setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" }); setCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>}
+            </div>
           </form>
 
           <form onSubmit={submitLesson} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
@@ -764,7 +809,7 @@ export default function AdminPage() {
 
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
           <h2 className="font-bold text-gray-900 dark:text-white mb-4">{t("الدورات الحالية", "Current courses")}</h2>
-          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")}</span></div><button type="button" onClick={() => deleteCourse(course)} className="shrink-0 p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={16} /></button></div>)}</div>
+          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")}</span></div><div className="flex items-center gap-1 shrink-0"><button type="button" onClick={() => startEditCourse(course)} className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={16} /></button><button type="button" onClick={() => deleteCourse(course)} className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={16} /></button></div></div>)}</div>
         </div>
 
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">

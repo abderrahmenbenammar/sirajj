@@ -11,10 +11,14 @@ import { ArrowLeft, ArrowRight, BookOpen, FileText, Search, Mic, Sparkles, Gradu
 export default function HomePage() {
   const { t, lang } = useLang();
   const [featuredCourses, setFeaturedCourses] = useState<ApiCourse[]>([]);
+  const [totalCourses, setTotalCourses] = useState(0);
   const [libraryCounts, setLibraryCounts] = useState({ book: 0, article: 0, research: 0, lecture: 0 });
 
   useEffect(() => {
-    fetchCourses().then((data) => setFeaturedCourses(data.slice(0, 4)));
+    fetchCourses().then((data) => {
+      setTotalCourses(data.length);
+      setFeaturedCourses(data.slice(0, 4));
+    });
   }, []);
 
   useEffect(() => {
@@ -97,9 +101,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: "12+", label: t("دورة تعليمية", "Courses"), icon: <GraduationCap size={22} /> },
-              { value: "12+", label: t("كتاب مرجع", "Reference Books"), icon: <BookOpen size={22} /> },
-              { value: "5+", label: t("باحث ومعلم", "Scholars & Teachers"), icon: <Users size={22} /> },
+              { value: String(totalCourses), label: t("دورة تعليمية", "Courses"), icon: <GraduationCap size={22} /> },
+              { value: String(libraryCounts.book + libraryCounts.article + libraryCounts.research + libraryCounts.lecture), label: t("عنصر بالمكتبة", "Library Items"), icon: <BookOpen size={22} /> },
+              { value: "—", label: t("باحث ومعلم", "Scholars & Teachers"), icon: <Users size={22} /> },
               { value: "2", label: t("لغة مدعومة", "Supported Languages"), icon: <Globe size={22} /> },
             ].map((stat, i) => (
               <div key={i} className="text-center">

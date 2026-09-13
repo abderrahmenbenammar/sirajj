@@ -18,7 +18,7 @@ export async function GET() {
     instructorEn: course.instructor?.nameEn ?? "",
     description: course.shortDescriptionAr ?? "",
     descriptionEn: course.shortDescriptionEn ?? "",
-    image: course.coverImageUrl ?? "/courses/aqeedah.jpg",
+    image: course.coverImageUrl ?? "",
     // v2 schema has no level field; kept as empty for UI compatibility.
     level: "",
     levelEn: "",

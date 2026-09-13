@@ -9,15 +9,23 @@ export default function CourseCard({ course, locked = false }: { course: ApiCour
   const { t } = useLang();
   const progress = 0;
 
+  const hasImage = Boolean(course.image);
   const card = (
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/20 hover:border-gray-300 dark:hover:border-gray-700 hover:-translate-y-0.5">
         {/* Image */}
         <div className="relative aspect-[16/10] bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30 overflow-hidden">
-          <img
-            src={course.image}
-            alt={t(course.title, course.titleEn)}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          {hasImage ? (
+            <img
+              src={course.image}
+              alt={t(course.title, course.titleEn)}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-4xl font-bold text-emerald-700/20 dark:text-emerald-400/20" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>{t(course.title, course.titleEn).charAt(0)}</span>
+            </div>
+          )}
           {/* Level badge */}
           <div className="absolute top-3 end-3">
             <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/90 dark:bg-gray-900/90 text-emerald-700 dark:text-emerald-400 backdrop-blur-sm">

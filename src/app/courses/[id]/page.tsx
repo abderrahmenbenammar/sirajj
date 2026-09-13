@@ -21,9 +21,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [certState, setCertState] = useState<CourseCertificateState | null>(null);
   const [issuing, setIssuing] = useState(false);
   const [issueError, setIssueError] = useState("");
+  const [loadingCourse, setLoadingCourse] = useState(true);
 
   useEffect(() => {
-    fetchCourse(id).then(setCourse);
+    setLoadingCourse(true);
+    fetchCourse(id).then((data) => {
+      setCourse(data);
+      setLoadingCourse(false);
+    });
     fetch(`/api/exams?courseId=${id}`)
       .then((response) => (response.ok ? response.json() : []))
       .then((data: unknown) => setExams(Array.isArray(data) ? (data as ExamListItem[]) : []))
@@ -49,6 +54,26 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       setIssuing(false);
     }
   };
+
+  if (loadingCourse) {
+    return (
+      <div className="py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+            <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-4">
+                <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+              </div>
+              <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!course) {
     return (
@@ -87,12 +112,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <span className="text-gray-900 dark:text-white">{t(course.title, course.titleEn)}</span>
         </div>
 
-        <div className="relative w-full h-48 sm:h-auto sm:aspect-[16/5] overflow-hidden rounded-2xl mb-8 border border-gray-200/60 dark:border-gray-800/60">
-          <img
-            src={course.image}
-            alt={t(course.title, course.titleEn)}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+        <div className="relative w-full h-48 sm:h-auto sm:aspect-[16/5] overflow-hidden rounded-2xl mb-8 border border-gray-200/60 dark:border-gray-800/60 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30">
+          {course.image ? (
+            <img
+              src={course.image}
+              alt={t(course.title, course.titleEn)}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
           <h1 className="absolute bottom-6 start-6 end-6 text-2xl sm:text-3xl font-bold text-white drop-shadow-md">
             {t(course.title, course.titleEn)}
