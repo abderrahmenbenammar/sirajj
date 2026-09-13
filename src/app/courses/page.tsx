@@ -2,7 +2,7 @@
 
 import { useLang } from "@/lib/lang-context";
 import CourseCard from "@/components/courses/CourseCard";
-import type { Course } from "@/lib/mock-data";
+import { fetchCourses, type ApiCourse } from "@/lib/courses-api";
 import { useEffect, useState } from "react";
 import { Search, Filter } from "lucide-react";
 
@@ -11,10 +11,10 @@ export default function CoursesPage() {
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState("all");
   const [category, setCategory] = useState("all");
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<ApiCourse[]>([]);
 
   useEffect(() => {
-    fetch("/api/courses").then((response) => response.json()).then(setCourses);
+    fetchCourses().then(setCourses);
   }, []);
 
   const levels = [

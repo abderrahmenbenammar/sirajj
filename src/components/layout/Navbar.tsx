@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X, Search, Sun, Moon, User, LogOut, ShieldCheck } from "lucide-react";
 
 export default function Navbar() {
@@ -18,6 +18,31 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [apiCourses, setApiCourses] = useState<{ id: string; title: string; titleEn: string }[]>([]);
+  const [apiLibrary, setApiLibrary] = useState<{ id: string; titleAr: string; titleEn: string; type: string }[]>([]);
+
+  // Real data for search suggestions (PostgreSQL via public APIs).
+  useEffect(() => {
+    if (!searchOpen) return;
+    if (apiCourses.length === 0) {
+      fetch("/api/courses")
+        .then((response) => (response.ok ? response.json() : []))
+        .then((data: unknown) => {
+          if (Array.isArray(data)) setApiCourses(data as { id: string; title: string; titleEn: string }[]);
+        })
+        .catch(() => undefined);
+    }
+    fetch("/api/library?take=5")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: unknown) => {
+        const items =
+          typeof data === "object" && data !== null && Array.isArray((data as { items?: unknown }).items)
+            ? ((data as { items: unknown }).items as { id: string; titleAr: string; titleEn: string; type: string }[])
+            : [];
+        setApiLibrary(items);
+      })
+      .catch(() => undefined);
+  }, [searchOpen, apiCourses.length]);
 
   const navLinks = [
     { href: "/", label: t("الرئيسية", "Home") },
@@ -28,12 +53,17 @@ export default function Navbar() {
     { href: "/contact", label: t("اتصل بنا", "Contact") },
   ];
 
-  const searchResults = searchQuery.length > 1 ? [
-    { type: t("دورة", "Course"), title: t("شرح الأصول الثلاثة", "Explanation of The Three Fundamental Principles"), href: "/courses/aqeedah-101" },
-    { type: t("كتاب", "Book"), title: t("العقيدة الواسطية", "The Wasseetiyyah Creed"), href: "/library/b1" },
-    { type: t("دورة", "Course"), title: t("أصول الفقه للمبتدئين", "Principles of Islamic Jurisprudence"), href: "/courses/usool-fiqh-101" },
-    { type: t("مقال", "Article"), title: t("أهمية العلم الشرعي", "The Importance of Religious Knowledge"), href: "/library/a1" },
-  ].filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase())) : [];
+  const courseResults = searchQuery.length > 1 ? apiCourses
+    .filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.titleEn.toLowerCase().includes(searchQuery.toLowerCase()))
+    .slice(0, 5)
+    .map((c) => ({ type: t("دورة", "Course"), title: t(c.title, c.titleEn), href: `/courses/${c.id}` })) : [];
+
+  const libraryResults = searchQuery.length > 1 ? apiLibrary
+    .filter((item) => item.titleAr.toLowerCase().includes(searchQuery.toLowerCase()) || item.titleEn.toLowerCase().includes(searchQuery.toLowerCase()))
+    .slice(0, 5)
+    .map((item) => ({ type: t("مكتبة", "Library"), title: t(item.titleAr, item.titleEn), href: `/library/${item.id}` })) : [];
+
+  const searchResults = [...courseResults, ...libraryResults].filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <>

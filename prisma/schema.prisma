@@ -1,124 +1,376 @@
+// SIRAJ v2 — Prisma schema (PostgreSQL / Supabase)
+// المرجع المجمّد: DDL v2. أي انحراف عنه موثق في ملاحظات التسليم.
+// ما لا يعبّر عنه Prisma (أعمدة tsvector المولّدة، فهارس GIN/trgm، الفهارس
+// الجزئية، قيود CHECK، triggers) مضمّن داخل
+// prisma/migrations/0001_siraj_v2_init/migration.sql
+// (ومرآته المرجعية: prisma/sql/siraj_complement.sql).
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id           String         @id @default(cuid())
-  name         String
-  email        String         @unique
-  passwordHash String
-  emailVerified DateTime?
-  role         UserRole       @default(STUDENT)
-  createdAt    DateTime       @default(now())
-  enrollments  Enrollment[]
-  progress     LessonProgress[]
-  tokens       AuthToken[]
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fullName          String   @map("full_name")
+  email             String   @unique(map: "users_email_key") @db.Citext
+  passwordHash      String?  @map("password_hash")
+  authProvider      String   @default("email") @map("auth_provider")
+  role              String   @default("STUDENT") @map("role")
+  status            String   @default("ACTIVE") @map("status")
+  avatarUrl         String?  @map("avatar_url")
+  preferredLanguage String   @default("ar") @map("preferred_language")
+  themePreference   String   @default("light") @map("theme_preference")
+  profileVisibility String   @default("public") @map("profile_visibility")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  examAttempts      ExamAttempt[]
+  certificates      Certificate[]
+  courseProgress    StudentCourseProgress[]
+  lessonCompletions LessonCompletion[]
+  sessions          UserSession[]
+  resetTokens       PasswordResetToken[]
+
+  @@map("users")
 }
 
-model AuthToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  type      AuthTokenType
-  expiresAt DateTime
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Instructor {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nameAr     String   @map("name_ar")
+  nameEn     String   @map("name_en")
+  shortBioAr String?  @map("short_bio_ar")
+  shortBioEn String?  @map("short_bio_en")
+  photoUrl   String?  @map("photo_url")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@index([userId, type])
+  courses Course[]
+
+  @@map("instructors")
+}
+
+model Category {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nameAr    String   @map("name_ar")
+  nameEn    String   @map("name_en")
+  slug      String   @unique(map: "categories_slug_key")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  courses      Course[]
+  libraryItems LibraryItem[]
+
+  @@map("categories")
 }
 
 model Course {
-  id          String       @id @default(cuid())
-  slug        String       @unique
-  title       String
-  description String?
-  level       CourseLevel
-  image       String?
-  createdAt   DateTime     @default(now())
-  lessons     Lesson[]
-  enrollments Enrollment[]
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  titleAr            String      @map("title_ar")
+  titleEn            String      @map("title_en")
+  shortDescriptionAr String?     @map("short_description_ar")
+  shortDescriptionEn String?     @map("short_description_en")
+  curriculumAr       String?     @map("curriculum_ar")
+  curriculumEn       String?     @map("curriculum_en")
+  instructorId       String?     @map("instructor_id") @db.Uuid
+  instructor         Instructor? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
+  categoryId         String?     @map("category_id") @db.Uuid
+  category           Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  coverImageUrl      String?     @map("cover_image_url")
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lessons      Lesson[]
+  resources    CourseResource[]
+  exams        Exam[]
+  certificates Certificate[]
+  progress     StudentCourseProgress[]
+
+  @@index([instructorId], map: "idx_courses_instructor_id")
+  @@index([categoryId], map: "idx_courses_category_id")
+  @@map("courses")
 }
 
 model Lesson {
-  id          String         @id @default(cuid())
-  courseId    String
-  title       String
-  position    Int
-  videoUrl    String?
-  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress    LessonProgress[]
-  quizzes     QuizQuestion[]
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId    String   @map("course_id") @db.Uuid
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  titleAr     String   @map("title_ar")
+  titleEn     String   @map("title_en")
+  orderIndex  Int      @default(0) @map("order_index")
+  videoUrl    String   @map("video_url")
+  subtitleUrl String?  @map("subtitle_url")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([courseId, position])
+  completions LessonCompletion[]
+
+  @@unique([courseId, orderIndex], map: "lessons_course_id_order_index_key")
+  @@index([courseId], map: "idx_lessons_course_id")
+  @@index([courseId, orderIndex], map: "idx_lessons_course_order")
+  @@map("lessons")
 }
 
-model QuizQuestion {
-  id          String   @id @default(cuid())
-  lessonId    String
-  question    String
-  options     String
-  correctIndex Int
-  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+model CourseResource {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId     String   @map("course_id") @db.Uuid
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  titleAr      String   @map("title_ar")
+  titleEn      String   @map("title_en")
+  fileUrl      String   @map("file_url")
+  resourceType String   @map("resource_type")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([courseId], map: "idx_course_resources_course_id")
+  @@map("course_resources")
 }
 
 model LibraryItem {
-  id          String      @id @default(cuid())
-  type        LibraryType
-  title       String
-  author      String?
-  category    String?
-  description String?
-  content     String?
-  mediaUrl    String?
-  createdAt   DateTime    @default(now())
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type          String
+  titleAr       String    @map("title_ar")
+  titleEn       String    @map("title_en")
+  authorName    String?   @map("author_name")
+  descriptionAr String?   @map("description_ar")
+  descriptionEn String?   @map("description_en")
+  contentUrl    String    @map("content_url")
+  categoryId    String?   @map("category_id") @db.Uuid
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  coverImageUrl String?   @map("cover_image_url")
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([categoryId], map: "idx_library_items_category_id")
+  @@index([type], map: "idx_library_items_type")
+  @@index([publishedAt(sort: Desc)], map: "idx_library_items_published")
+  @@map("library_items")
 }
 
-model Enrollment {
-  id        String   @id @default(cuid())
-  userId    String
-  courseId  String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+model Exam {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId               String   @map("course_id") @db.Uuid
+  course                 Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  titleAr                String   @map("title_ar")
+  titleEn                String   @map("title_en")
+  passingScorePercentage Int      @default(60) @map("passing_score_percentage")
+  maxAttempts            Int      @default(3) @map("max_attempts")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([userId, courseId])
+  questions ExamQuestion[]
+  attempts  ExamAttempt[]
+
+  @@index([courseId], map: "idx_exams_course_id")
+  @@map("exams")
 }
 
-model LessonProgress {
-  id          String   @id @default(cuid())
-  userId      String
-  lessonId    String
-  completed   Boolean  @default(false)
-  completedAt DateTime?
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model ExamQuestion {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  examId         String   @map("exam_id") @db.Uuid
+  exam           Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionTextAr String   @map("question_text_ar")
+  questionTextEn String   @map("question_text_en")
+  orderIndex     Int      @default(0) @map("order_index")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  options ExamQuestionOption[]
+  answers ExamAttemptAnswer[]
+
+  @@unique([examId, orderIndex], map: "exam_questions_exam_id_order_index_key")
+  @@index([examId], map: "idx_exam_questions_exam_id")
+  @@map("exam_questions")
+}
+
+model ExamQuestionOption {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  questionId   String       @map("question_id") @db.Uuid
+  question     ExamQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionTextAr String       @map("option_text_ar")
+  optionTextEn String       @map("option_text_en")
+  isCorrect    Boolean      @default(false) @map("is_correct")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  selectedInAnswers ExamAttemptAnswer[]
+
+  @@index([questionId], map: "idx_exam_options_question_id")
+  @@map("exam_question_options")
+}
+
+model ExamAttempt {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  examId          String    @map("exam_id") @db.Uuid
+  exam            Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId       String    @map("student_id") @db.Uuid
+  student         User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attemptNumber   Int       @map("attempt_number")
+  score           Decimal   @default(0) @db.Decimal(6, 2)
+  scorePercentage Decimal   @default(0) @map("score_percentage") @db.Decimal(5, 2)
+  status          String    @default("in_progress")
+  startedAt       DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  submittedAt     DateTime? @map("submitted_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  answers ExamAttemptAnswer[]
+
+  @@unique([examId, studentId, attemptNumber], map: "exam_attempts_exam_id_student_id_attempt_number_key")
+  @@index([examId], map: "idx_attempts_exam_id")
+  @@index([studentId], map: "idx_attempts_student_id")
+  @@index([examId, studentId], map: "idx_attempts_exam_student")
+  @@map("exam_attempts")
+}
+
+model ExamAttemptAnswer {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attemptId        String             @map("attempt_id") @db.Uuid
+  attempt          ExamAttempt        @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String             @map("question_id") @db.Uuid
+  question         ExamQuestion       @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  selectedOptionId String             @map("selected_option_id") @db.Uuid
+  selectedOption   ExamQuestionOption @relation(fields: [selectedOptionId], references: [id], onDelete: Restrict)
+  isCorrect        Boolean            @default(false) @map("is_correct")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([attemptId, questionId], map: "exam_attempt_answers_attempt_id_question_id_key")
+  @@index([attemptId], map: "idx_attempt_answers_attempt_id")
+  @@index([questionId], map: "idx_attempt_answers_question_id")
+  @@map("exam_attempt_answers")
+}
+
+model Certificate {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId       String   @map("student_id") @db.Uuid
+  student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId        String   @map("course_id") @db.Uuid
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  certificateCode String   @unique(map: "certificates_certificate_code_key") @map("certificate_code")
+  issueDate       DateTime @default(dbgenerated("CURRENT_DATE")) @map("issue_date") @db.Date
+  pdfUrl          String?  @map("pdf_url")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([studentId, courseId], map: "certificates_student_id_course_id_key")
+  @@index([studentId], map: "idx_certificates_student_id")
+  @@index([courseId], map: "idx_certificates_course_id")
+  @@map("certificates")
+}
+
+model StudentCourseProgress {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId            String    @map("student_id") @db.Uuid
+  student              User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId             String    @map("course_id") @db.Uuid
+  course               Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  completionPercentage Decimal   @default(0) @map("completion_percentage") @db.Decimal(5, 2)
+  status               String    @default("in_progress")
+  startedAt            DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt          DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([studentId, courseId], map: "student_course_progress_student_id_course_id_key")
+  @@index([studentId], map: "idx_progress_student_id")
+  @@index([courseId], map: "idx_progress_course_id")
+  @@index([status], map: "idx_progress_status")
+  @@map("student_course_progress")
+}
+
+model LessonCompletion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId   String   @map("student_id") @db.Uuid
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lessonId    String   @map("lesson_id") @db.Uuid
   lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([userId, lessonId])
+  @@unique([studentId, lessonId], map: "lesson_completions_student_id_lesson_id_key")
+  @@index([studentId], map: "idx_lesson_completions_student")
+  @@index([lessonId], map: "idx_lesson_completions_lesson")
+  @@map("lesson_completions")
 }
 
-enum CourseLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
+model ContactMessage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("new")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_contact_status")
+  @@map("contact_messages")
 }
 
-enum AuthTokenType {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
+model Faq {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  questionAr String   @map("question_ar")
+  questionEn String   @map("question_en")
+  answerAr   String   @map("answer_ar")
+  answerEn   String   @map("answer_en")
+  category   String   @default("general")
+  orderIndex Int      @default(0) @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([category, orderIndex], map: "idx_faqs_category_order")
+  @@map("faqs")
 }
 
-enum UserRole {
-  STUDENT
-  ADMIN
+model UserSession {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceInfo       String?  @map("device_info")
+  ipAddress        String?  @map("ip_address") @db.Inet
+  /// SHA-256 hash of the opaque refresh token only. Never store the raw token.
+  refreshTokenHash String   @unique(map: "user_sessions_refresh_token_hash_key") @map("refresh_token_hash")
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  lastActiveAt     DateTime @default(now()) @map("last_active_at") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([userId], map: "idx_sessions_user_id")
+  @@index([userId, lastActiveAt(sort: Desc)], map: "idx_sessions_last_active")
+  @@index([expiresAt], map: "idx_sessions_expires_at")
+  @@map("user_sessions")
 }
 
-enum LibraryType {
-  BOOK
-  ARTICLE
-  RESEARCH
-  LECTURE
+model PasswordResetToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 hash of the random reset token only. Raw token is sent to the
+  /// user and never stored in the DB or logs. Single-use via `used`.
+  token     String   @unique(map: "password_reset_tokens_token_key")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([userId], map: "idx_reset_tokens_user_id")
+  @@map("password_reset_tokens")
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique(map: "newsletter_subscribers_email_key") @db.Citext
+  subscribedAt DateTime @default(now()) @map("subscribed_at") @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("newsletter_subscribers")
 }

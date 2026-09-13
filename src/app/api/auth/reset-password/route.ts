@@ -10,12 +10,12 @@ export async function POST(request: Request) {
   }
 
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-  const authToken = await prisma.authToken.findFirst({ where: { token: tokenHash, type: "PASSWORD_RESET", expiresAt: { gt: new Date() } } });
-  if (!authToken) return NextResponse.json({ error: "الرابط غير صالح أو منتهي" }, { status: 400 });
+  const resetToken = await prisma.passwordResetToken.findFirst({ where: { token: tokenHash, used: false, expiresAt: { gt: new Date() } } });
+  if (!resetToken) return NextResponse.json({ error: "الرابط غير صالح أو منتهي" }, { status: 400 });
 
   await prisma.$transaction([
-    prisma.user.update({ where: { id: authToken.userId }, data: { passwordHash: await bcrypt.hash(password, 12) } }),
-    prisma.authToken.delete({ where: { id: authToken.id } }),
+    prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash: await bcrypt.hash(password, 12) } }),
+    prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { used: true } }),
   ]);
   return NextResponse.json({ success: true });
 }

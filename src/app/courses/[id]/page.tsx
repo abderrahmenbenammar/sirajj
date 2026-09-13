@@ -2,19 +2,53 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
-import type { Course } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
+import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
+import { type ExamListItem } from "@/lib/exams-api";
+import { fetchCourseCertificate, issueCertificate, type CourseCertificateState } from "@/lib/certificates-api";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, CheckCircle, PlayCircle, FileText, HelpCircle } from "lucide-react";
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t, lang } = useLang();
-  const [course, setCourse] = useState<Course | null>(null);
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [course, setCourse] = useState<ApiCourse | null>(null);
+  const [exams, setExams] = useState<ExamListItem[]>([]);
+  const [certState, setCertState] = useState<CourseCertificateState | null>(null);
+  const [issuing, setIssuing] = useState(false);
+  const [issueError, setIssueError] = useState("");
 
   useEffect(() => {
-    fetch(`/api/courses/${id}`).then((response) => response.ok ? response.json() : null).then(setCourse);
-  }, [id]);
+    fetchCourse(id).then(setCourse);
+    fetch(`/api/exams?courseId=${id}`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: unknown) => setExams(Array.isArray(data) ? (data as ExamListItem[]) : []))
+      .catch(() => undefined);
+    if (isAuthenticated) {
+      fetchCourseCertificate(id)
+        .then(setCertState)
+        .catch(() => undefined);
+    } else {
+      setCertState(null);
+    }
+  }, [id, isAuthenticated]);
+
+  const requestCertificate = async () => {
+    setIssuing(true);
+    setIssueError("");
+    try {
+      const certificate = await issueCertificate(id);
+      router.push(`/certificates/${certificate.id}`);
+    } catch {
+      setIssueError(t("لا تستوفي شروط الشهادة بعد", "Certificate requirements not met yet"));
+    } finally {
+      setIssuing(false);
+    }
+  };
 
   if (!course) {
     return (
@@ -30,6 +64,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   }
 
   const progress = course.progress || 0;
+  const doneSet = new Set(course.completedLessonIds ?? []);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -119,7 +154,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         {t(item.title, item.titleEn)}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400">{item.duration}</span>
+                      <span className="text-xs text-gray-400">{item.duration}</span>
+                      {doneSet.has(item.id) && (
+                        <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
+                          {t("مكتمل", "Done")}
+                        </span>
+                      )}
                   </Link>
                 ))}
               </div>
@@ -141,6 +181,66 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
+            {/* Exams */}
+            {exams.length > 0 && (
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  {t("اختبارات الدورة", "Course Exams")}
+                </h2>
+                <div className="space-y-2">
+                  {exams.map((exam) => (
+                    <Link
+                      key={exam.id}
+                      href={`/exams/${exam.id}`}
+                      className="flex items-center justify-between gap-3 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                    >
+                      <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                        {t(exam.titleAr, exam.titleEn)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {exam.questionCount} {t("أسئلة", "questions")}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Certificate */}
+            {isAuthenticated && certState && (
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  {t("شهادة الإتمام", "Completion Certificate")}
+                </h2>
+                {certState.certificate ? (
+                  <Link
+                    href={`/certificates/${certState.certificate.id}`}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors"
+                  >
+                    {t("عرض شهادتك", "View your certificate")} · {certState.certificate.certificateCode}
+                  </Link>
+                ) : certState.eligible ? (
+                  <div>
+                    <button
+                      onClick={requestCertificate}
+                      disabled={issuing}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+                    >
+                      {issuing ? t("جارٍ الإصدار...", "Issuing...") : t("احصل على شهادتك", "Get your certificate")}
+                    </button>
+                    {issueError && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{issueError}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t(
+                      `أكمل الدروس (${certState.doneLessons}/${certState.totalLessons}) واجتز اختبار الدورة للحصول على الشهادة`,
+                      `Complete the lessons (${certState.doneLessons}/${certState.totalLessons}) and pass a course exam to earn the certificate`
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
           {/* Sidebar */}
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sticky top-24">
@@ -156,12 +256,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
 
-              <Link
-                href={`/courses/${course.id}/lessons/${course.curriculum[0]?.id || "c1"}`}
-                className="block w-full text-center py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20 mb-3"
-              >
-                {progress > 0 ? t("متابعة التعلم", "Continue Learning") : t("ابدأ الدورة", "Start Course")}
-              </Link>
+              {course.curriculum.length > 0 && (
+                <Link
+                  href={`/courses/${course.id}/lessons/${course.curriculum[0].id}`}
+                  className="block w-full text-center py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20 mb-3"
+                >
+                  {progress > 0 ? t("متابعة التعلم", "Continue Learning") : t("ابدأ الدورة", "Start Course")}
+                </Link>
+              )}
 
               <div className="space-y-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex items-center justify-between text-sm">

@@ -9,13 +9,27 @@ export default function Footer() {
   const { t } = useLang();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribeError, setSubscribeError] = useState("");
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
+    if (!email.trim()) return;
+    setSubscribeError("");
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body && typeof body.error === "string" ? body.error : "subscribe-failed");
+      }
       setSubscribed(true);
       setEmail("");
       setTimeout(() => setSubscribed(false), 3000);
+    } catch (err) {
+      setSubscribeError(err instanceof Error ? err.message : "subscribe-failed");
     }
   };
 
@@ -44,6 +58,9 @@ export default function Footer() {
                 {subscribed ? t("تم ✓", "Done ✓") : t("اشتراك", "Subscribe")}
               </button>
             </form>
+            {subscribeError && (
+              <p className="text-xs text-red-400 mt-2">{subscribeError}</p>
+            )}
           </div>
         </div>
       </div>

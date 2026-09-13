@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET,
+  // Required for self-hosted production (next start): otherwise Auth.js
+  // rejects every /api/auth/* request with UntrustedHost.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: { signIn: "/auth/login" },
   providers: [
@@ -18,12 +21,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(credentials?.password ?? "");
         const user = await prisma.user.findUnique({ where: { email } });
 
-        if (!user || !user.emailVerified || !(await bcrypt.compare(password, user.passwordHash))) {
+        // OAuth accounts have no passwordHash and cannot use credentials login.
+        // DISABLED accounts cannot log in at all. Role comes from the database.
+        if (!user || !user.passwordHash || user.status !== "ACTIVE" || !(await bcrypt.compare(password, user.passwordHash))) {
           return null;
         }
 
-        const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((value) => value.trim().toLowerCase());
-        return { id: user.id, name: user.name, email: user.email, role: adminEmails.includes(user.email) ? "ADMIN" : user.role };
+        return { id: user.id, name: user.fullName, email: user.email, role: user.role };
       },
     }),
   ],
@@ -55,4 +59,3 @@ declare module "next-auth" {
     user: { id: string; name?: string | null; email?: string | null; image?: string | null; role?: string };
   }
 }
-

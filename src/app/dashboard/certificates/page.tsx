@@ -3,12 +3,35 @@
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
-import { studentData } from "@/lib/mock-data";
-import { Award, Download, Calendar, User, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Award, Calendar, User, ArrowLeft, BadgeCheck } from "lucide-react";
+
+interface CertificateItem {
+  id: string;
+  certificateCode: string;
+  issueDate: string;
+  pdfUrl: string | null;
+  courseTitleAr: string;
+  courseTitleEn: string;
+}
 
 export default function CertificatesPage() {
   const { t } = useLang();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const [certificates, setCertificates] = useState<CertificateItem[]>([]);
+  const [studentName, setStudentName] = useState("");
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/me/overview")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user?: { fullName?: string }; certificates?: CertificateItem[] } | null) => {
+        if (!data) return;
+        setCertificates(Array.isArray(data.certificates) ? data.certificates : []);
+        if (data.user?.fullName) setStudentName(data.user.fullName);
+      })
+      .catch(() => undefined);
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -35,9 +58,9 @@ export default function CertificatesPage() {
           {t("شهادات إتمام الدورات التي حصلت عليها", "Course completion certificates you have earned")}
         </p>
 
-        {studentData.certificates.length > 0 ? (
+        {certificates.length > 0 ? (
           <div className="space-y-6">
-            {studentData.certificates.map((cert) => (
+            {certificates.map((cert) => (
               <div key={cert.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden">
                 {/* Certificate Card */}
                 <div className="relative bg-gradient-to-br from-emerald-50 via-white to-emerald-50 dark:from-emerald-950/20 dark:via-gray-900 dark:to-emerald-950/20 p-8 sm:p-10 border-b border-emerald-100 dark:border-emerald-900/30">
@@ -55,22 +78,26 @@ export default function CertificatesPage() {
 
                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t("تُشهد بأن", "This certifies that")}</p>
                     <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>
-                      {studentData.name}
+                      {studentName || user?.name || ""}
                     </h2>
 
                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t("قد أتم بنجاح دورة", "has successfully completed the course")}</p>
                     <h3 className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400 mb-6">
-                      {t(cert.courseTitle, cert.courseTitleEn)}
+                      {t(cert.courseTitleAr, cert.courseTitleEn)}
                     </h3>
 
                     <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1.5">
                         <User size={14} />
-                        {t(cert.instructor, cert.instructorEn)}
+                        {t("سراج", "Siraj")}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Calendar size={14} />
-                        {cert.completionDate}
+                        {new Date(cert.issueDate).toLocaleDateString("ar")}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <BadgeCheck size={14} />
+                        {cert.certificateCode}
                       </span>
                     </div>
                   </div>
@@ -82,12 +109,21 @@ export default function CertificatesPage() {
                 {/* Actions */}
                 <div className="px-8 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
                   <span className="text-xs text-gray-400">
-                    {t("أُصدرت في", "Issued on")} {cert.completionDate}
+                    {t("رمز التحقق", "Verification code")}: {cert.certificateCode}
                   </span>
-                  <button className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors">
-                    <Download size={14} />
-                    {t("تحميل الشهادة", "Download Certificate")}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/certificates/${cert.id}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 transition-colors"
+                    >
+                      {t("عرض الشهادة", "View certificate")}
+                    </Link>
+                    {cert.pdfUrl ? (
+                    <a href={cert.pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors">
+                      {t("تحميل الشهادة", "Download Certificate")}
+                    </a>
+                  ) : null}
+                  </div>
                 </div>
               </div>
             ))}

@@ -3,14 +3,11 @@
 import { useLang } from "@/lib/lang-context";
 import Link from "next/link";
 import { BookOpen, FileText, Search, Mic } from "lucide-react";
-import type { Book, Article, Research, Lecture } from "@/lib/mock-data";
+import type { ApiLibraryItem } from "@/lib/library-api";
 
-type LibraryItem = { type: string; typeEn: string } & (Book | Article | Research | Lecture);
-
-export default function LibraryCard({ item }: { item: LibraryItem }) {
-  const { t, lang } = useLang();
+export default function LibraryCard({ item }: { item: ApiLibraryItem }) {
+  const { t } = useLang();
   const type = item.type;
-  const typeEn = item.typeEn;
 
   const getIcon = () => {
     switch (type) {
@@ -21,25 +18,6 @@ export default function LibraryCard({ item }: { item: LibraryItem }) {
       default: return <BookOpen size={20} />;
     }
   };
-
-  const getTitle = () => {
-    if ("title" in item) return t(item.title, item.titleEn);
-    return "";
-  };
-
-  const getAuthor = () => {
-    if ("author" in item) return t(item.author, item.authorEn);
-    if ("speaker" in item) return t(item.speaker, item.speakerEn);
-    return "";
-  };
-
-  const getCategory = () => {
-    if ("category" in item) return t(item.category, item.categoryEn);
-    if ("field" in item) return t(item.field, item.fieldEn);
-    return "";
-  };
-
-  const getHref = () => `/library/${item.id}`;
 
   const getColor = () => {
     switch (type) {
@@ -52,7 +30,7 @@ export default function LibraryCard({ item }: { item: LibraryItem }) {
   };
 
   return (
-    <Link href={getHref()} className="group block">
+    <Link href={`/library/${item.id}`} className="group block">
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-black/20 hover:-translate-y-0.5">
         <div className={`h-32 bg-gradient-to-br ${getColor()} flex items-center justify-center relative`}>
           <div className="opacity-40">{getIcon()}</div>
@@ -65,23 +43,14 @@ export default function LibraryCard({ item }: { item: LibraryItem }) {
         </div>
         <div className="p-5">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
-            {getTitle()}
+            {t(item.titleAr, item.titleEn)}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{getAuthor()}</p>
+          {item.authorName && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{item.authorName}</p>}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded">
-              {getCategory()}
-            </span>
-            {"pages" in item && (
-              <span className="text-xs text-gray-400">
-                {item.pages} {t("صفحة", "pages")}
+            {(item.categoryAr || item.categoryEn) && (
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded">
+                {t(item.categoryAr ?? "", item.categoryEn ?? "")}
               </span>
-            )}
-            {"readTime" in item && (
-              <span className="text-xs text-gray-400">{item.readTime}</span>
-            )}
-            {"duration" in item && type === "lecture" && (
-              <span className="text-xs text-gray-400">{(item as Lecture).duration}</span>
             )}
           </div>
         </div>

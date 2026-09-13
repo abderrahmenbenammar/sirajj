@@ -3,7 +3,8 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
-import type { Course } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
+import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle } from "lucide-react";
 
 export default function LessonPage({
@@ -13,10 +14,36 @@ export default function LessonPage({
 }) {
   const { id, lessonId } = use(params);
   const { t, lang } = useLang();
-  const [course, setCourse] = useState<Course | null>(null);
+  const [course, setCourse] = useState<ApiCourse | null>(null);
+  const [completed, setCompleted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [completeError, setCompleteError] = useState("");
+  const { isAuthenticated } = useAuth();
   useEffect(() => {
-    fetch(`/api/courses/${id}`).then((response) => response.ok ? response.json() : null).then(setCourse);
-  }, [id]);
+    fetchCourse(id).then((data) => {
+      setCourse(data);
+      setCompleted(data?.completedLessonIds?.includes(lessonId) ?? false);
+    });
+  }, [id, lessonId]);
+
+  const markComplete = async () => {
+    setSaving(true);
+    setCompleteError("");
+    try {
+      const response = await fetch(`/api/lessons/${lessonId}/complete`, { method: "POST" });
+      if (!response.ok) {
+        setCompleteError(t("تعذر تسجيل الإكمال، حاول مجددًا", "Could not record completion, try again"));
+        return;
+      }
+      const data: { progress?: number } = await response.json();
+      setCompleted(true);
+      setCourse((prev) => (prev ? { ...prev, progress: typeof data.progress === "number" ? data.progress : (prev.progress ?? 0) } : prev));
+    } catch {
+      setCompleteError(t("تعذر تسجيل الإكمال، حاول مجددًا", "Could not record completion, try again"));
+    } finally {
+      setSaving(false);
+    }
+  };
   const lessonIndex = course?.curriculum.findIndex((l) => l.id === lessonId) ?? -1;
   const lesson = lessonIndex >= 0 ? course?.curriculum[lessonIndex] : null;
 
@@ -168,11 +195,33 @@ export default function LessonPage({
           </div>
 
           {/* Completion */}
-          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
-            <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-medium rounded-xl border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
-              <CheckCircle size={16} />
-              {t("تحديد كمكتمل", "Mark as Complete")}
-            </button>
+          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-start gap-3">
+            {isAuthenticated ? (
+              completed ? (
+                <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-medium rounded-xl border border-emerald-200 dark:border-emerald-800/50">
+                  <CheckCircle size={16} />
+                  {t("مكتمل", "Completed")}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={markComplete}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-medium rounded-xl border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle size={16} />
+                  {saving ? t("جارٍ الحفظ...", "Saving...") : t("تحديد كمكتمل", "Mark as Complete")}
+                </button>
+              )
+            ) : (
+              <Link
+                href="/auth/login"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-medium rounded-xl transition-colors"
+              >
+                {t("سجل الدخول لتسجيل إتمام الدرس", "Sign in to track lesson completion")}
+              </Link>
+            )}
+            {completeError && <p className="text-sm text-red-600 dark:text-red-400">{completeError}</p>}
           </div>
         </div>
 

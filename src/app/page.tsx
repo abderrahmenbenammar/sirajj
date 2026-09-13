@@ -2,19 +2,43 @@
 
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
-import { courses, books, articles, research, lectures } from "@/lib/mock-data";
+import { fetchLibrary } from "@/lib/library-api";
+import { fetchCourses, type ApiCourse } from "@/lib/courses-api";
+import { useEffect, useState } from "react";
 import CourseCard from "@/components/courses/CourseCard";
 import { ArrowLeft, ArrowRight, BookOpen, FileText, Search, Mic, Sparkles, GraduationCap, Users, Globe } from "lucide-react";
 
 export default function HomePage() {
   const { t, lang } = useLang();
-  const featuredCourses = courses.slice(0, 4);
+  const [featuredCourses, setFeaturedCourses] = useState<ApiCourse[]>([]);
+  const [libraryCounts, setLibraryCounts] = useState({ book: 0, article: 0, research: 0, lecture: 0 });
+
+  useEffect(() => {
+    fetchCourses().then((data) => setFeaturedCourses(data.slice(0, 4)));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetchLibrary({ type: "book", take: 1 }),
+      fetchLibrary({ type: "article", take: 1 }),
+      fetchLibrary({ type: "research", take: 1 }),
+      fetchLibrary({ type: "lecture", take: 1 }),
+    ])
+      .then(([book, article, research, lecture]) => {
+        if (!cancelled) setLibraryCounts({ book: book.total, article: article.total, research: research.total, lecture: lecture.total });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const libraryTabs = [
-    { icon: <BookOpen size={20} />, count: books.length, label: t("الكتب", "Books"), href: "/library?tab=books" },
-    { icon: <FileText size={20} />, count: articles.length, label: t("المقالات", "Articles"), href: "/library?tab=articles" },
-    { icon: <Search size={20} />, count: research.length, label: t("الأبحاث", "Research"), href: "/library?tab=research" },
-    { icon: <Mic size={20} />, count: lectures.length, label: t("المحاضرات", "Lectures"), href: "/library?tab=lectures" },
+    { icon: <BookOpen size={20} />, count: libraryCounts.book, label: t("الكتب", "Books"), href: "/library?tab=books" },
+    { icon: <FileText size={20} />, count: libraryCounts.article, label: t("المقالات", "Articles"), href: "/library?tab=articles" },
+    { icon: <Search size={20} />, count: libraryCounts.research, label: t("الأبحاث", "Research"), href: "/library?tab=research" },
+    { icon: <Mic size={20} />, count: libraryCounts.lecture, label: t("المحاضرات", "Lectures"), href: "/library?tab=lectures" },
   ];
 
   return (
@@ -110,11 +134,17 @@ export default function HomePage() {
               {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCourses.map((course) => (
-              <CourseCard key={course.id} course={course} />
-            ))}
-          </div>
+          {featuredCourses.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredCourses.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-10">
+              {t("لا توجد دورات منشورة بعد.", "No published courses yet.")}
+            </p>
+          )}
           <div className="mt-8 text-center sm:hidden">
             <Link
               href="/courses"

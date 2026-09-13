@@ -11,12 +11,31 @@ export default function ContactPage() {
   const { user } = useAuth();
   const [form, setForm] = useState({ name: user?.name || "", email: user?.email || "", subject: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
-    setTimeout(() => setSent(false), 3000);
-    setForm({ ...form, subject: "", message: "" });
+    setSending(true);
+    setSubmitError("");
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body && typeof body.error === "string" ? body.error : "send-failed");
+      }
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+      setForm({ ...form, subject: "", message: "" });
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "send-failed");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -128,11 +147,15 @@ export default function ContactPage() {
                 </div>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20"
+                  disabled={sending}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20"
                 >
                   <Send size={16} />
                   {sent ? t("تم الإرسال ✓", "Sent ✓") : t("إرسال الرسالة", "Send Message")}
                 </button>
+                {submitError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>
+                )}
               </form>
             </div>
           </div>

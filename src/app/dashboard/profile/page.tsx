@@ -3,12 +3,37 @@
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
-import { courses, studentData } from "@/lib/mock-data";
-import { User, Mail, Calendar, BookOpen, Award, Clock, ArrowLeft, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { User, Mail, Calendar, BookOpen, Award, ArrowLeft, ArrowRight } from "lucide-react";
+
+interface OverviewCourse {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  completion: number;
+  status: string;
+}
+
+interface Overview {
+  user: { fullName: string; email: string; createdAt: string };
+  courses: OverviewCourse[];
+  stats: { active: number; completed: number; lessonsDone: number; certificates: number };
+}
 
 export default function ProfilePage() {
-  const { t, lang } = useLang();
+  const { t } = useLang();
   const { isAuthenticated, user } = useAuth();
+  const [overview, setOverview] = useState<Overview | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/me/overview")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: Overview | null) => {
+        if (data) setOverview(data);
+      })
+      .catch(() => undefined);
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -19,8 +44,8 @@ export default function ProfilePage() {
     );
   }
 
-  const completedCourses = courses.filter((c) => studentData.completedCourses.includes(c.id));
-  const stats = studentData.stats;
+  const stats = overview?.stats ?? { active: 0, completed: 0, lessonsDone: 0, certificates: 0 };
+  const history = overview?.courses ?? [];
 
   return (
     <div className="py-10 sm:py-14">
@@ -39,13 +64,18 @@ export default function ProfilePage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                {user?.name || studentData.name}
+                {overview?.user.fullName || user?.name || t("طالب", "Student")}
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">{user?.email || studentData.email}</p>
-              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
-                <Calendar size={12} />
-                {t("عضو منذ", "Member since")} {studentData.joinDate}
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5 flex items-center gap-1.5">
+                <Mail size={12} />
+                {overview?.user.email || user?.email || ""}
               </p>
+              {overview && (
+                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
+                  <Calendar size={12} />
+                  {t("عضو منذ", "Member since")} {new Date(overview.user.createdAt).toLocaleDateString("ar")}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -53,9 +83,9 @@ export default function ProfilePage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
-            { icon: <BookOpen size={18} />, value: stats.completedCourses, label: t("مكتملة", "Completed") },
-            { icon: <Clock size={18} />, value: `${stats.totalHoursLearned}h`, label: t("ساعات", "Hours") },
-            { icon: <Award size={18} />, value: stats.averageGrade, label: t("المعدل", "Average") },
+            { icon: <BookOpen size={18} />, value: stats.completed, label: t("مكتملة", "Completed") },
+            { icon: <Award size={18} />, value: stats.certificates, label: t("شهادات", "Certificates") },
+            { icon: <Calendar size={18} />, value: stats.lessonsDone, label: t("دروس", "Lessons") },
           ].map((s, i) => (
             <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-5 text-center">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto mb-2">
@@ -71,33 +101,37 @@ export default function ProfilePage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-5">{t("سجل الدورات", "Course History")}</h2>
           <div className="space-y-3">
-            {courses.filter((c) => c.progress && c.progress > 0).map((course) => (
-              <Link
-                key={course.id}
-                href={`/courses/${course.id}`}
-                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
-                  <BookOpen size={16} className="text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
-                    {t(course.title, course.titleEn)}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${course.progress}%` }} />
-                    </div>
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{course.progress}%</span>
+            {history.length > 0 ? (
+              history.map((course) => (
+                <Link
+                  key={course.id}
+                  href={`/courses/${course.id}`}
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
+                    <BookOpen size={16} className="text-emerald-600 dark:text-emerald-400" />
                   </div>
-                </div>
-                {studentData.completedCourses.includes(course.id) ? (
-                  <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg">{t("مكتمل", "Done")}</span>
-                ) : (
-                  <ArrowLeft size={14} className="text-gray-400" />
-                )}
-              </Link>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                      {t(course.titleAr, course.titleEn)}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${course.completion}%` }} />
+                      </div>
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{course.completion}%</span>
+                    </div>
+                  </div>
+                  {course.status === "completed" ? (
+                    <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg">{t("مكتمل", "Done")}</span>
+                  ) : (
+                    <ArrowLeft size={14} className="text-gray-400" />
+                  )}
+                </Link>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("لا يوجد سجل دورات بعد.", "No course history yet.")}</p>
+            )}
           </div>
         </div>
       </div>

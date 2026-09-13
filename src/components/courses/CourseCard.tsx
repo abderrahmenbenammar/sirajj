@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { Clock, User } from "lucide-react";
-import { isCourseUnlocked } from "@/lib/mock-data";
-import type { Course } from "@/lib/mock-data";
+import type { ApiCourse } from "@/lib/courses-api";
 
-export default function CourseCard({ course }: { course: Course }) {
+export default function CourseCard({ course, locked = false }: { course: ApiCourse; locked?: boolean }) {
   const { t } = useLang();
-  const progress = course.progress || 0;
-  const isLocked = !isCourseUnlocked(course);
+  const progress = 0;
 
   const card = (
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/20 hover:border-gray-300 dark:hover:border-gray-700 hover:-translate-y-0.5">
@@ -26,7 +24,7 @@ export default function CourseCard({ course }: { course: Course }) {
               {t(course.level, course.levelEn)}
             </span>
           </div>
-          {isLocked && (
+          {locked && (
             <div className="absolute inset-0 bg-gray-900/35 flex items-center justify-center">
               <span className="px-3 py-1.5 rounded-lg bg-white/95 text-xs font-semibold text-gray-700">
                 {t("مقفل حتى إتمام المستوى السابق", "Locked until the previous level is completed")}
@@ -65,7 +63,7 @@ export default function CourseCard({ course }: { course: Course }) {
       </div>
   );
 
-  return isLocked ? (
+  return locked ? (
     <div className="group block cursor-not-allowed" aria-disabled="true">
       {card}
     </div>
