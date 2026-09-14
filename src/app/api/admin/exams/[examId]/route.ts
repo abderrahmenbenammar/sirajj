@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { deleteExamWithDependencies } from "@/lib/delete-course";
 
 type Context = { params: Promise<{ examId: string }> };
 
@@ -61,15 +62,26 @@ export async function DELETE(_request: Request, { params }: Context) {
   if (guard.response) return guard.response;
   const { examId } = await params;
   if (!UUID_RE.test(examId)) return NextResponse.json({ error: "الاختبار غير موجود" }, { status: 404 });
+
+  const exam = await prisma.exam.findUnique({
+    where: { id: examId },
+    select: { id: true, titleAr: true },
+  });
+  if (!exam) return NextResponse.json({ error: "الاختبار غير موجود" }, { status: 404 });
+
+  // Cascades to questions/options. Student attempt answers are removed first,
+  // and attempts explicitly second, because the answer rows carry the only
+  // RESTRICT FKs in the schema (see src/lib/delete-course.ts). Atomic.
   try {
-    // Cascades to questions/options/attempts/answers. If submitted answers
-    // reference this exam, the database RESTRICT guards refuse the delete.
-    await prisma.exam.delete({ where: { id: examId } });
+    await prisma.$transaction(async (tx) => {
+      await deleteExamWithDependencies(tx, examId);
+    });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error("[admin/exams/delete] failed", examId, error);
     return NextResponse.json(
-      { error: "تعذر حذف الاختبار — قد تكون هناك محاولات مسجلة مرتبطة به" },
-      { status: 409 }
+      { error: "تعذر حذف الاختبار بسبب خطأ في قاعدة البيانات — راجع سجلات الخادم" },
+      { status: 500 }
     );
   }
 }
