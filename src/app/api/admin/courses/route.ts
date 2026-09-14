@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { isCoursePath } from "@/lib/course-paths";
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -22,11 +23,11 @@ export async function POST(request: Request) {
   if (!titleAr) {
     return NextResponse.json({ error: "بيانات الدورة غير صحيحة" }, { status: 400 });
   }
-  const categoryId = asText(body.categoryId);
-  const instructorId = asText(body.instructorId);
-  if (categoryId && !(await prisma.category.findUnique({ where: { id: categoryId }, select: { id: true } }))) {
-    return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 400 });
+  const path = asText(body.path);
+  if (!isCoursePath(path)) {
+    return NextResponse.json({ error: "المسار مطلوب (BEGINNER أو INTERMEDIATE أو ADVANCED)" }, { status: 400 });
   }
+  const instructorId = asText(body.instructorId);
   if (instructorId && !(await prisma.instructor.findUnique({ where: { id: instructorId }, select: { id: true } }))) {
     return NextResponse.json({ error: "المدرّس غير موجود" }, { status: 400 });
   }
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
       titleEn: asText(body.titleEn) ?? titleAr,
       shortDescriptionAr: asText(body.shortDescriptionAr) ?? asText(body.description),
       shortDescriptionEn: asText(body.shortDescriptionEn) ?? asText(body.description),
-      categoryId,
+      path,
       instructorId,
       coverImageUrl: asText(body.coverImageUrl) ?? asText(body.image),
     },

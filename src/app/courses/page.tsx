@@ -1,35 +1,40 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import CourseCard from "@/components/courses/CourseCard";
 import { fetchCourses, type ApiCourse } from "@/lib/courses-api";
-import { useEffect, useState } from "react";
+import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
+import { Suspense, useEffect, useState } from "react";
 import { Search, Filter } from "lucide-react";
 
 export default function CoursesPage() {
+  return (
+    <Suspense fallback={null}>
+      <CoursesContent />
+    </Suspense>
+  );
+}
+
+function CoursesContent() {
   const { t } = useLang();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
-  const [level, setLevel] = useState("all");
-  const [category, setCategory] = useState("all");
+  const [path, setPath] = useState<string>("all");
   const [courses, setCourses] = useState<ApiCourse[]>([]);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("path");
+    if (fromUrl && ["all", ...COURSE_PATHS].includes(fromUrl)) setPath(fromUrl);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchCourses().then(setCourses);
   }, []);
 
-  const levels = [
+  const pathOptions = [
     { value: "all", label: t("الكل", "All") },
-    { value: "مبتدئ", label: t("مبتدئ", "Beginner") },
-    { value: "متوسط", label: t("متوسط", "Intermediate") },
-    { value: "متقدم", label: t("متقدم", "Advanced") },
-  ];
-
-  const categories = [
-    { value: "all", label: t("الكل", "All") },
-    ...Array.from(new Set(courses.map((c) => c.category))).map((cat) => ({
-      value: cat,
-      label: cat,
-    })),
+    ...COURSE_PATHS.map((key) => ({ value: key, label: t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en) })),
   ];
 
   const filtered = courses.filter((c) => {
@@ -37,9 +42,8 @@ export default function CoursesPage() {
       search === "" ||
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       c.titleEn.toLowerCase().includes(search.toLowerCase());
-    const matchesLevel = level === "all" || c.level === level;
-    const matchesCat = category === "all" || c.category === category;
-    return matchesSearch && matchesLevel && matchesCat;
+    const matchesPath = path === "all" || c.path === path;
+    return matchesSearch && matchesPath;
   });
 
   return (
@@ -74,24 +78,15 @@ export default function CoursesPage() {
             <div className="relative">
               <Filter size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
                 className="ps-8 pe-8 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-700 dark:text-gray-300 outline-none appearance-none cursor-pointer"
               >
-                {levels.map((l) => (
-                  <option key={l.value} value={l.value}>{l.label}</option>
+                {pathOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-700 dark:text-gray-300 outline-none appearance-none cursor-pointer"
-            >
-              {categories.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
           </div>
         </div>
 

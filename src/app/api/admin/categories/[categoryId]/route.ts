@@ -45,14 +45,12 @@ export async function DELETE(_request: Request, { params }: Context) {
   const { categoryId } = await params;
   if (!UUID_RE.test(categoryId)) return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 404 });
   try {
-    // Schema semantics: linked courses/library items keep existing with
-    // categoryId set to NULL (ON DELETE SET NULL) — nothing breaks.
-    const [courses, libraryItems] = await Promise.all([
-      prisma.course.count({ where: { categoryId } }),
-      prisma.libraryItem.count({ where: { categoryId } }),
-    ]);
+    // Schema semantics: linked library items keep existing with categoryId set
+    // to NULL (ON DELETE SET NULL) — nothing breaks. Courses no longer use
+    // Category (they use `path`), so only library items are counted.
+    const libraryItems = await prisma.libraryItem.count({ where: { categoryId } });
     await prisma.category.delete({ where: { id: categoryId } });
-    return NextResponse.json({ success: true, unlinkedCourses: courses, unlinkedLibraryItems: libraryItems });
+    return NextResponse.json({ success: true, unlinkedLibraryItems: libraryItems });
   } catch {
     return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 404 });
   }

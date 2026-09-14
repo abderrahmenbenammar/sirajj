@@ -63,10 +63,16 @@ model Category {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  courses      Course[]
+  // Categories are used for LIBRARY items only (Course uses `path`).
   libraryItems LibraryItem[]
 
   @@map("categories")
+}
+
+enum CoursePath {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
 }
 
 model Course {
@@ -79,8 +85,7 @@ model Course {
   curriculumEn       String?     @map("curriculum_en")
   instructorId       String?     @map("instructor_id") @db.Uuid
   instructor         Instructor? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
-  categoryId         String?     @map("category_id") @db.Uuid
-  category           Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  path               CoursePath  @default(BEGINNER) @map("path")
   coverImageUrl      String?     @map("cover_image_url")
   createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -92,7 +97,6 @@ model Course {
   progress     StudentCourseProgress[]
 
   @@index([instructorId], map: "idx_courses_instructor_id")
-  @@index([categoryId], map: "idx_courses_category_id")
   @@map("courses")
 }
 

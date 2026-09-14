@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { COURSE_PATH_LABELS } from "@/lib/course-paths";
 
 export async function GET() {
   const courses = await prisma.course.findMany({
     include: {
       instructor: { select: { nameAr: true, nameEn: true } },
-      category: { select: { nameAr: true, nameEn: true } },
       lessons: { orderBy: { orderIndex: "asc" } },
     },
     orderBy: { createdAt: "asc" },
@@ -19,13 +19,11 @@ export async function GET() {
     description: course.shortDescriptionAr ?? "",
     descriptionEn: course.shortDescriptionEn ?? "",
     image: course.coverImageUrl ?? "",
-    // v2 schema has no level field; kept as empty for UI compatibility.
-    level: "",
-    levelEn: "",
+    path: course.path,
+    pathAr: COURSE_PATH_LABELS[course.path].ar,
+    pathEn: COURSE_PATH_LABELS[course.path].en,
     duration: `${course.lessons.length} درس`,
     lessons: course.lessons.length,
-    category: course.category?.nameAr ?? "العقيدة",
-    categoryEn: course.category?.nameEn ?? "Creed",
     curriculum: course.lessons.map((lesson) => ({ id: lesson.id, title: lesson.titleAr, titleEn: lesson.titleEn, duration: "فيديو", type: "video", videoUrl: lesson.videoUrl })),
     objectives: [],
     objectivesEn: [],

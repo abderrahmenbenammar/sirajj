@@ -26,10 +26,10 @@ export default function CourseCard({ course, locked = false }: { course: ApiCour
               <span className="text-4xl font-bold text-emerald-700/20 dark:text-emerald-400/20" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>{t(course.title, course.titleEn).charAt(0)}</span>
             </div>
           )}
-          {/* Level badge */}
+          {/* Path badge */}
           <div className="absolute top-3 end-3">
             <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/90 dark:bg-gray-900/90 text-emerald-700 dark:text-emerald-400 backdrop-blur-sm">
-              {t(course.level, course.levelEn)}
+              {t(course.pathAr, course.pathEn)}
             </span>
           </div>
           {locked && (

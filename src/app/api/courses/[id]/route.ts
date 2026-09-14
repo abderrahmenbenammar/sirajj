@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { COURSE_PATH_LABELS } from "@/lib/course-paths";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -15,7 +16,6 @@ export async function GET(_request: Request, { params }: Context) {
     where: { id },
     include: {
       instructor: { select: { nameAr: true, nameEn: true } },
-      category: { select: { nameAr: true, nameEn: true } },
       lessons: { orderBy: { orderIndex: "asc" } },
     },
   });
@@ -49,13 +49,11 @@ export async function GET(_request: Request, { params }: Context) {
     description: course.shortDescriptionAr ?? "",
     descriptionEn: course.shortDescriptionEn ?? "",
     image: course.coverImageUrl ?? "",
-    // v2 schema has no level field; kept as empty for UI compatibility.
-    level: "",
-    levelEn: "",
+    path: course.path,
+    pathAr: COURSE_PATH_LABELS[course.path].ar,
+    pathEn: COURSE_PATH_LABELS[course.path].en,
     duration: `${course.lessons.length} درس`,
     lessons: course.lessons.length,
-    category: course.category?.nameAr ?? "العقيدة",
-    categoryEn: course.category?.nameEn ?? "Creed",
     curriculum: course.lessons.map((lesson) => ({ id: lesson.id, title: lesson.titleAr, titleEn: lesson.titleEn, duration: "فيديو", type: "video", videoUrl: lesson.videoUrl })),
     objectives: [],
     objectivesEn: [],

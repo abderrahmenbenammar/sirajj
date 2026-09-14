@@ -133,7 +133,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             {/* Hero */}
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 rounded-2xl p-8 sm:p-10 border border-emerald-100 dark:border-emerald-900/30">
               <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/80 dark:bg-gray-900/80 text-emerald-700 dark:text-emerald-400 inline-block mb-4">
-                {t(course.category, course.categoryEn)}
+                {t(course.pathAr, course.pathEn)}
               </span>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
                 {t(course.description, course.descriptionEn)}
@@ -142,9 +142,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 <span className="flex items-center gap-1.5"><Users size={15} /> {t(course.instructor, course.instructorEn)}</span>
                 <span className="flex items-center gap-1.5"><Clock size={15} /> {course.duration}</span>
                 <span className="flex items-center gap-1.5"><BookOpen size={15} /> {course.lessons} {t("درس", "lessons")}</span>
-                <span className="flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-lg">
-                  {t(course.level, course.levelEn)}
-                </span>
               </div>
             </div>
 
@@ -295,8 +292,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
               <div className="space-y-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">{t("المستوى", "Level")}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{t(course.level, course.levelEn)}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t("المسار", "Path")}</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{t(course.pathAr, course.pathEn)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500 dark:text-gray-400">{t("المدة", "Duration")}</span>

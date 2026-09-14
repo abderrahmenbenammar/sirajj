@@ -5,9 +5,10 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { BookPlus, Film, ImagePlus, ListPlus, ShieldCheck, Trash2, Users, X, LibraryBig } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
-type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; coverImageUrl: string | null; categoryId: string | null; lessons: AdminLesson[] };
+type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
 type Subscriber = { id: string; fullName: string; email: string; authProvider: string; role: string; status: string; createdAt: string; _count: { courseProgress: number; certificates: number } };
 type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
@@ -52,9 +53,9 @@ export default function AdminPage() {
   const [certSearch, setCertSearch] = useState("");
   const [message, setMessage] = useState("");
   const [userSearch, setUserSearch] = useState("");
-  const [courseForm, setCourseForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
+  const [courseForm, setCourseForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
   const [editingCourseId, setEditingCourseId] = useState("");
-  const [courseDraft, setCourseDraft] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
+  const [courseDraft, setCourseDraft] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
   const [quizForm, setQuizForm] = useState({ question: "", options: "", correctIndex: "0" });
   const [exams, setExams] = useState<AdminExam[]>([]);
@@ -420,7 +421,7 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const coverImageUrl = courseImage ? await uploadFile(courseImage, "image") : courseForm.coverImageUrl;
-      const payload = { ...courseForm, coverImageUrl, categoryId: courseForm.categoryId || null };
+      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, coverImageUrl, path: courseForm.path };
       if (editingCourseId) {
         const response = await fetch(`/api/admin/courses/${editingCourseId}`, {
           method: "PATCH",
@@ -431,14 +432,14 @@ export default function AdminPage() {
         setMessage(response.ok ? t("تم تحديث الدورة", "Course updated") : (result?.error ?? t("تعذر تحديث الدورة", "Could not update course")));
         if (response.ok) {
           setEditingCourseId("");
-          setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
+          setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
           setCourseImage(null);
           await loadCourses();
         }
       } else {
         await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
         setCourseImage(null);
-        setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" });
+        setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
       }
     } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image")); }
   };
@@ -450,14 +451,14 @@ export default function AdminPage() {
       titleEn: course.titleEn,
       shortDescriptionAr: course.shortDescriptionAr ?? "",
       coverImageUrl: course.coverImageUrl ?? "",
-      categoryId: course.categoryId ?? "",
+      path: course.path,
     });
     setCourseDraft({
       titleAr: course.titleAr,
       titleEn: course.titleEn,
       shortDescriptionAr: course.shortDescriptionAr ?? "",
       coverImageUrl: course.coverImageUrl ?? "",
-      categoryId: course.categoryId ?? "",
+      path: course.path,
     });
   };
 
@@ -504,15 +505,15 @@ export default function AdminPage() {
             <input required placeholder={t("العنوان بالعربية", "Arabic title")} value={courseForm.titleAr} onChange={(e) => setCourseForm({ ...courseForm, titleAr: e.target.value })} className="admin-input" />
             <input placeholder={t("العنوان بالإنجليزية", "English title")} value={courseForm.titleEn} onChange={(e) => setCourseForm({ ...courseForm, titleEn: e.target.value })} className="admin-input" />
             <input placeholder={t("الوصف", "Description")} value={courseForm.shortDescriptionAr} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionAr: e.target.value })} className="admin-input" />
-            <select value={courseForm.categoryId} onChange={(e) => setCourseForm({ ...courseForm, categoryId: e.target.value })} className="admin-input">
-              <option value="">{t("اختر المسار / التصنيف", "Select path / category")}</option>
-              {categories.map((cat) => <option key={cat.id} value={cat.id}>{t(cat.nameAr, cat.nameEn)}</option>)}
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المسار", "Path")}</label>
+            <select required value={courseForm.path} onChange={(e) => setCourseForm({ ...courseForm, path: e.target.value })} className="admin-input">
+              {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
             </select>
             <input placeholder={t("مسار الصورة", "Image path")} value={courseForm.coverImageUrl} onChange={(e) => setCourseForm({ ...courseForm, coverImageUrl: e.target.value })} className="admin-input" />
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
             <div className="flex gap-2">
               <button className="admin-button flex-1"><ImagePlus size={16} />{editingCourseId ? t("تحديث الدورة", "Update course") : t("حفظ الدورة", "Save course")}</button>
-              {editingCourseId && <button type="button" onClick={() => { setEditingCourseId(""); setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", categoryId: "" }); setCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>}
+              {editingCourseId && <button type="button" onClick={() => { setEditingCourseId(""); setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" }); setCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>}
             </div>
           </form>
 
@@ -673,7 +674,21 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
-          <h2 className="font-bold text-gray-900 dark:text-white mb-4">{t("التصنيفات", "Categories")}</h2>
+          <h2 className="font-bold text-gray-900 dark:text-white mb-2">{t("المسارات التعليمية", "Learning paths")}</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t("المسارات الثلاثة ثابتة ولا يمكن تعديلها أو إضافتها.", "The three paths are fixed and can't be edited or extended.")}</p>
+          <div className="space-y-2">
+            {COURSE_PATHS.map((key) => (
+              <div key={key} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm">
+                <span className="flex-1 text-gray-900 dark:text-white">{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)} <span className="text-xs text-gray-400" dir="ltr">{key}</span></span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{courses.filter((course) => course.path === key).length} {t("دورات", "courses")}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+          <h2 className="font-bold text-gray-900 dark:text-white mb-2">{t("تصنيفات المكتبة", "Library categories")}</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t("تُستخدم هذه التصنيفات لعناصر المكتبة فقط (ليست مسارات للدورات).", "These categories are used for library items only (not course paths).")}</p>
           <form onSubmit={submitCategory} className="flex flex-col sm:flex-row gap-2 mb-4">
             <input required placeholder={t("الاسم بالعربية", "Arabic name")} value={categoryForm.nameAr} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })} className="admin-input flex-1" />
             <input required placeholder={t("الاسم بالإنجليزية", "English name")} value={categoryForm.nameEn} onChange={(e) => setCategoryForm({ ...categoryForm, nameEn: e.target.value })} className="admin-input flex-1" />

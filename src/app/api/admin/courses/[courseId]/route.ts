@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { deleteCourseWithDependencies } from "@/lib/delete-course";
+import { isCoursePath } from "@/lib/course-paths";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -18,11 +19,11 @@ export async function PATCH(request: Request, { params }: Context) {
   if (!UUID_RE.test(courseId)) return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
   const body = await request.json();
   // Only provided fields are updated; legacy aliases (title/description/image) still accepted.
-  const categoryId = asText(body.categoryId);
-  const instructorId = asText(body.instructorId);
-  if (categoryId && !(await prisma.category.findUnique({ where: { id: categoryId }, select: { id: true } }))) {
-    return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 400 });
+  const path = asText(body.path);
+  if (path !== null && !isCoursePath(path)) {
+    return NextResponse.json({ error: "مسار غير صالح" }, { status: 400 });
   }
+  const instructorId = asText(body.instructorId);
   if (instructorId && !(await prisma.instructor.findUnique({ where: { id: instructorId }, select: { id: true } }))) {
     return NextResponse.json({ error: "المدرّس غير موجود" }, { status: 400 });
   }
@@ -33,7 +34,7 @@ export async function PATCH(request: Request, { params }: Context) {
       titleEn: asText(body.titleEn) ?? undefined,
       shortDescriptionAr: asText(body.shortDescriptionAr) ?? asText(body.description) ?? undefined,
       shortDescriptionEn: asText(body.shortDescriptionEn) ?? undefined,
-      categoryId: categoryId ?? undefined,
+      path: path ?? undefined,
       instructorId: instructorId ?? undefined,
       coverImageUrl: asText(body.coverImageUrl) ?? asText(body.image) ?? undefined,
     },

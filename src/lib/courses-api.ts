@@ -19,12 +19,11 @@ export interface ApiCourse {
   description: string;
   descriptionEn: string;
   image: string;
-  level: string;
-  levelEn: string;
+  path: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  pathAr: string;
+  pathEn: string;
   duration: string;
   lessons: number;
-  category: string;
-  categoryEn: string;
   curriculum: ApiCurriculumItem[];
   objectives: string[];
   objectivesEn: string[];
