@@ -369,7 +369,8 @@ export default function AdminPage() {
   const deleteCourse = async (course: Course) => {
     if (!window.confirm(`${t("هل تريد حذف دورة", "Delete course")} "${course.titleAr}"؟`)) return;
     const response = await fetch(`/api/admin/courses/${course.id}`, { method: "DELETE" });
-    setMessage(response.ok ? t("تم حذف الدورة", "Course deleted") : t("تعذر حذف الدورة", "Could not delete course"));
+    const result = await response.json().catch(() => null);
+    setMessage(response.ok ? t("تم حذف الدورة", "Course deleted") : (result?.error ?? t("تعذر حذف الدورة", "Could not delete course")));
     if (response.ok) await loadCourses();
   };
 

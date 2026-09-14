@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { deleteCourseWithDependencies } from "@/lib/delete-course";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Context = { params: Promise<{ courseId: string }> };
 
@@ -12,6 +15,7 @@ export async function PATCH(request: Request, { params }: Context) {
   const guard = await requireAdmin();
   if (guard.response) return guard.response;
   const { courseId } = await params;
+  if (!UUID_RE.test(courseId)) return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
   const body = await request.json();
   // Only provided fields are updated; legacy aliases (title/description/image) still accepted.
   const categoryId = asText(body.categoryId);
@@ -41,15 +45,28 @@ export async function DELETE(_request: Request, { params }: Context) {
   const guard = await requireAdmin();
   if (guard.response) return guard.response;
   const { courseId } = await params;
+  if (!UUID_RE.test(courseId)) return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, titleAr: true },
+  });
+  if (!course) return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
+
+  // Cascades to lessons/resources/exams/questions/options/attempts/
+  // completions/progress/certificates. Student attempt answers are removed
+  // explicitly first because their question/option FKs are RESTRICT, even
+  // though the schema cascades them via the attempt FK (see delete-course.ts).
   try {
-    // Cascades to lessons/exams/attempts/progress/certificates. If student
-    // records reference this course, the database RESTRICT guards refuse it.
-    await prisma.course.delete({ where: { id: courseId } });
+    await prisma.$transaction(async (tx) => {
+      await deleteCourseWithDependencies(tx, courseId);
+    });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error("[admin/courses/delete] failed", courseId, error);
     return NextResponse.json(
-      { error: "تعذر حذف الدورة — توجد سجلات طلاب مرتبطة بها" },
-      { status: 409 }
+      { error: "تعذر حذف الدورة بسبب خطأ في قاعدة البيانات — راجع سجلات الخادم" },
+      { status: 500 }
     );
   }
 }
