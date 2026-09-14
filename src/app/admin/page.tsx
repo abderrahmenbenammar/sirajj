@@ -371,7 +371,15 @@ export default function AdminPage() {
     const response = await fetch(`/api/admin/courses/${course.id}`, { method: "DELETE" });
     const result = await response.json().catch(() => null);
     setMessage(response.ok ? t("تم حذف الدورة", "Course deleted") : (result?.error ?? t("تعذر حذف الدورة", "Could not delete course")));
-    if (response.ok) await loadCourses();
+    if (response.ok) {
+      // The cascade removes the course's exams, lessons and certificates too —
+      // refresh everything affected so no stale item stays visible (and a
+      // stale exam can never be clicked to "الاختبار غير موجود").
+      if (selectedExam?.course.id === course.id) setSelectedExam(null);
+      await loadCourses();
+      await loadExams();
+      await loadCertificates();
+    }
   };
 
   const showSubscriberDetails = async (subscriberId: string) => {
