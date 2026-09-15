@@ -141,6 +141,11 @@ html:not(.dark) .border-gray-200\/60:not(.theme-dark-surface *) {
   background: rgb(6 95 70);
 }
 
+/* Add-category form: in a row the button must size to its content, not 100%. */
+.admin-category-form .admin-button {
+  width: auto;
+}
+
 .dark .admin-input {
   border-color: rgb(55 65 81);
   background: rgb(31 41 55);

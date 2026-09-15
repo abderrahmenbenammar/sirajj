@@ -689,10 +689,10 @@ export default function AdminPage() {
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
           <h2 className="font-bold text-gray-900 dark:text-white mb-2">{t("تصنيفات المكتبة", "Library categories")}</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t("تُستخدم هذه التصنيفات لعناصر المكتبة فقط (ليست مسارات للدورات).", "These categories are used for library items only (not course paths).")}</p>
-          <form onSubmit={submitCategory} className="flex flex-col sm:flex-row gap-2 mb-4">
-            <input required placeholder={t("الاسم بالعربية", "Arabic name")} value={categoryForm.nameAr} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })} className="admin-input flex-1" />
-            <input required placeholder={t("الاسم بالإنجليزية", "English name")} value={categoryForm.nameEn} onChange={(e) => setCategoryForm({ ...categoryForm, nameEn: e.target.value })} className="admin-input flex-1" />
-            <input placeholder="slug (optional)" value={categoryForm.slug} onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })} className="admin-input flex-1" dir="ltr" />
+          <form onSubmit={submitCategory} className="admin-category-form flex flex-col sm:flex-row flex-wrap gap-2 mb-4">
+            <input required placeholder={t("الاسم بالعربية", "Arabic name")} value={categoryForm.nameAr} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })} className="admin-input flex-1 min-w-0" />
+            <input required placeholder={t("الاسم بالإنجليزية", "English name")} value={categoryForm.nameEn} onChange={(e) => setCategoryForm({ ...categoryForm, nameEn: e.target.value })} className="admin-input flex-1 min-w-0" />
+            <input placeholder="slug (optional)" value={categoryForm.slug} onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })} className="admin-input flex-1 min-w-0" dir="ltr" />
             <button className="admin-button shrink-0">{t("إضافة", "Add")}</button>
           </form>
           <div className="space-y-2">
