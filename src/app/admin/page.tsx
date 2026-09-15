@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { BookPlus, Film, ImagePlus, ListPlus, ShieldCheck, Trash2, Users, X, LibraryBig } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
+import SirajTooltip from "@/components/ui/SirajTooltip";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
 type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
@@ -524,7 +525,9 @@ export default function AdminPage() {
               {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
             </select>
             <input placeholder={t("مسار الصورة", "Image path")} value={courseForm.coverImageUrl} onChange={(e) => setCourseForm({ ...courseForm, coverImageUrl: e.target.value })} className="admin-input" />
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
+            <SirajTooltip label={t("اختر صورة الغلاف للدورة", "Choose the course cover image")} side="top" className="w-full">
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
+            </SirajTooltip>
             <div className="flex gap-2">
               <button className="admin-button flex-1"><ImagePlus size={16} />{t("حفظ الدورة", "Save course")}</button>
             </div>
@@ -537,7 +540,9 @@ export default function AdminPage() {
             <input placeholder={t("عنوان الدرس بالإنجليزية", "English lesson title")} value={lessonForm.titleEn} onChange={(e) => setLessonForm({ ...lessonForm, titleEn: e.target.value })} className="admin-input" />
             <input required type="number" min="0" placeholder="orderIndex" value={lessonForm.orderIndex} onChange={(e) => setLessonForm({ ...lessonForm, orderIndex: e.target.value })} className="admin-input" />
             <input placeholder="YouTube أو /videos/file.mp4" value={lessonForm.videoUrl} onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })} className="admin-input" />
-            <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setLessonVideo(e.target.files?.[0] ?? null)} className="admin-input" />
+            <SirajTooltip label={t("اختر ملف فيديو الدرس", "Choose the lesson video file")} side="top" className="w-full">
+              <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setLessonVideo(e.target.files?.[0] ?? null)} className="admin-input" />
+            </SirajTooltip>
             <button className="admin-button"><ListPlus size={16} />{t("حفظ الدرس", "Save lesson")}</button>
           </form>
 
@@ -560,7 +565,9 @@ export default function AdminPage() {
             <input placeholder={t("المؤلف أو المحاضر", "Author or speaker")} value={libraryForm.author} onChange={(e) => setLibraryForm({ ...libraryForm, author: e.target.value })} className="admin-input" />
             <input placeholder={t("التصنيف", "Category")} value={libraryForm.category} onChange={(e) => setLibraryForm({ ...libraryForm, category: e.target.value })} className="admin-input" />
             <input placeholder={t("رابط الغلاف أو الملف", "Cover or media URL")} value={libraryForm.mediaUrl} onChange={(e) => setLibraryForm({ ...libraryForm, mediaUrl: e.target.value })} className="admin-input" />
-            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,text/plain" onChange={(e) => setLibraryFile(e.target.files?.[0] ?? null)} className="admin-input" />
+            <SirajTooltip label={t("اختر صورة أو فيديو أو ملف PDF للعنصر", "Choose an image, video, or PDF for the item")} side="top" className="w-full">
+              <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,text/plain" onChange={(e) => setLibraryFile(e.target.files?.[0] ?? null)} className="admin-input" />
+            </SirajTooltip>
             <textarea placeholder={t("الوصف أو المحتوى", "Description or content")} value={libraryForm.content} onChange={(e) => setLibraryForm({ ...libraryForm, content: e.target.value })} className="admin-input min-h-24" />
             <button className="admin-button"><LibraryBig size={16} />{t("حفظ عنصر المكتبة", "Save library item")}</button>
           </form>
@@ -572,14 +579,18 @@ export default function AdminPage() {
             <div className="space-y-2 mb-6">
               {exams.map((exam) => (
                 <div key={exam.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                  <button type="button" onClick={() => loadExamDetail(exam.id)} className="min-w-0 text-start flex-1">
-                    <span className="block text-sm text-gray-900 dark:text-white truncate">{exam.titleAr}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {exam.courseTitleAr} · {exam.questionCount} {t("أسئلة", "questions")} ·{" "}
-                      {exam.available ? t("متاح", "Available") : t("غير مكتمل", "Incomplete")} · {exam.attemptCount} {t("محاولات", "attempts")}
-                    </span>
-                  </button>
-                  <button type="button" onClick={() => deleteExam(exam)} className="shrink-0 p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={`${t("حذف", "Delete")} ${exam.titleAr}`}><Trash2 size={16} /></button>
+                  <SirajTooltip label={t("فتح بيانات الاختبار وأسئلته", "Open the exam data and its questions")} side="top" className="flex-1">
+                    <button type="button" onClick={() => loadExamDetail(exam.id)} className="min-w-0 text-start w-full">
+                      <span className="block text-sm text-gray-900 dark:text-white truncate">{exam.titleAr}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {exam.courseTitleAr} · {exam.questionCount} {t("أسئلة", "questions")} ·{" "}
+                        {exam.available ? t("متاح", "Available") : t("غير مكتمل", "Incomplete")} · {exam.attemptCount} {t("محاولات", "attempts")}
+                      </span>
+                    </button>
+                  </SirajTooltip>
+                  <SirajTooltip label={t("حذف الاختبار وجميع نتائجه", "Delete the exam and all its results")} side="top">
+                    <button type="button" onClick={() => deleteExam(exam)} className="shrink-0 p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={`${t("حذف", "Delete")} ${exam.titleAr}`}><Trash2 size={16} /></button>
+                  </SirajTooltip>
                 </div>
               ))}
             </div>
@@ -594,7 +605,9 @@ export default function AdminPage() {
                   <h3 className="font-bold text-gray-900 dark:text-white">{selectedExam.titleAr}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{selectedExam.course.titleAr}</p>
                 </div>
-                <button type="button" onClick={() => setSelectedExam(null)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" aria-label={t("إغلاق", "Close")}><X size={18} /></button>
+                <SirajTooltip label={t("إغلاق تفاصيل الاختبار", "Close exam details")} side="bottom">
+                  <button type="button" onClick={() => setSelectedExam(null)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" aria-label={t("إغلاق", "Close")}><X size={18} /></button>
+                </SirajTooltip>
               </div>
 
               <form onSubmit={submitQuestion} className="space-y-3 mb-6">
@@ -619,7 +632,9 @@ export default function AdminPage() {
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{question.orderIndex + 1}. {question.questionTextAr}</p>
                         <div className="flex gap-1 shrink-0">
                           <button type="button" onClick={() => { setEditingQuestionId(question.id); setQuestionDraft(question.questionTextAr); }} className="px-2 py-1 text-xs rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">{t("تعديل", "Edit")}</button>
-                          <button type="button" onClick={() => deleteQuestion(question.id)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={t("حذف السؤال", "Delete question")}><Trash2 size={14} /></button>
+                          <SirajTooltip label={t("حذف هذا السؤال مع خياراته", "Delete this question and its options")} side="top">
+                            <button type="button" onClick={() => deleteQuestion(question.id)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={t("حذف السؤال", "Delete question")}><Trash2 size={14} /></button>
+                          </SirajTooltip>
                         </div>
                       </div>
                     )}
@@ -639,7 +654,9 @@ export default function AdminPage() {
                               </span>
                               <span className="flex-1" />
                               <button type="button" onClick={() => { setEditingOptionId(option.id); setOptionDraft(option.optionTextAr); }} className="text-xs px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">{t("تعديل", "Edit")}</button>
+                              <SirajTooltip label={t("حذف هذا الخيار", "Delete this option")} side="top">
                               <button type="button" onClick={() => deleteOption(option.id)} className="p-1 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={t("حذف الخيار", "Delete option")}><X size={13} /></button>
+                            </SirajTooltip>
                             </>
                           )}
                         </div>
@@ -781,15 +798,26 @@ export default function AdminPage() {
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{item.message}</p>
                   <div className="flex gap-1 mt-2">
                     {(["new", "read", "replied"] as const).map((status) => (
-                      <button
+                      <SirajTooltip
                         key={status}
-                        type="button"
-                        disabled={item.status === status}
-                        onClick={() => markMessage(item.id, status)}
-                        className="text-xs px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
+                        label={
+                          status === "new"
+                            ? t("رسالة جديدة لم تُفتح بعد", "New message, not yet opened")
+                            : status === "read"
+                              ? t("تم مشاهدة محتوى الرسالة", "Message content was viewed")
+                              : t("تم ردّ المشرف على الرسالة", "The admin replied to the message")
+                        }
+                        side="bottom"
                       >
-                        {status}
-                      </button>
+                        <button
+                          type="button"
+                          disabled={item.status === status}
+                          onClick={() => markMessage(item.id, status)}
+                          className="text-xs px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
+                        >
+                          {status}
+                        </button>
+                      </SirajTooltip>
                     ))}
                   </div>
                 </div>
@@ -859,7 +887,9 @@ export default function AdminPage() {
                 {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
               </select>
               <input placeholder={t("مسار الصورة", "Image path")} value={editForm.coverImageUrl} onChange={(e) => setEditForm({ ...editForm, coverImageUrl: e.target.value })} className="admin-input" />
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setEditCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
+              <SirajTooltip label={t("اختر صورة جديدة للدورة", "Choose a new course image")} side="top" className="w-full">
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setEditCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
+              </SirajTooltip>
               <div className="flex gap-2">
                 <button type="submit" className="admin-button flex-1"><ImagePlus size={16} />{t("حفظ التعديلات", "Save changes")}</button>
                 <button type="button" onClick={() => { setEditingCourse(null); setEditCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>
@@ -867,7 +897,7 @@ export default function AdminPage() {
             </form>
           )}
 
-          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {course.instructor ? course.instructor.nameAr : t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-2 shrink-0"><button type="button" onClick={() => startEditCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={14} />{t("تعديل", "Edit")}</button><button type="button" onClick={() => deleteCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={14} />{t("حذف", "Delete")}</button></div></div>)}</div>
+          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {course.instructor ? course.instructor.nameAr : t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-2 shrink-0"><SirajTooltip label={t("فتح بيانات الدورة لتعديلها", "Open the course data for editing")} side="top"><button type="button" onClick={() => startEditCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={14} />{t("تعديل", "Edit")}</button></SirajTooltip><SirajTooltip label={t("حذف الدورة مع كل محتواها ودروسها", "Delete the course and all its lessons and content")} side="top"><button type="button" onClick={() => deleteCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={14} />{t("حذف", "Delete")}</button></SirajTooltip></div></div>)}</div>
         </div>
 
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
@@ -888,7 +918,7 @@ export default function AdminPage() {
             <button type="submit" className="admin-button">{t("بحث", "Search")}</button>
           </form>
           {subscribers.length > 0 ? (
-            <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-start text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800"><th className="p-3 text-start">{t("الاسم", "Name")}</th><th className="p-3 text-start">{t("البريد", "Email")}</th><th className="p-3 text-start">{t("التسجيل", "Joined")}</th><th className="p-3 text-start">{t("الدورات", "Courses")}</th><th className="p-3 text-start">{t("الدور", "Role")}</th><th className="p-3 text-start">{t("الحالة", "Status")}</th><th className="p-3 text-start">{t("إجراءات", "Actions")}</th></tr></thead><tbody>{subscribers.map((subscriber) => <tr key={subscriber.id} className="border-b border-gray-100 dark:border-gray-800/70 text-gray-700 dark:text-gray-300"><td className="p-3"><button type="button" disabled={detailsLoading} onClick={() => showSubscriberDetails(subscriber.id)} className="inline-flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-400 hover:underline disabled:opacity-50" aria-label={`${t("عرض ملف", "View profile")} ${subscriber.fullName}`}><Users size={15} />{subscriber.fullName}</button></td><td className="p-3">{subscriber.email}</td><td className="p-3">{new Date(subscriber.createdAt).toLocaleDateString("ar")}</td><td className="p-3">{subscriber._count.courseProgress}</td><td className="p-3"><span className={`text-xs px-2 py-0.5 rounded-lg ${subscriber.role === "ADMIN" ? "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>{subscriber.role}</span></td><td className="p-3"><span className={`text-xs px-2 py-0.5 rounded-lg ${subscriber.status === "ACTIVE" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"}`}>{subscriber.status}</span></td><td className="p-3"><div className="flex items-center gap-1">{subscriber.role === "ADMIN" ? <button type="button" onClick={() => updateSubscriber(subscriber.id, { role: "STUDENT" }, t("تحويل لطالب؟", "Convert to Student?"))} className="px-2 py-1 text-xs rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">{t("تحويل لطالب", "Convert to Student")}</button> : <button type="button" onClick={() => updateSubscriber(subscriber.id, { role: "ADMIN" }, t("ترقية لمشرف؟", "Promote to Admin?"))} className="px-2 py-1 text-xs rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30">{t("ترقية لمشرف", "Promote to Admin")}</button>}{subscriber.status === "ACTIVE" ? <button type="button" onClick={() => updateSubscriber(subscriber.id, { status: "DISABLED" }, t("تعطيل هذا الحساب؟", "Disable this account?"))} className="px-2 py-1 text-xs rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">{t("تعطيل", "Disable")}</button> : <button type="button" onClick={() => updateSubscriber(subscriber.id, { status: "ACTIVE" }, t("تفعيل هذا الحساب؟", "Enable this account?"))} className="px-2 py-1 text-xs rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">{t("تفعيل", "Enable")}</button>}</div></td></tr>)}</tbody></table></div>
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-start text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800"><th className="p-3 text-start">{t("الاسم", "Name")}</th><th className="p-3 text-start">{t("البريد", "Email")}</th><th className="p-3 text-start">{t("التسجيل", "Joined")}</th><th className="p-3 text-start">{t("الدورات", "Courses")}</th><th className="p-3 text-start">{t("الدور", "Role")}</th><th className="p-3 text-start">{t("الحالة", "Status")}</th><th className="p-3 text-start">{t("إجراءات", "Actions")}</th></tr></thead><tbody>{subscribers.map((subscriber) => <tr key={subscriber.id} className="border-b border-gray-100 dark:border-gray-800/70 text-gray-700 dark:text-gray-300"><td className="p-3"><SirajTooltip label={t("عرض الملف الكامل للمشترك", "View the subscriber's full profile")} side="top"><button type="button" disabled={detailsLoading} onClick={() => showSubscriberDetails(subscriber.id)} className="inline-flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-400 hover:underline disabled:opacity-50" aria-label={`${t("عرض ملف", "View profile")} ${subscriber.fullName}`}><Users size={15} />{subscriber.fullName}</button></SirajTooltip></td><td className="p-3">{subscriber.email}</td><td className="p-3">{new Date(subscriber.createdAt).toLocaleDateString("ar")}</td><td className="p-3">{subscriber._count.courseProgress}</td><td className="p-3"><span className={`text-xs px-2 py-0.5 rounded-lg ${subscriber.role === "ADMIN" ? "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>{subscriber.role}</span></td><td className="p-3"><span className={`text-xs px-2 py-0.5 rounded-lg ${subscriber.status === "ACTIVE" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"}`}>{subscriber.status}</span></td><td className="p-3"><div className="flex items-center gap-1">{subscriber.role === "ADMIN" ? <SirajTooltip label={t("تحويل المشترك إلى دور طالب", "Convert the subscriber to a student role")} side="top"><button type="button" onClick={() => updateSubscriber(subscriber.id, { role: "STUDENT" }, t("تحويل لطالب؟", "Convert to Student?"))} className="px-2 py-1 text-xs rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">{t("تحويل لطالب", "Convert to Student")}</button></SirajTooltip> : <SirajTooltip label={t("منح المشترك صلاحيات المشرف", "Grant the subscriber admin permissions")} side="top"><button type="button" onClick={() => updateSubscriber(subscriber.id, { role: "ADMIN" }, t("ترقية لمشرف؟", "Promote to Admin?"))} className="px-2 py-1 text-xs rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30">{t("ترقية لمشرف", "Promote to Admin")}</button></SirajTooltip>}{subscriber.status === "ACTIVE" ? <SirajTooltip label={t("منع هذا الحساب من تسجيل الدخول (يمكن التفعيل لاحقاً)", "Prevent this account from signing in (can re-enable later)")} side="top"><button type="button" onClick={() => updateSubscriber(subscriber.id, { status: "DISABLED" }, t("تعطيل هذا الحساب؟", "Disable this account?"))} className="px-2 py-1 text-xs rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">{t("تعطيل", "Disable")}</button></SirajTooltip> : <SirajTooltip label={t("إعادة تفعيل تسجيل الدخول لهذا الحساب", "Re-enable sign-in for this account")} side="top"><button type="button" onClick={() => updateSubscriber(subscriber.id, { status: "ACTIVE" }, t("تفعيل هذا الحساب؟", "Enable this account?"))} className="px-2 py-1 text-xs rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">{t("تفعيل", "Enable")}</button></SirajTooltip>}</div></td></tr>)}</tbody></table></div>
           ) : <p className="text-sm text-gray-500 dark:text-gray-400">{t("لا يوجد مشتركون بعد.", "No subscribers yet.")}</p>}
         </div>
 
@@ -896,7 +926,9 @@ export default function AdminPage() {
           <div className="mt-6 bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-900/60 rounded-2xl p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div><h2 className="font-bold text-lg text-gray-900 dark:text-white">{t("ملف المشترك", "Subscriber profile")}</h2><p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{selectedSubscriber.fullName} · {selectedSubscriber.email} · {selectedSubscriber.role} · {selectedSubscriber.status}</p></div>
+              <SirajTooltip label={t("إغلاق ملف المشترك", "Close subscriber profile")} side="bottom">
               <button type="button" onClick={() => setSelectedSubscriber(null)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" aria-label={t("إغلاق الملف", "Close profile")}><X size={18} /></button>
+            </SirajTooltip>
             </div>
             <div className="grid sm:grid-cols-3 gap-3 mb-6 text-sm"><div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><span className="block text-xs text-gray-500 mb-1">{t("تاريخ التسجيل", "Joined")}</span>{new Date(selectedSubscriber.createdAt).toLocaleDateString("ar")}</div><div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><span className="block text-xs text-gray-500 mb-1">{t("المزوّد", "Provider")}</span>{selectedSubscriber.authProvider}</div><div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><span className="block text-xs text-gray-500 mb-1">{t("الدروس المكتملة", "Completed lessons")}</span>{selectedSubscriber.lessonCompletions.length}</div></div>
             <h3 className="font-semibold text-gray-900 dark:text-white mb-3">{t("تقدم الدورات", "Course progress")}</h3>

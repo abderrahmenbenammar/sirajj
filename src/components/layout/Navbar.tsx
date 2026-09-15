@@ -8,6 +8,7 @@ import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
 import { Menu, X, Search, Sun, Moon, User, LogOut, ShieldCheck } from "lucide-react";
+import SirajTooltip from "@/components/ui/SirajTooltip";
 
 export default function Navbar() {
   const { lang, toggleLang, t } = useLang();
@@ -108,45 +109,53 @@ export default function Navbar() {
             {/* Right Actions */}
             <div className="flex items-center gap-1.5">
               {/* Search */}
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label={t("بحث", "Search")}
-              >
-                <Search size={18} />
-              </button>
+              <SirajTooltip label={t("البحث في الدورات والمكتبة", "Search courses and library")} side="bottom">
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label={t("بحث", "Search")}
+                >
+                  <Search size={18} />
+                </button>
+              </SirajTooltip>
 
               {/* Language */}
-              <button
-                onClick={toggleLang}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
-              >
-                {lang === "ar" ? "EN" : "عر"}
-              </button>
+              <SirajTooltip label={t("تبديل لغة الواجهة", "Switch interface language")} side="bottom">
+                <button
+                  onClick={toggleLang}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                >
+                  {lang === "ar" ? "EN" : "عر"}
+                </button>
+              </SirajTooltip>
 
               {/* Theme */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label={t("تغيير السمة", "Toggle theme")}
-              >
-                {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-              </button>
+              <SirajTooltip label={t("التبديل بين الوضع الفاتح والداكن", "Switch between light and dark mode")} side="bottom">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label={t("تغيير السمة", "Toggle theme")}
+                >
+                  {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+                </button>
+              </SirajTooltip>
 
               {/* Auth */}
               {isAuthenticated ? (
                 <div className="relative">
-                  <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-                      <User size={14} className="text-emerald-700 dark:text-emerald-400" />
-                    </div>
-                    <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300 max-w-24 truncate">
-                      {user?.name?.split(" ").slice(0, 2).join(" ")}
-                    </span>
-                  </button>
+                  <SirajTooltip label={t("قائمة الحساب", "Account menu")} side="bottom">
+                    <button
+                      onClick={() => setUserMenuOpen(!userMenuOpen)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                        <User size={14} className="text-emerald-700 dark:text-emerald-400" />
+                      </div>
+                      <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300 max-w-24 truncate">
+                        {user?.name?.split(" ").slice(0, 2).join(" ")}
+                      </span>
+                    </button>
+                  </SirajTooltip>
                   {userMenuOpen && (
                     <div className="absolute top-full mt-2 end-0 w-52 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 py-2 z-50">
                       {user?.role === "ADMIN" && (
@@ -188,13 +197,15 @@ export default function Navbar() {
               )}
 
               {/* Mobile menu button */}
-              <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label={t("القائمة", "Menu")}
-              >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
+              <SirajTooltip label={t("فتح/إغلاق القائمة", "Open or close the menu")} side="bottom">
+                <button
+                  onClick={() => setMobileOpen(!mobileOpen)}
+                  className="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label={t("القائمة", "Menu")}
+                >
+                  {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
+              </SirajTooltip>
             </div>
           </div>
         </div>
@@ -246,9 +257,11 @@ export default function Navbar() {
                   placeholder={t("ابحث عن دورات، كتب، مقالات...", "Search courses, books, articles...")}
                   className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 outline-none text-sm"
                 />
-                <button onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                  <X size={18} />
-                </button>
+                <SirajTooltip label={t("إغلاق البحث", "Close search")} side="bottom">
+                  <button onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <X size={18} />
+                  </button>
+                </SirajTooltip>
               </div>
               {searchResults.length > 0 && (
                 <div className="max-h-80 overflow-y-auto py-2">
