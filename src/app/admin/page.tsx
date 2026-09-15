@@ -8,7 +8,8 @@ import { useLang } from "@/lib/lang-context";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
-type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
+type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
+type AdminInstructor = { id: string; nameAr: string; nameEn: string };
 type Subscriber = { id: string; fullName: string; email: string; authProvider: string; role: string; status: string; createdAt: string; _count: { courseProgress: number; certificates: number } };
 type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
@@ -40,11 +41,14 @@ type AdminExamDetail = {
   }[];
 };
 
+const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", curriculumAr: "", curriculumEn: "", coverImageUrl: "", path: "BEGINNER", instructorId: "" };
+
 export default function AdminPage() {
   const { data: session, status } = useSession();
   const { t } = useLang();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [instructors, setInstructors] = useState<AdminInstructor[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedSubscriber, setSelectedSubscriber] = useState<SubscriberDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -53,9 +57,8 @@ export default function AdminPage() {
   const [certSearch, setCertSearch] = useState("");
   const [message, setMessage] = useState("");
   const [userSearch, setUserSearch] = useState("");
-  const [courseForm, setCourseForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
+  const [courseForm, setCourseForm] = useState(EMPTY_COURSE_FORM);
   const [editingCourseId, setEditingCourseId] = useState("");
-  const [courseDraft, setCourseDraft] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
   const [quizForm, setQuizForm] = useState({ question: "", options: "", correctIndex: "0" });
   const [exams, setExams] = useState<AdminExam[]>([]);
@@ -90,7 +93,11 @@ export default function AdminPage() {
 
   const loadCourses = async () => {
     const response = await fetch("/api/admin/courses");
-    if (response.ok) setCourses(await response.json());
+    if (response.ok) {
+      const data = await response.json();
+      setCourses(Array.isArray(data) ? data : data.courses);
+      setInstructors(Array.isArray(data) ? [] : data.instructors ?? []);
+    }
   };
 
   const loadSubscribers = async (query = "") => {
@@ -421,7 +428,17 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const coverImageUrl = courseImage ? await uploadFile(courseImage, "image") : courseForm.coverImageUrl;
-      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, coverImageUrl, path: courseForm.path };
+      const payload = {
+        titleAr: courseForm.titleAr,
+        titleEn: courseForm.titleEn,
+        shortDescriptionAr: courseForm.shortDescriptionAr,
+        shortDescriptionEn: courseForm.shortDescriptionEn,
+        curriculumAr: courseForm.curriculumAr,
+        curriculumEn: courseForm.curriculumEn,
+        coverImageUrl,
+        path: courseForm.path,
+        instructorId: courseForm.instructorId || null,
+      };
       if (editingCourseId) {
         const response = await fetch(`/api/admin/courses/${editingCourseId}`, {
           method: "PATCH",
@@ -432,14 +449,14 @@ export default function AdminPage() {
         setMessage(response.ok ? t("تم تحديث الدورة", "Course updated") : (result?.error ?? t("تعذر تحديث الدورة", "Could not update course")));
         if (response.ok) {
           setEditingCourseId("");
-          setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
+          setCourseForm(EMPTY_COURSE_FORM);
           setCourseImage(null);
           await loadCourses();
         }
       } else {
         await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
         setCourseImage(null);
-        setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
+        setCourseForm(EMPTY_COURSE_FORM);
       }
     } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image")); }
   };
@@ -450,15 +467,12 @@ export default function AdminPage() {
       titleAr: course.titleAr,
       titleEn: course.titleEn,
       shortDescriptionAr: course.shortDescriptionAr ?? "",
+      shortDescriptionEn: course.shortDescriptionEn ?? "",
+      curriculumAr: course.curriculumAr ?? "",
+      curriculumEn: course.curriculumEn ?? "",
       coverImageUrl: course.coverImageUrl ?? "",
       path: course.path,
-    });
-    setCourseDraft({
-      titleAr: course.titleAr,
-      titleEn: course.titleEn,
-      shortDescriptionAr: course.shortDescriptionAr ?? "",
-      coverImageUrl: course.coverImageUrl ?? "",
-      path: course.path,
+      instructorId: course.instructorId ?? "",
     });
   };
 
@@ -504,16 +518,31 @@ export default function AdminPage() {
             <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><BookPlus size={18} />{editingCourseId ? t("تعديل دورة", "Edit course") : t("إضافة دورة", "Add course")}</h2>
             <input required placeholder={t("العنوان بالعربية", "Arabic title")} value={courseForm.titleAr} onChange={(e) => setCourseForm({ ...courseForm, titleAr: e.target.value })} className="admin-input" />
             <input placeholder={t("العنوان بالإنجليزية", "English title")} value={courseForm.titleEn} onChange={(e) => setCourseForm({ ...courseForm, titleEn: e.target.value })} className="admin-input" />
-            <input placeholder={t("الوصف", "Description")} value={courseForm.shortDescriptionAr} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionAr: e.target.value })} className="admin-input" />
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المسار", "Path")}</label>
-            <select required value={courseForm.path} onChange={(e) => setCourseForm({ ...courseForm, path: e.target.value })} className="admin-input">
-              {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
-            </select>
+            <textarea placeholder={t("الوصف بالعربية", "Arabic description")} value={courseForm.shortDescriptionAr} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionAr: e.target.value })} className="admin-input min-h-20" />
+            <textarea placeholder={t("الوصف بالإنجليزية", "English description")} value={courseForm.shortDescriptionEn} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionEn: e.target.value })} className="admin-input min-h-20" />
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المدرّس", "Instructor")}</label>
+                <select value={courseForm.instructorId} onChange={(e) => setCourseForm({ ...courseForm, instructorId: e.target.value })} className="admin-input">
+                  <option value="">{t("بدون مدرّس", "No instructor")}</option>
+                  {instructors.map((instructor) => <option key={instructor.id} value={instructor.id}>{instructor.nameAr} · {instructor.nameEn}</option>)}
+                </select>
+                {instructors.length === 0 && <p className="text-xs text-gray-400 mt-1">{t("لا يوجد مدرّسون في القاعدة حاليًا", "No instructors in the database yet")}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
+                <select required value={courseForm.path} onChange={(e) => setCourseForm({ ...courseForm, path: e.target.value })} className="admin-input">
+                  {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
+                </select>
+              </div>
+            </div>
+            <textarea placeholder={t("المنهج بالعربية", "Arabic curriculum")} value={courseForm.curriculumAr} onChange={(e) => setCourseForm({ ...courseForm, curriculumAr: e.target.value })} className="admin-input min-h-24" />
+            <textarea placeholder={t("المنهج بالإنجليزية", "English curriculum")} value={courseForm.curriculumEn} onChange={(e) => setCourseForm({ ...courseForm, curriculumEn: e.target.value })} className="admin-input min-h-24" />
             <input placeholder={t("مسار الصورة", "Image path")} value={courseForm.coverImageUrl} onChange={(e) => setCourseForm({ ...courseForm, coverImageUrl: e.target.value })} className="admin-input" />
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
             <div className="flex gap-2">
               <button className="admin-button flex-1"><ImagePlus size={16} />{editingCourseId ? t("تحديث الدورة", "Update course") : t("حفظ الدورة", "Save course")}</button>
-              {editingCourseId && <button type="button" onClick={() => { setEditingCourseId(""); setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" }); setCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>}
+              {editingCourseId && <button type="button" onClick={() => { setEditingCourseId(""); setCourseForm(EMPTY_COURSE_FORM); setCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>}
             </div>
           </form>
 
@@ -833,7 +862,7 @@ export default function AdminPage() {
 
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
           <h2 className="font-bold text-gray-900 dark:text-white mb-4">{t("الدورات الحالية", "Current courses")}</h2>
-          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")}</span></div><div className="flex items-center gap-1 shrink-0"><button type="button" onClick={() => startEditCourse(course)} className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={16} /></button><button type="button" onClick={() => deleteCourse(course)} className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={16} /></button></div></div>)}</div>
+          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {course.instructor ? course.instructor.nameAr : t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-1 shrink-0"><button type="button" onClick={() => startEditCourse(course)} className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={16} /></button><button type="button" onClick={() => deleteCourse(course)} className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={16} /></button></div></div>)}</div>
         </div>
 
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">

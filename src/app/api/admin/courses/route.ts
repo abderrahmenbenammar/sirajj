@@ -6,8 +6,11 @@ import { isCoursePath } from "@/lib/course-paths";
 export async function GET() {
   const guard = await requireAdmin();
   if (guard.response) return guard.response;
-  const courses = await prisma.course.findMany({ include: { lessons: { orderBy: { orderIndex: "asc" } } }, orderBy: { createdAt: "desc" } });
-  return NextResponse.json(courses);
+  const [courses, instructors] = await Promise.all([
+    prisma.course.findMany({ include: { lessons: { orderBy: { orderIndex: "asc" } }, instructor: { select: { nameAr: true, nameEn: true } } }, orderBy: { createdAt: "desc" } }),
+    prisma.instructor.findMany({ orderBy: { nameAr: "asc" } }),
+  ]);
+  return NextResponse.json({ courses, instructors });
 }
 
 function asText(value: unknown): string | null {
@@ -18,7 +21,6 @@ export async function POST(request: Request) {
   const guard = await requireAdmin();
   if (guard.response) return guard.response;
   const body = await request.json();
-  // Canonical v2 fields (titleAr/titleEn/...); legacy `title`/`description`/`image` accepted as aliases.
   const titleAr = asText(body.titleAr) ?? asText(body.title);
   if (!titleAr) {
     return NextResponse.json({ error: "بيانات الدورة غير صحيحة" }, { status: 400 });
@@ -36,7 +38,9 @@ export async function POST(request: Request) {
       titleAr,
       titleEn: asText(body.titleEn) ?? titleAr,
       shortDescriptionAr: asText(body.shortDescriptionAr) ?? asText(body.description),
-      shortDescriptionEn: asText(body.shortDescriptionEn) ?? asText(body.description),
+      shortDescriptionEn: asText(body.shortDescriptionEn),
+      curriculumAr: asText(body.curriculumAr),
+      curriculumEn: asText(body.curriculumEn),
       path,
       instructorId,
       coverImageUrl: asText(body.coverImageUrl) ?? asText(body.image),

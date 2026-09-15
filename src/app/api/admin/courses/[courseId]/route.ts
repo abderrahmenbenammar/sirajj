@@ -12,32 +12,63 @@ function asText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+// For PATCH only: distinguish "absent" (don't touch) from "present but empty"
+// (clear the nullable field). Returns undefined when the key is missing.
+function patchField(body: Record<string, unknown>, key: string): string | null | undefined {
+  if (!(key in body)) return undefined;
+  const value = body[key];
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return null;
+}
+
 export async function PATCH(request: Request, { params }: Context) {
   const guard = await requireAdmin();
   if (guard.response) return guard.response;
   const { courseId } = await params;
   if (!UUID_RE.test(courseId)) return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
   const body = await request.json();
-  // Only provided fields are updated; legacy aliases (title/description/image) still accepted.
-  const path = asText(body.path);
-  if (path !== null && !isCoursePath(path)) {
-    return NextResponse.json({ error: "مسار غير صالح" }, { status: 400 });
+
+  // Accredited patchable fields — the exact Course columns the admin may edit.
+  const updates: Record<string, string | null> = {};
+
+  // Titles: an empty value leaves the existing title untouched (matching the
+  // pre-existing partial-update behavior); only non-empty values are written.
+  const titleAr = patchField(body, "titleAr");
+  if (titleAr !== undefined && titleAr) updates.titleAr = titleAr;
+  const titleEn = patchField(body, "titleEn");
+  if (titleEn !== undefined && titleEn) updates.titleEn = titleEn;
+  // Nullable fields: explicitly send an empty string to clear.
+  for (const key of ["shortDescriptionAr", "shortDescriptionEn", "curriculumAr", "curriculumEn"] as const) {
+    const value = patchField(body, key);
+    if (value !== undefined) updates[key] = value;
   }
-  const instructorId = asText(body.instructorId);
-  if (instructorId && !(await prisma.instructor.findUnique({ where: { id: instructorId }, select: { id: true } }))) {
-    return NextResponse.json({ error: "المدرّس غير موجود" }, { status: 400 });
+  // The admin form never empties this unless a new file was uploaded; an empty
+  // value here simply preserves the current image instead of clearing it.
+  const coverImageUrl = patchField(body, "coverImageUrl");
+  if (coverImageUrl) updates.coverImageUrl = coverImageUrl;
+  const path = patchField(body, "path");
+  if (path !== undefined) {
+    if (!isCoursePath(path)) return NextResponse.json({ error: "مسار غير صالح" }, { status: 400 });
+    updates.path = path;
   }
+  const instructorId = patchField(body, "instructorId");
+  if (instructorId !== undefined) {
+    if (instructorId) {
+      if (!UUID_RE.test(instructorId)) return NextResponse.json({ error: "المدرّس غير موجود" }, { status: 400 });
+      const exists = await prisma.instructor.findUnique({ where: { id: instructorId }, select: { id: true } });
+      if (!exists) return NextResponse.json({ error: "المدرّس غير موجود" }, { status: 400 });
+    }
+    updates.instructorId = instructorId;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "لا توجد حقول قابلة للتعديل" }, { status: 400 });
+  }
+
   const course = await prisma.course.update({
     where: { id: courseId },
-    data: {
-      titleAr: asText(body.titleAr) ?? asText(body.title) ?? undefined,
-      titleEn: asText(body.titleEn) ?? undefined,
-      shortDescriptionAr: asText(body.shortDescriptionAr) ?? asText(body.description) ?? undefined,
-      shortDescriptionEn: asText(body.shortDescriptionEn) ?? undefined,
-      path: path ?? undefined,
-      instructorId: instructorId ?? undefined,
-      coverImageUrl: asText(body.coverImageUrl) ?? asText(body.image) ?? undefined,
-    },
+    data: updates,
   });
   return NextResponse.json(course);
 }
