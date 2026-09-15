@@ -53,9 +53,9 @@ export default function AdminPage() {
   const [certSearch, setCertSearch] = useState("");
   const [message, setMessage] = useState("");
   const [userSearch, setUserSearch] = useState("");
-  const [courseForm, setCourseForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
+  const [courseForm, setCourseForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
   const [editingCourseId, setEditingCourseId] = useState("");
-  const [courseDraft, setCourseDraft] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
+  const [courseDraft, setCourseDraft] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
   const [quizForm, setQuizForm] = useState({ question: "", options: "", correctIndex: "0" });
   const [exams, setExams] = useState<AdminExam[]>([]);
@@ -432,14 +432,14 @@ export default function AdminPage() {
         setMessage(response.ok ? t("تم تحديث الدورة", "Course updated") : (result?.error ?? t("تعذر تحديث الدورة", "Could not update course")));
         if (response.ok) {
           setEditingCourseId("");
-          setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
+          setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
           setCourseImage(null);
           await loadCourses();
         }
       } else {
         await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
         setCourseImage(null);
-        setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" });
+        setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" });
       }
     } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image")); }
   };
@@ -513,7 +513,7 @@ export default function AdminPage() {
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
             <div className="flex gap-2">
               <button className="admin-button flex-1"><ImagePlus size={16} />{editingCourseId ? t("تحديث الدورة", "Update course") : t("حفظ الدورة", "Save course")}</button>
-              {editingCourseId && <button type="button" onClick={() => { setEditingCourseId(""); setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "" }); setCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>}
+              {editingCourseId && <button type="button" onClick={() => { setEditingCourseId(""); setCourseForm({ titleAr: "", titleEn: "", shortDescriptionAr: "", coverImageUrl: "", path: "BEGINNER" }); setCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>}
             </div>
           </form>
 
