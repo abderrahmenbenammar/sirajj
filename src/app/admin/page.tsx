@@ -9,7 +9,6 @@ import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
 type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
-type AdminInstructor = { id: string; nameAr: string; nameEn: string };
 type Subscriber = { id: string; fullName: string; email: string; authProvider: string; role: string; status: string; createdAt: string; _count: { courseProgress: number; certificates: number } };
 type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
@@ -48,7 +47,6 @@ export default function AdminPage() {
   const { t } = useLang();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [instructors, setInstructors] = useState<AdminInstructor[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedSubscriber, setSelectedSubscriber] = useState<SubscriberDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -59,7 +57,7 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE_FORM);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", curriculumAr: "", curriculumEn: "", coverImageUrl: "", path: "BEGINNER", instructorId: "" });
+  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER" });
   const [editCourseImage, setEditCourseImage] = useState<File | null>(null);
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
   const [quizForm, setQuizForm] = useState({ question: "", options: "", correctIndex: "0" });
@@ -98,7 +96,6 @@ export default function AdminPage() {
     if (response.ok) {
       const data = await response.json();
       setCourses(Array.isArray(data) ? data : data.courses);
-      setInstructors(Array.isArray(data) ? [] : data.instructors ?? []);
     }
   };
 
@@ -444,11 +441,8 @@ export default function AdminPage() {
       titleEn: course.titleEn,
       shortDescriptionAr: course.shortDescriptionAr ?? "",
       shortDescriptionEn: course.shortDescriptionEn ?? "",
-      curriculumAr: course.curriculumAr ?? "",
-      curriculumEn: course.curriculumEn ?? "",
       coverImageUrl: course.coverImageUrl ?? "",
       path: course.path,
-      instructorId: course.instructorId ?? "",
     });
     setEditCourseImage(null);
   };
@@ -463,11 +457,8 @@ export default function AdminPage() {
         titleEn: editForm.titleEn,
         shortDescriptionAr: editForm.shortDescriptionAr,
         shortDescriptionEn: editForm.shortDescriptionEn,
-        curriculumAr: editForm.curriculumAr,
-        curriculumEn: editForm.curriculumEn,
         coverImageUrl,
         path: editForm.path,
-        instructorId: editForm.instructorId || null,
       };
       const response = await fetch(`/api/admin/courses/${editingCourse.id}`, {
         method: "PATCH",
@@ -862,24 +853,10 @@ export default function AdminPage() {
               <input placeholder={t("العنوان بالإنجليزية", "English title")} value={editForm.titleEn} onChange={(e) => setEditForm({ ...editForm, titleEn: e.target.value })} className="admin-input" />
               <textarea placeholder={t("الوصف بالعربية", "Arabic description")} value={editForm.shortDescriptionAr} onChange={(e) => setEditForm({ ...editForm, shortDescriptionAr: e.target.value })} className="admin-input min-h-20" />
               <textarea placeholder={t("الوصف بالإنجليزية", "English description")} value={editForm.shortDescriptionEn} onChange={(e) => setEditForm({ ...editForm, shortDescriptionEn: e.target.value })} className="admin-input min-h-20" />
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المدرّس", "Instructor")}</label>
-                  <select value={editForm.instructorId} onChange={(e) => setEditForm({ ...editForm, instructorId: e.target.value })} className="admin-input">
-                    <option value="">{t("بدون مدرّس", "No instructor")}</option>
-                    {instructors.map((instructor) => <option key={instructor.id} value={instructor.id}>{instructor.nameAr} · {instructor.nameEn}</option>)}
-                  </select>
-                  {instructors.length === 0 && <p className="text-xs text-gray-400 mt-1">{t("لا يوجد مدرّسون في القاعدة حاليًا", "No instructors in the database yet")}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
-                  <select required value={editForm.path} onChange={(e) => setEditForm({ ...editForm, path: e.target.value })} className="admin-input">
-                    {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
-                  </select>
-                </div>
-              </div>
-              <textarea placeholder={t("المنهج بالعربية", "Arabic curriculum")} value={editForm.curriculumAr} onChange={(e) => setEditForm({ ...editForm, curriculumAr: e.target.value })} className="admin-input min-h-24" />
-              <textarea placeholder={t("المنهج بالإنجليزية", "English curriculum")} value={editForm.curriculumEn} onChange={(e) => setEditForm({ ...editForm, curriculumEn: e.target.value })} className="admin-input min-h-24" />
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المسار", "Path")}</label>
+              <select required value={editForm.path} onChange={(e) => setEditForm({ ...editForm, path: e.target.value })} className="admin-input">
+                {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
+              </select>
               <input placeholder={t("مسار الصورة", "Image path")} value={editForm.coverImageUrl} onChange={(e) => setEditForm({ ...editForm, coverImageUrl: e.target.value })} className="admin-input" />
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setEditCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
               <div className="flex gap-2">
