@@ -76,7 +76,7 @@ export default function DashboardPage() {
             alt={t("سراج", "SIRAJ")}
             width={1254}
             height={1254}
-            className="h-10 sm:h-12 w-auto object-contain dark:drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+            className="h-12 sm:h-14 w-auto object-contain"
           />
         </div>
 

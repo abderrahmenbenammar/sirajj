@@ -44,7 +44,7 @@ export default function RegisterPage() {
             alt={t("سراج", "SIRAJ")}
             width={1254}
             height={1254}
-            className="h-14 w-auto object-contain mx-auto mb-4 dark:drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+            className="h-16 w-auto object-contain mx-auto mb-4"
           />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("إنشاء حساب", "Create Account")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

@@ -77,7 +77,7 @@ export default function Navbar() {
                 alt={t("سراج", "SIRAJ")}
                 width={1254}
                 height={1254}
-                className="h-9 w-auto object-contain dark:drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+                className="h-10 w-auto object-contain"
               />
             </Link>
 

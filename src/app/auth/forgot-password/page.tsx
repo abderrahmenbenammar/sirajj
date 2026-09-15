@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
             alt={t("سراج", "SIRAJ")}
             width={1254}
             height={1254}
-            className="h-14 w-auto object-contain mx-auto mb-4 dark:drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+            className="h-16 w-auto object-contain mx-auto mb-4"
           />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t("نسيت كلمة المرور؟", "Forgot Password?")}
