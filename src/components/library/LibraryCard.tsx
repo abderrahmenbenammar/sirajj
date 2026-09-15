@@ -31,7 +31,7 @@ export default function LibraryCard({ item }: { item: ApiLibraryItem }) {
 
   return (
     <Link href={`/library/${item.id}`} className="group block">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-black/20 hover:-translate-y-0.5">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800/60 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-black/20 hover:-translate-y-0.5">
         <div className={`h-32 bg-gradient-to-br ${getColor()} flex items-center justify-center relative`}>
           <div className="opacity-40">{getIcon()}</div>
           <div className="absolute top-3 end-3">

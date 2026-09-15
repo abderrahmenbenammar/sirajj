@@ -58,7 +58,7 @@ export default function PathsPage() {
                       <BookOpen size={22} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider opacity-70">{t(`المسار ${index + 1}`, `Path ${index + 1}`)}</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-emerald-300/80">{t(`المسار ${index + 1}`, `Path ${index + 1}`)}</p>
                       <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t(group.label.ar, group.label.en)}</h2>
                       <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{group.courses.length} {t("دورات", "courses")}</p>
                     </div>
@@ -91,7 +91,7 @@ export default function PathsPage() {
                       return <Link key={course.id} href={`/courses/${course.id}`}>{content}</Link>;
                     })
                   ) : (
-                    <p className="text-sm opacity-70">{t("لا توجد دورات في هذا المسار بعد.", "No courses in this path yet.")}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{t("لا توجد دورات في هذا المسار بعد.", "No courses in this path yet.")}</p>
                   )}
                 </div>
               </section>

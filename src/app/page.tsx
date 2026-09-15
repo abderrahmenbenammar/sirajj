@@ -6,7 +6,7 @@ import { fetchLibrary } from "@/lib/library-api";
 import { fetchCourses, type ApiCourse } from "@/lib/courses-api";
 import { useEffect, useState } from "react";
 import CourseCard from "@/components/courses/CourseCard";
-import { ArrowLeft, ArrowRight, BookOpen, FileText, Search, Mic, Sparkles, GraduationCap, Users, Globe } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, FileText, Search, Mic, Sparkles, GraduationCap, Globe } from "lucide-react";
 
 export default function HomePage() {
   const { t, lang } = useLang();
@@ -99,11 +99,10 @@ export default function HomePage() {
       {/* Stats */}
       <section className="py-16 border-y border-gray-100 dark:border-gray-800/50 bg-white dark:bg-gray-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-3 gap-8">
             {[
               { value: String(totalCourses), label: t("دورة تعليمية", "Courses"), icon: <GraduationCap size={22} /> },
               { value: String(libraryCounts.book + libraryCounts.article + libraryCounts.research + libraryCounts.lecture), label: t("عنصر بالمكتبة", "Library Items"), icon: <BookOpen size={22} /> },
-              { value: "—", label: t("باحث ومعلم", "Scholars & Teachers"), icon: <Users size={22} /> },
               { value: "2", label: t("لغة مدعومة", "Supported Languages"), icon: <Globe size={22} /> },
             ].map((stat, i) => (
               <div key={i} className="text-center">
@@ -209,7 +208,7 @@ export default function HomePage() {
               >
                 {t("ابدأ رحلتك في طلب العلم اليوم", "Start Your Knowledge Journey Today")}
               </h2>
-              <p className="text-emerald-100 text-lg mb-8 max-w-xl mx-auto">
+              <p className="text-white/95 text-lg mb-8 max-w-xl mx-auto">
                 {t(
                   "انضم إلى آلاف الطلاب المتخصصين في العلوم الشرعية واحصل على وصول كامل لدوراتنا ومكتبتنا.",
                   "Join thousands of students specializing in Islamic sciences and get full access to our courses and library."

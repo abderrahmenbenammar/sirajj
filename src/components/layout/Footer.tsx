@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
-import { Globe, ExternalLink, Play, Send } from "lucide-react";
 import { useState } from "react";
 
 export default function Footer() {
@@ -34,7 +33,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-gray-950 text-gray-300">
+    <footer className="theme-dark-surface bg-gray-950 text-gray-300">
       {/* Newsletter CTA */}
       <div className="border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -82,20 +81,7 @@ export default function Footer() {
                 "A modern Islamic educational academy making religious knowledge accessible to all."
               )}
             </p>
-            <div className="flex items-center gap-3">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors" aria-label="Facebook">
-                <Globe size={16} />
-              </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors" aria-label="Instagram">
-                <ExternalLink size={16} />
-              </a>
-              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors" aria-label="YouTube">
-                <Play size={16} />
-              </a>
-              <a href="https://t.me" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors" aria-label="Telegram">
-                <Send size={16} />
-              </a>
-            </div>
+
           </div>
 
           {/* Quick Links */}
@@ -161,13 +147,7 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-gray-500">
-              © 2024 {t("سراج | أكاديمية التعليم الإسلامي", "SIRAJ | Islamic Learning Academy")}. {t("جميع الحقوق محفوظة.", "All rights reserved.")}
-            </p>
-            <p className="text-xs text-gray-600">
-              {t(
-                "هذا نموذج أولي لأغراض العرض فقط.",
-                "This is a prototype for demonstration purposes only."
-              )}
+              © {new Date().getFullYear()} {t("سراج | أكاديمية التعليم الإسلامي", "SIRAJ | Islamic Learning Academy")}. {t("جميع الحقوق محفوظة.", "All rights reserved.")}
             </p>
           </div>
         </div>
