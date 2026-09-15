@@ -71,20 +71,20 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-18">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label={t("سراج", "SIRAJ")}>
+            <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0" aria-label={t("سراج", "SIRAJ")}>
               <img
                 src="/siraj-logo.png"
                 alt={t("سراج", "SIRAJ")}
                 width={1254}
                 height={1254}
-                className="h-10 w-auto object-contain"
+                className="h-9 sm:h-10 w-auto object-contain"
               />
               <img
                 src="/siraj-wordmark.png"
                 alt=""
                 width={2048}
                 height={2048}
-                className="h-12 aspect-[1284/742] w-auto object-cover object-center"
+                className="h-12 sm:h-14 aspect-[1284/742] w-auto object-cover object-center"
               />
             </Link>
 

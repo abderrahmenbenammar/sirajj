@@ -69,7 +69,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div>
-            <Link href="/" className="inline-flex items-center gap-2 mb-4" aria-label={t("سراج", "SIRAJ")}>
+            <Link href="/" className="inline-flex items-center gap-1.5 mb-4" aria-label={t("سراج", "SIRAJ")}>
               <img
                 src="/siraj-logo.png"
                 alt={t("سراج", "SIRAJ")}
@@ -82,7 +82,7 @@ export default function Footer() {
                 alt=""
                 width={2048}
                 height={2048}
-                className="h-11 aspect-[1284/742] w-auto object-cover object-center"
+                className="h-12 aspect-[1284/742] w-auto object-cover object-center"
               />
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed mb-4">
