@@ -5,7 +5,7 @@ import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { GraduationCap, BookOpen, Award, TrendingUp, PlayCircle, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { GraduationCap, BookOpen, Award, TrendingUp, PlayCircle, ArrowLeft, ArrowRight } from "lucide-react";
 
 interface OverviewCourse {
   id: string;
@@ -62,13 +62,22 @@ export default function DashboardPage() {
     <div className="py-10 sm:py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Welcome */}
-        <div className="mb-10">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
-            {t("مرحباً بك،", "Welcome back,")} {user?.name?.split(" ")[0] || t("طالب", "Student")}
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400">
-            {t("تابع تقدمك في رحلة طلب العلم", "Continue your progress in the knowledge journey")}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
+              {t("مرحباً بك،", "Welcome back,")} {user?.name?.split(" ")[0] || t("طالب", "Student")}
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400">
+              {t("تابع تقدمك في رحلة طلب العلم", "Continue your progress in the knowledge journey")}
+            </p>
+          </div>
+          <img
+            src="/siraj-logo.png"
+            alt={t("سراج", "SIRAJ")}
+            width={1254}
+            height={1254}
+            className="h-10 sm:h-12 w-auto object-contain dark:drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+          />
         </div>
 
         {/* Stats */}
@@ -171,23 +180,6 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{t("لا يوجد نشاط بعد.", "No activity yet.")}</p>
                 )}
               </div>
-            </div>
-
-            {/* AI Assistant */}
-            <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-2xl p-5 text-white">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={18} />
-                <h3 className="text-sm font-bold">{t("مساعد التعلم الذكي", "AI Learning Assistant")}</h3>
-              </div>
-              <p className="text-xs text-emerald-100 leading-relaxed mb-4">
-                {t(
-                  "احصل على توصيات مخصصة ومساعدات فورية في دراسة العلوم الشرعية.",
-                  "Get personalized recommendations and instant help in studying Islamic sciences."
-                )}
-              </p>
-              <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors">
-                {t("ابدأ المحادثة", "Start Chat")}
-              </button>
             </div>
 
             {/* Quick Links */}

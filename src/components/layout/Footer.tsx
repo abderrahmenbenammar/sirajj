@@ -69,11 +69,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div>
-            <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-                <span className="text-white font-bold text-sm" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>س</span>
-              </div>
-              <span className="text-lg font-bold text-white">{t("سراج", "SIRAJ")}</span>
+            <Link href="/" className="inline-flex mb-4" aria-label={t("سراج", "SIRAJ")}>
+              <img
+                src="/siraj-logo.png"
+                alt={t("سراج", "SIRAJ")}
+                width={1254}
+                height={1254}
+                className="h-8 w-auto object-contain drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+              />
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed mb-4">
               {t(

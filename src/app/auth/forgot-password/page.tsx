@@ -26,9 +26,13 @@ export default function ForgotPasswordPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/20">
-            <span className="text-white font-bold text-xl" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>س</span>
-          </div>
+          <img
+            src="/siraj-logo.png"
+            alt={t("سراج", "SIRAJ")}
+            width={1254}
+            height={1254}
+            className="h-14 w-auto object-contain mx-auto mb-4 dark:drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+          />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t("نسيت كلمة المرور؟", "Forgot Password?")}
           </h1>

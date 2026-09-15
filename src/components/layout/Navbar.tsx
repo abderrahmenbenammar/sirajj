@@ -71,13 +71,14 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-18">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <span className="text-white font-bold text-lg" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>س</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                {t("سراج", "SIRAJ")}
-              </span>
+            <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label={t("سراج", "SIRAJ")}>
+              <img
+                src="/siraj-logo.png"
+                alt={t("سراج", "SIRAJ")}
+                width={1254}
+                height={1254}
+                className="h-9 w-auto object-contain dark:drop-shadow-[0_0_2px_rgb(255_255_255/0.35)]"
+              />
             </Link>
 
             {/* Desktop Nav */}
