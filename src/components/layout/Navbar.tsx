@@ -84,7 +84,7 @@ export default function Navbar() {
                 alt=""
                 width={2048}
                 height={2048}
-                className="h-6 w-auto object-contain"
+                className="h-12 aspect-[1284/742] w-auto object-cover object-center"
               />
             </Link>
 

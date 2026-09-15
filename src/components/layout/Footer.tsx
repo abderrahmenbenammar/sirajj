@@ -82,7 +82,7 @@ export default function Footer() {
                 alt=""
                 width={2048}
                 height={2048}
-                className="h-5 w-auto object-contain"
+                className="h-11 aspect-[1284/742] w-auto object-cover object-center"
               />
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed mb-4">

@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
               alt=""
               width={2048}
               height={2048}
-              className="h-8 w-auto object-contain"
+              className="h-20 aspect-[1284/742] w-auto object-cover object-center"
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
