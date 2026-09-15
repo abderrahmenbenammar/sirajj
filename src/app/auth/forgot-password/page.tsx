@@ -26,13 +26,22 @@ export default function ForgotPasswordPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img
-            src="/siraj-logo.png"
-            alt={t("سراج", "SIRAJ")}
-            width={1254}
-            height={1254}
-            className="h-16 w-auto object-contain mx-auto mb-4"
-          />
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <img
+              src="/siraj-logo.png"
+              alt={t("سراج", "SIRAJ")}
+              width={1254}
+              height={1254}
+              className="h-16 w-auto object-contain"
+            />
+            <img
+              src="/siraj-wordmark.png"
+              alt=""
+              width={2048}
+              height={2048}
+              className="h-8 w-auto object-contain"
+            />
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t("نسيت كلمة المرور؟", "Forgot Password?")}
           </h1>

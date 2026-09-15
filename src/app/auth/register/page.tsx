@@ -39,13 +39,22 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img
-            src="/siraj-logo.png"
-            alt={t("سراج", "SIRAJ")}
-            width={1254}
-            height={1254}
-            className="h-16 w-auto object-contain mx-auto mb-4"
-          />
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <img
+              src="/siraj-logo.png"
+              alt={t("سراج", "SIRAJ")}
+              width={1254}
+              height={1254}
+              className="h-16 w-auto object-contain"
+            />
+            <img
+              src="/siraj-wordmark.png"
+              alt=""
+              width={2048}
+              height={2048}
+              className="h-8 w-auto object-contain"
+            />
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("إنشاء حساب", "Create Account")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {t("انضم إلى أكاديمية سراج وابدأ رحلة التعلم", "Join SIRAJ Academy and start your learning journey")}

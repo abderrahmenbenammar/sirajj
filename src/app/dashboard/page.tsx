@@ -71,13 +71,22 @@ export default function DashboardPage() {
               {t("تابع تقدمك في رحلة طلب العلم", "Continue your progress in the knowledge journey")}
             </p>
           </div>
-          <img
-            src="/siraj-logo.png"
-            alt={t("سراج", "SIRAJ")}
-            width={1254}
-            height={1254}
-            className="h-12 sm:h-14 w-auto object-contain"
-          />
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/siraj-logo.png"
+              alt={t("سراج", "SIRAJ")}
+              width={1254}
+              height={1254}
+              className="h-12 sm:h-14 w-auto object-contain"
+            />
+            <img
+              src="/siraj-wordmark.png"
+              alt=""
+              width={2048}
+              height={2048}
+              className="h-7 sm:h-8 w-auto object-contain"
+            />
+          </div>
         </div>
 
         {/* Stats */}

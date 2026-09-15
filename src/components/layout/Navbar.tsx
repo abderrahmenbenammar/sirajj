@@ -79,6 +79,13 @@ export default function Navbar() {
                 height={1254}
                 className="h-10 w-auto object-contain"
               />
+              <img
+                src="/siraj-wordmark.png"
+                alt=""
+                width={2048}
+                height={2048}
+                className="h-6 w-auto object-contain"
+              />
             </Link>
 
             {/* Desktop Nav */}
