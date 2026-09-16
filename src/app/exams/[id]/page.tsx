@@ -23,6 +23,7 @@ interface ExamDetail {
   passingScorePercentage: number;
   maxAttempts: number;
   questionCount: number;
+  totalPoints: number;
   available: boolean;
   attemptsUsed: number;
   attemptsLeft: number;
@@ -159,7 +160,7 @@ export default function ExamTakePage({ params }: { params: Promise<{ id: string 
             <p className="text-gray-500 dark:text-gray-400 mb-6">{t(detail.titleAr, detail.titleEn)}</p>
             <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2">{result.scorePercentage}%</div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-              {t("الدرجة", "Score")}: {result.score} / {result.totalQuestions} · {t("الصحيحة", "Correct")}: {result.correctCount} ·{" "}
+              {t("الدرجة", "Score")}: {result.score} / {result.totalPoints} · {t("الصحيحة", "Correct")}: {result.correctCount} ·{" "}
               {t("المحاولة", "Attempt")} {result.attemptNumber} · {t("المتبقي", "Left")}: {result.attemptsLeft}
               {result.alreadySubmitted && ` · ${t("(نتيجة محفوظة مسبقًا)", "(previously saved)")}`}
             </p>
@@ -225,6 +226,9 @@ export default function ExamTakePage({ params }: { params: Promise<{ id: string 
               <div key={question.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6">
                 <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
                   {index + 1}. {t(question.questionTextAr, question.questionTextEn)}
+                  <span className="ms-2 text-xs font-normal text-emerald-700 dark:text-emerald-400">
+                    ({question.points} {t("نقطة", "pt")})
+                  </span>
                 </h2>
                 <div className="space-y-2">
                   {question.options.map((option) => (
@@ -279,6 +283,7 @@ export default function ExamTakePage({ params }: { params: Promise<{ id: string 
           </h1>
           <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 mb-6">
             <span>{t("الأسئلة", "Questions")}: {detail.questionCount}</span>
+            <span>{t("العلامة الكاملة", "Total mark")}: {detail.totalPoints}</span>
             <span>{t("النجاح من", "Pass at")}: {detail.passingScorePercentage}%</span>
             <span>{t("المحاولات المستخدمة", "Used")}: {detail.attemptsUsed} / {detail.maxAttempts}</span>
             {detail.lastResult && (
@@ -310,7 +315,7 @@ export default function ExamTakePage({ params }: { params: Promise<{ id: string 
                 {detail.history.map((item) => (
                   <div key={item.attemptId} className="flex items-center justify-between text-sm p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
                     <span className="text-gray-600 dark:text-gray-400">
-                      {t("محاولة", "Attempt")} {item.attemptNumber} · {item.score} / {detail.questionCount}
+                      {t("محاولة", "Attempt")} {item.attemptNumber} · {item.score} / {detail.totalPoints}
                     </span>
                     <span className={item.passed ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
                       {item.scorePercentage}% · {item.passed ? t("ناجح", "Passed") : t("راسب", "Failed")}

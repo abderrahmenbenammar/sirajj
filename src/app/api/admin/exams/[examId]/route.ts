@@ -20,6 +20,7 @@ export async function GET(_request: Request, { params }: Context) {
     where: { id: examId },
     include: {
       course: { select: { id: true, titleAr: true } },
+      lesson: { select: { id: true, titleAr: true, titleEn: true } },
       questions: { include: { options: { orderBy: { createdAt: "asc" } } }, orderBy: { orderIndex: "asc" } },
     },
   });
@@ -41,6 +42,21 @@ export async function PATCH(request: Request, { params }: Context) {
   if (max !== undefined && (!Number.isInteger(max) || max < 1)) {
     return NextResponse.json({ error: "عدد المحاولات يجب أن يكون 1 على الأقل" }, { status: 400 });
   }
+  const existing = await prisma.exam.findUnique({ where: { id: examId }, select: { courseId: true } });
+  if (!existing) return NextResponse.json({ error: "الاختبار غير موجود" }, { status: 404 });
+  let lessonId: string | null | undefined = undefined;
+  if (body.lessonId !== undefined) {
+    const requested = asText(body.lessonId);
+    if (requested === null) {
+      lessonId = null;
+    } else {
+      const lesson = await prisma.lesson.findUnique({ where: { id: requested }, select: { courseId: true } });
+      if (!lesson || lesson.courseId !== existing.courseId) {
+        return NextResponse.json({ error: "الفيديو المختار لا يتبع دورة هذا الاختبار" }, { status: 400 });
+      }
+      lessonId = requested;
+    }
+  }
   try {
     const exam = await prisma.exam.update({
       where: { id: examId },
@@ -49,6 +65,7 @@ export async function PATCH(request: Request, { params }: Context) {
         titleEn: asText(body.titleEn) ?? undefined,
         passingScorePercentage: passing ?? undefined,
         maxAttempts: max ?? undefined,
+        lessonId,
       },
     });
     return NextResponse.json(exam);

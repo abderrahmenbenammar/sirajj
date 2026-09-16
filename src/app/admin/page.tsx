@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { BookPlus, Film, ImagePlus, ListPlus, ShieldCheck, Trash2, Users, X, LibraryBig } from "lucide-react";
+import { BookPlus, Check, Film, GraduationCap, ImagePlus, ListPlus, Plus, ShieldCheck, Trash2, Users, X, LibraryBig } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 import SirajTooltip from "@/components/ui/SirajTooltip";
@@ -26,23 +26,145 @@ type AdminCertificate = {
   student: { id: string; fullName: string; email: string };
   course: { id: string; titleAr: string };
 };
+type AdminLessonOption = { id: string; titleAr: string; titleEn: string };
 type AdminExam = {
   id: string; courseId: string; courseTitleAr: string; titleAr: string; titleEn: string;
+  lessonId: string | null; lesson: AdminLessonOption | null;
   passingScorePercentage: number; maxAttempts: number;
-  questionCount: number; attemptCount: number; invalidQuestions: number; available: boolean;
+  questionCount: number; totalPoints: number; attemptCount: number; invalidQuestions: number; available: boolean;
 };
 type AdminExamDetail = {
   id: string;
   course: { id: string; titleAr: string };
+  lesson: AdminLessonOption | null;
   titleAr: string; titleEn: string;
   passingScorePercentage: number; maxAttempts: number;
   questions: {
-    id: string; questionTextAr: string; questionTextEn: string; orderIndex: number;
+    id: string; questionTextAr: string; questionTextEn: string; points: number; orderIndex: number;
     options: { id: string; optionTextAr: string; optionTextEn: string; isCorrect: boolean }[];
   }[];
 };
 
+type BuilderOption = { textAr: string; textEn: string; isCorrect: boolean };
+type BuilderQuestion = { id: string; textAr: string; textEn: string; points: string; options: BuilderOption[] };
+
+const makeBuilderQuestion = (): BuilderQuestion => ({
+  id: Math.random().toString(36).slice(2),
+  textAr: "",
+  textEn: "",
+  points: "1",
+  options: [
+    { textAr: "", textEn: "", isCorrect: true },
+    { textAr: "", textEn: "", isCorrect: false },
+  ],
+});
+
 const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER" };
+
+function QuestionCard({
+  question,
+  index,
+  onChange,
+  onRemove,
+  t,
+}: {
+  question: BuilderQuestion;
+  index: number;
+  onChange: (patch: Partial<BuilderQuestion>) => void;
+  onRemove?: () => void;
+  t: (ar: string, en: string) => string;
+}) {
+  const setOption = (optionIndex: number, patch: Partial<BuilderOption>) =>
+    onChange({ options: question.options.map((option, i) => (i === optionIndex ? { ...option, ...patch } : option)) });
+  const markCorrect = (optionIndex: number) =>
+    onChange({ options: question.options.map((option, i) => ({ ...option, isCorrect: i === optionIndex })) });
+  const addOption = () => onChange({ options: [...question.options, { textAr: "", textEn: "", isCorrect: false }] });
+  const removeOption = (optionIndex: number) =>
+    onChange({ options: question.options.filter((_, i) => i !== optionIndex) });
+  const borderClass = onRemove
+    ? "border-gray-200 dark:border-gray-800"
+    : "border-emerald-200 dark:border-emerald-900/60";
+
+  return (
+    <div className={`rounded-2xl border ${borderClass} bg-gray-50/60 dark:bg-gray-800/40 p-4 space-y-3`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+          <GraduationCap size={16} className="text-emerald-600 dark:text-emerald-400" />
+          {t("السؤال", "Question")} {index + 1}
+        </span>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            {t("الدرجة", "Mark")}
+            <input
+              type="number"
+              min="1"
+              value={question.points}
+              onChange={(event) => onChange({ points: event.target.value })}
+              className="admin-input w-16 py-1 text-sm"
+            />
+          </label>
+          {onRemove && (
+            <SirajTooltip label={t("حذف هذا السؤال", "Delete this question")} side="top">
+              <button type="button" onClick={onRemove} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={t("حذف السؤال", "Delete question")}>
+                <Trash2 size={15} />
+              </button>
+            </SirajTooltip>
+          )}
+        </div>
+      </div>
+
+      <input
+        value={question.textAr}
+        onChange={(event) => onChange({ textAr: event.target.value })}
+        placeholder={t("نص السؤال بالعربية", "Question text in Arabic")}
+        className="admin-input"
+      />
+      <input
+        value={question.textEn}
+        onChange={(event) => onChange({ textEn: event.target.value })}
+        placeholder={t("نص السؤال بالإنجليزية", "Question text in English")}
+        className="admin-input"
+      />
+
+      <div className="space-y-2">
+        {question.options.map((option, optionIndex) => (
+          <div key={optionIndex} className="flex items-center gap-2">
+            <SirajTooltip label={t("تحديد كإجابة صحيحة", "Mark as the correct answer")} side="top">
+              <button
+                type="button"
+                onClick={() => markCorrect(optionIndex)}
+                className={`shrink-0 p-1.5 rounded-full border ${option.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-gray-300 dark:border-gray-600 text-transparent hover:border-emerald-400"}`}
+                aria-label={t("إجابة صحيحة", "Correct answer")}
+              >
+                <Check size={13} />
+              </button>
+            </SirajTooltip>
+            <input
+              value={option.textAr}
+              onChange={(event) => setOption(optionIndex, { textAr: event.target.value })}
+              placeholder={t("الخيار بالعربية", "Option in Arabic")}
+              className="admin-input flex-1"
+            />
+            <input
+              value={option.textEn}
+              onChange={(event) => setOption(optionIndex, { textEn: event.target.value })}
+              placeholder={t("الخيار بالإنجليزية", "Option in English")}
+              className="admin-input flex-1"
+            />
+            {question.options.length > 2 && (
+              <button type="button" onClick={() => removeOption(optionIndex)} className="shrink-0 p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={t("حذف الخيار", "Delete option")}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        ))}
+        <button type="button" onClick={addOption} className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
+          <Plus size={13} />{t("إضافة خيار", "Add option")}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
@@ -62,12 +184,14 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER" });
   const [editCourseImage, setEditCourseImage] = useState<File | null>(null);
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
-  const [quizForm, setQuizForm] = useState({ question: "", options: "", correctIndex: "0" });
+  const [detailQuestion, setDetailQuestion] = useState<BuilderQuestion>(() => makeBuilderQuestion());
   const [exams, setExams] = useState<AdminExam[]>([]);
-  const [examForm, setExamForm] = useState({ courseId: "", titleAr: "", titleEn: "", passing: "60", max: "3" });
+  const [examForm, setExamForm] = useState({ courseId: "", lessonId: "", titleAr: "", titleEn: "", passing: "60", max: "3" });
+  const [builderQuestions, setBuilderQuestions] = useState<BuilderQuestion[]>(() => [makeBuilderQuestion()]);
+  const [builderError, setBuilderError] = useState("");
   const [selectedExam, setSelectedExam] = useState<AdminExamDetail | null>(null);
   const [editingQuestionId, setEditingQuestionId] = useState("");
-  const [questionDraft, setQuestionDraft] = useState("");
+  const [questionDraft, setQuestionDraft] = useState({ questionTextAr: "", questionTextEn: "", points: "1" });
   const [editingOptionId, setEditingOptionId] = useState("");
   const [optionDraft, setOptionDraft] = useState("");
   const [libraryForm, setLibraryForm] = useState({ type: "book", title: "", author: "", category: "", description: "", content: "", mediaUrl: "" });
@@ -289,10 +413,23 @@ export default function AdminPage() {
   };
 
   const saveQuestionEdit = async (questionId: string) => {
+    if (
+      !questionDraft.questionTextAr.trim() ||
+      !questionDraft.questionTextEn.trim() ||
+      !Number.isInteger(Number(questionDraft.points)) ||
+      Number(questionDraft.points) < 1
+    ) {
+      setMessage(t("نص السؤال بالعربية والإنجليزية ودرجة صحيحة مطلوبة", "Arabic and English question text and a valid mark are required"));
+      return;
+    }
     const response = await fetch(`/api/admin/questions/${questionId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questionTextAr: questionDraft }),
+      body: JSON.stringify({
+        questionTextAr: questionDraft.questionTextAr,
+        questionTextEn: questionDraft.questionTextEn,
+        points: Number(questionDraft.points),
+      }),
     });
     const result = await response.json().catch(() => null);
     setMessage(response.ok ? t("تم حفظ السؤال", "Question saved") : (result?.error ?? t("تعذر حفظ السؤال", "Could not save question")));
@@ -329,24 +466,63 @@ export default function AdminPage() {
 
   useEffect(() => { if (session?.user?.role === "ADMIN") { loadCourses(); loadSubscribers(); loadLibrary(); loadExams(); loadCertificates(); refreshReferenceData(); } }, [session]);
 
+  const builderLessons = courses.find((course) => course.id === examForm.courseId)?.lessons ?? [];
+  const builderTotalPoints = builderQuestions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
+
+  const updateBuilderQuestion = (id: string, patch: Partial<BuilderQuestion>) => {
+    setBuilderQuestions((current) => current.map((question) => (question.id === id ? { ...question, ...patch } : question)));
+  };
+
+  const addBuilderQuestion = () => setBuilderQuestions((current) => [...current, makeBuilderQuestion()]);
+
+  const removeBuilderQuestion = (id: string) =>
+    setBuilderQuestions((current) => current.filter((question) => question.id !== id));
+
+  const resetExamBuilder = () => {
+    setExamForm({ courseId: "", lessonId: "", titleAr: "", titleEn: "", passing: "60", max: "3" });
+    setBuilderQuestions([makeBuilderQuestion()]);
+    setBuilderError("");
+  };
+
   const submitExam = async (event: FormEvent) => {
     event.preventDefault();
+    if (!examForm.courseId) return setBuilderError(t("اختر الدورة", "Select the course"));
+    if (!examForm.titleAr.trim()) return setBuilderError(t("عنوان الاختبار بالعربية مطلوب", "Arabic exam title is required"));
+    if (builderQuestions.length === 0) return setBuilderError(t("أضف سؤالًا واحدًا على الأقل", "Add at least one question"));
+    for (const [index, question] of builderQuestions.entries()) {
+      const label = `${t("السؤال", "Question")} ${index + 1}`;
+      if (!question.textAr.trim() || !question.textEn.trim()) return setBuilderError(`${label}: ${t("نص السؤال بالعربية والإنجليزية مطلوب", "Arabic and English question text are required")}`);
+      if (!Number.isInteger(Number(question.points)) || Number(question.points) < 1) return setBuilderError(`${label}: ${t("الدرجة يجب أن تكون رقمًا صحيحًا أكبر من صفر", "The mark must be a whole number greater than zero")}`);
+      if (question.options.length < 2) return setBuilderError(`${label}: ${t("خياران على الأقل", "At least two options are required")}`);
+      if (question.options.some((option) => !option.textAr.trim() || !option.textEn.trim())) return setBuilderError(`${label}: ${t("نص كل خيار بالعربية والإنجليزية مطلوب", "Each option needs Arabic and English text")}`);
+      if (question.options.filter((option) => option.isCorrect).length !== 1) return setBuilderError(`${label}: ${t("حدد إجابة صحيحة واحدة", "Select exactly one correct answer")}`);
+    }
+    setBuilderError("");
     const response = await fetch("/api/admin/exams", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         courseId: examForm.courseId,
+        lessonId: examForm.lessonId || undefined,
         titleAr: examForm.titleAr,
         titleEn: examForm.titleEn || undefined,
         passingScorePercentage: Number(examForm.passing),
         maxAttempts: Number(examForm.max),
+        questions: builderQuestions.map((question) => ({
+          questionTextAr: question.textAr,
+          questionTextEn: question.textEn,
+          points: Number(question.points),
+          options: question.options.map((option) => ({ optionTextAr: option.textAr, optionTextEn: option.textEn, isCorrect: option.isCorrect })),
+        })),
       }),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تمت إضافة الاختبار", "Exam added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")));
     if (response.ok) {
-      setExamForm({ courseId: "", titleAr: "", titleEn: "", passing: "60", max: "3" });
+      setMessage(t("تمت إضافة الاختبار", "Exam added"));
+      resetExamBuilder();
       await loadExams();
+    } else {
+      setBuilderError(result?.error ?? t("تعذر تنفيذ العملية", "Operation failed"));
     }
   };
 
@@ -356,20 +532,33 @@ export default function AdminPage() {
       setMessage(t("اختر اختبارًا أولًا", "Select an exam first"));
       return;
     }
+    if (
+      !detailQuestion.textAr.trim() ||
+      !detailQuestion.textEn.trim() ||
+      detailQuestion.options.length < 2 ||
+      detailQuestion.options.some((option) => !option.textAr.trim() || !option.textEn.trim()) ||
+      detailQuestion.options.filter((option) => option.isCorrect).length !== 1 ||
+      !Number.isInteger(Number(detailQuestion.points)) ||
+      Number(detailQuestion.points) < 1
+    ) {
+      setMessage(t("أكمل بيانات السؤال والخيارات وحدد إجابة صحيحة واحدة", "Complete the question and options and select exactly one correct answer"));
+      return;
+    }
     const response = await fetch("/api/admin/quizzes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         examId: selectedExam.id,
-        question: quizForm.question,
-        options: quizForm.options.split("|").map((option) => option.trim()),
-        correctIndex: Number(quizForm.correctIndex),
+        questionAr: detailQuestion.textAr,
+        questionEn: detailQuestion.textEn,
+        points: Number(detailQuestion.points),
+        options: detailQuestion.options.map((option) => ({ optionTextAr: option.textAr, optionTextEn: option.textEn, isCorrect: option.isCorrect })),
       }),
     });
     const result = await response.json().catch(() => null);
     setMessage(response.ok ? t("تمت إضافة السؤال", "Question added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")));
     if (response.ok) {
-      setQuizForm({ question: "", options: "", correctIndex: "0" });
+      setDetailQuestion(makeBuilderQuestion());
       await loadExamDetail(selectedExam.id);
       await loadExams();
     }
@@ -548,18 +737,6 @@ export default function AdminPage() {
             <button className="admin-button"><ListPlus size={16} />{t("حفظ الدرس", "Save lesson")}</button>
           </form>
 
-          <form onSubmit={submitExam} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
-            <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><ListPlus size={18} />{t("إضافة اختبار", "Add exam")}</h2>
-            <select required value={examForm.courseId} onChange={(e) => setExamForm({ ...examForm, courseId: e.target.value })} className="admin-input"><option value="">{t("اختر الدورة", "Select course")}</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.titleAr}</option>)}</select>
-            <input required placeholder={t("عنوان الاختبار", "Exam title")} value={examForm.titleAr} onChange={(e) => setExamForm({ ...examForm, titleAr: e.target.value })} className="admin-input" />
-            <input placeholder={t("العنوان بالإنجليزية", "English title")} value={examForm.titleEn} onChange={(e) => setExamForm({ ...examForm, titleEn: e.target.value })} className="admin-input" />
-            <div className="flex gap-2">
-              <input required type="number" min="0" max="100" placeholder={t("النجاح %", "Pass %")} value={examForm.passing} onChange={(e) => setExamForm({ ...examForm, passing: e.target.value })} className="admin-input" />
-              <input required type="number" min="1" placeholder={t("المحاولات", "Attempts")} value={examForm.max} onChange={(e) => setExamForm({ ...examForm, max: e.target.value })} className="admin-input" />
-            </div>
-            <button className="admin-button"><ListPlus size={16} />{t("حفظ الاختبار", "Save exam")}</button>
-          </form>
-
           <form onSubmit={submitLibrary} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
             <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><LibraryBig size={18} />{t("إضافة عنصر للمكتبة", "Add library item")}</h2>
             <select value={libraryForm.type} onChange={(e) => setLibraryForm({ ...libraryForm, type: e.target.value })} className="admin-input"><option value="book">كتاب</option><option value="article">مقال</option><option value="research">بحث</option><option value="lecture">محاضرة</option></select>
@@ -575,6 +752,77 @@ export default function AdminPage() {
           </form>
         </div>
 
+        <form onSubmit={submitExam} className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 sm:p-6 space-y-6">
+          <div className="flex items-center gap-3">
+            <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"><GraduationCap size={20} /></span>
+            <div>
+              <h2 className="font-bold text-gray-900 dark:text-white">{t("إضافة اختبار جديد", "Create a new exam")}</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t("املأ بيانات الاختبار ثم أضف الأسئلة والخيارات وحدد الإجابة الصحيحة لكل سؤال.", "Fill in the exam data, then add questions and options and mark the correct answer for each question.")}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs">1</span>
+              {t("بيانات الاختبار", "Exam details")}
+            </h3>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <select required value={examForm.courseId} onChange={(e) => setExamForm({ ...examForm, courseId: e.target.value, lessonId: "" })} className="admin-input">
+                <option value="">{t("اختر الدورة", "Select course")}</option>
+                {courses.map((course) => <option key={course.id} value={course.id}>{course.titleAr}</option>)}
+              </select>
+              <select value={examForm.lessonId} disabled={!examForm.courseId} onChange={(e) => setExamForm({ ...examForm, lessonId: e.target.value })} className="admin-input disabled:opacity-60">
+                <option value="">{t("بدون فيديو مرتبط", "No linked video")}</option>
+                {builderLessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{lesson.titleAr}</option>)}
+              </select>
+              <input required placeholder={t("عنوان الاختبار بالعربية", "Exam title in Arabic")} value={examForm.titleAr} onChange={(e) => setExamForm({ ...examForm, titleAr: e.target.value })} className="admin-input" />
+              <input placeholder={t("عنوان الاختبار بالإنجليزية", "Exam title in English")} value={examForm.titleEn} onChange={(e) => setExamForm({ ...examForm, titleEn: e.target.value })} className="admin-input" />
+              <input required type="number" min="0" max="100" placeholder={t("نسبة النجاح %", "Pass percentage %")} value={examForm.passing} onChange={(e) => setExamForm({ ...examForm, passing: e.target.value })} className="admin-input" />
+              <input required type="number" min="1" placeholder={t("عدد المحاولات", "Attempts")} value={examForm.max} onChange={(e) => setExamForm({ ...examForm, max: e.target.value })} className="admin-input" />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs">2</span>
+              {t("الأسئلة والخيارات", "Questions and options")}
+            </h3>
+            <div className="space-y-3">
+              {builderQuestions.map((question, index) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  index={index}
+                  t={t}
+                  onChange={(patch) => updateBuilderQuestion(question.id, patch)}
+                  onRemove={builderQuestions.length > 1 ? () => removeBuilderQuestion(question.id) : undefined}
+                />
+              ))}
+            </div>
+            <button type="button" onClick={addBuilderQuestion} className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
+              <Plus size={15} />{t("إضافة سؤال آخر", "Add another question")}
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs">3</span>
+              {t("الملخص والحفظ", "Summary and save")}
+            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3">
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {builderQuestions.length} {t("سؤال", "questions")} · {t("العلامة الكاملة", "Total mark")}
+              </span>
+              <span className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{builderTotalPoints}</span>
+            </div>
+            {builderError && <p className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 text-sm">{builderError}</p>}
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="admin-button"><ListPlus size={16} />{t("حفظ الاختبار", "Save exam")}</button>
+              <button type="button" onClick={resetExamBuilder} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">{t("إلغاء", "Cancel")}</button>
+            </div>
+          </div>
+        </form>
+
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
           <h2 className="font-bold text-gray-900 dark:text-white mb-4">{t("الاختبارات", "Exams")}</h2>
           {exams.length > 0 ? (
@@ -585,7 +833,9 @@ export default function AdminPage() {
                     <button type="button" onClick={() => loadExamDetail(exam.id)} className="min-w-0 text-start w-full">
                       <span className="block text-sm text-gray-900 dark:text-white truncate">{exam.titleAr}</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {exam.courseTitleAr} · {exam.questionCount} {t("أسئلة", "questions")} ·{" "}
+                        {exam.courseTitleAr}
+                        {exam.lesson ? ` · ${exam.lesson.titleAr}` : ""} · {exam.questionCount} {t("أسئلة", "questions")} ·{" "}
+                        {t("العلامة الكاملة", "Total mark")}: {exam.totalPoints} ·{" "}
                         {exam.available ? t("متاح", "Available") : t("غير مكتمل", "Incomplete")} · {exam.attemptCount} {t("محاولات", "attempts")}
                       </span>
                     </button>
@@ -605,7 +855,11 @@ export default function AdminPage() {
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white">{selectedExam.titleAr}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{selectedExam.course.titleAr}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {selectedExam.course.titleAr}
+                    {selectedExam.lesson ? ` · ${selectedExam.lesson.titleAr}` : ""}
+                    {" · "}{t("العلامة الكاملة", "Total mark")}: {selectedExam.questions.reduce((sum, question) => sum + question.points, 0)}
+                  </p>
                 </div>
                 <SirajTooltip label={t("إغلاق تفاصيل الاختبار", "Close exam details")} side="bottom">
                   <button type="button" onClick={() => setSelectedExam(null)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" aria-label={t("إغلاق", "Close")}><X size={18} /></button>
@@ -614,9 +868,12 @@ export default function AdminPage() {
 
               <form onSubmit={submitQuestion} className="space-y-3 mb-6">
                 <h4 className="font-semibold text-sm text-gray-900 dark:text-white">{t("إضافة سؤال", "Add question")}</h4>
-                <input required placeholder={t("السؤال", "Question")} value={quizForm.question} onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })} className="admin-input" />
-                <input required placeholder={t("الخيارات مفصولة بعلامة |", "Options separated by |")} value={quizForm.options} onChange={(e) => setQuizForm({ ...quizForm, options: e.target.value })} className="admin-input" />
-                <input required type="number" min="0" placeholder="correct index" value={quizForm.correctIndex} onChange={(e) => setQuizForm({ ...quizForm, correctIndex: e.target.value })} className="admin-input" />
+                <QuestionCard
+                  question={detailQuestion}
+                  index={selectedExam.questions.length}
+                  t={t}
+                  onChange={(patch) => setDetailQuestion((current) => ({ ...current, ...patch }))}
+                />
                 <button className="admin-button"><ListPlus size={16} />{t("حفظ السؤال", "Save question")}</button>
               </form>
 
@@ -624,16 +881,23 @@ export default function AdminPage() {
                 {selectedExam.questions.map((question) => (
                   <div key={question.id} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                     {editingQuestionId === question.id ? (
-                      <div className="flex gap-2">
-                        <input value={questionDraft} onChange={(e) => setQuestionDraft(e.target.value)} className="admin-input flex-1" />
-                        <button type="button" onClick={() => saveQuestionEdit(question.id)} className="admin-button">{t("حفظ", "Save")}</button>
-                        <button type="button" onClick={() => setEditingQuestionId("")} className="px-3 py-2 text-sm text-gray-500">{t("إلغاء", "Cancel")}</button>
+                      <div className="space-y-2">
+                        <input value={questionDraft.questionTextAr} onChange={(e) => setQuestionDraft({ ...questionDraft, questionTextAr: e.target.value })} placeholder={t("نص السؤال بالعربية", "Question text in Arabic")} className="admin-input" />
+                        <input value={questionDraft.questionTextEn} onChange={(e) => setQuestionDraft({ ...questionDraft, questionTextEn: e.target.value })} placeholder={t("نص السؤال بالإنجليزية", "Question text in English")} className="admin-input" />
+                        <div className="flex gap-2">
+                          <input type="number" min="1" value={questionDraft.points} onChange={(e) => setQuestionDraft({ ...questionDraft, points: e.target.value })} placeholder={t("الدرجة", "Mark")} className="admin-input w-24" />
+                          <button type="button" onClick={() => saveQuestionEdit(question.id)} className="admin-button">{t("حفظ", "Save")}</button>
+                          <button type="button" onClick={() => setEditingQuestionId("")} className="px-3 py-2 text-sm text-gray-500">{t("إلغاء", "Cancel")}</button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{question.orderIndex + 1}. {question.questionTextAr}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {question.orderIndex + 1}. {question.questionTextAr}
+                          <span className="ms-2 text-xs font-normal text-emerald-700 dark:text-emerald-400">({question.points} {t("نقطة", "pt")})</span>
+                        </p>
                         <div className="flex gap-1 shrink-0">
-                          <button type="button" onClick={() => { setEditingQuestionId(question.id); setQuestionDraft(question.questionTextAr); }} className="px-2 py-1 text-xs rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">{t("تعديل", "Edit")}</button>
+                          <button type="button" onClick={() => { setEditingQuestionId(question.id); setQuestionDraft({ questionTextAr: question.questionTextAr, questionTextEn: question.questionTextEn, points: String(question.points) }); }} className="px-2 py-1 text-xs rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">{t("تعديل", "Edit")}</button>
                           <SirajTooltip label={t("حذف هذا السؤال مع خياراته", "Delete this question and its options")} side="top">
                             <button type="button" onClick={() => deleteQuestion(question.id)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" aria-label={t("حذف السؤال", "Delete question")}><Trash2 size={14} /></button>
                           </SirajTooltip>

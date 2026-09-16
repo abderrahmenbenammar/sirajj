@@ -34,6 +34,7 @@ export interface TakeQuestion {
   id: string;
   questionTextAr: string;
   questionTextEn: string;
+  points: number;
   orderIndex: number;
   options: TakeOption[];
 }
@@ -65,6 +66,7 @@ export interface SubmitResponse {
   passed: boolean;
   correctCount: number;
   totalQuestions: number;
+  totalPoints: number;
   attemptsUsed: number;
   attemptsLeft: number;
   submitted: boolean;

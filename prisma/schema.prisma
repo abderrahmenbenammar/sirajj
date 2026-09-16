@@ -113,6 +113,7 @@ model Lesson {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   completions LessonCompletion[]
+  exams        Exam[]
 
   @@unique([courseId, orderIndex], map: "lessons_course_id_order_index_key")
   @@index([courseId], map: "idx_lessons_course_id")
@@ -161,6 +162,8 @@ model Exam {
   id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   courseId               String   @map("course_id") @db.Uuid
   course                 Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId               String?  @map("lesson_id") @db.Uuid
+  lesson                 Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   titleAr                String   @map("title_ar")
   titleEn                String   @map("title_en")
   passingScorePercentage Int      @default(60) @map("passing_score_percentage")
@@ -172,6 +175,7 @@ model Exam {
   attempts  ExamAttempt[]
 
   @@index([courseId], map: "idx_exams_course_id")
+  @@index([lessonId], map: "idx_exams_lesson_id")
   @@map("exams")
 }
 
@@ -181,6 +185,7 @@ model ExamQuestion {
   exam           Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   questionTextAr String   @map("question_text_ar")
   questionTextEn String   @map("question_text_en")
+  points         Int      @default(1)
   orderIndex     Int      @default(0) @map("order_index")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

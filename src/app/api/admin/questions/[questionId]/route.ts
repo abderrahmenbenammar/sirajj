@@ -21,12 +21,17 @@ export async function PATCH(request: Request, { params }: Context) {
   if (orderIndex !== undefined && (!Number.isInteger(orderIndex) || orderIndex < 0)) {
     return NextResponse.json({ error: "الترتيب غير صالح" }, { status: 400 });
   }
+  const points = body.points;
+  if (points !== undefined && (!Number.isInteger(points) || points < 1)) {
+    return NextResponse.json({ error: "درجات السؤال يجب أن تكون رقمًا صحيحًا أكبر من صفر" }, { status: 400 });
+  }
   try {
     const question = await prisma.examQuestion.update({
       where: { id: questionId },
       data: {
         questionTextAr: asText(body.questionTextAr) ?? asText(body.question) ?? undefined,
         questionTextEn: asText(body.questionTextEn) ?? undefined,
+        points: points ?? undefined,
         orderIndex: orderIndex ?? undefined,
       },
       include: { options: true },

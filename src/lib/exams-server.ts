@@ -13,6 +13,7 @@ export interface SafeQuestion {
   id: string;
   questionTextAr: string;
   questionTextEn: string;
+  points: number;
   orderIndex: number;
   options: SafeOption[];
 }
@@ -60,6 +61,7 @@ export async function safeQuestions(examId: string): Promise<SafeQuestion[]> {
       id: true,
       questionTextAr: true,
       questionTextEn: true,
+      points: true,
       orderIndex: true,
       options: { select: { id: true, optionTextAr: true, optionTextEn: true }, orderBy: { createdAt: "asc" } },
     },

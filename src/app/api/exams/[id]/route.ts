@@ -30,6 +30,11 @@ export async function GET(_request: Request, { params }: Context) {
     where: { examId: exam.id, studentId, status: "completed" },
     orderBy: { attemptNumber: "desc" },
   });
+  const questionsAggregate = await prisma.examQuestion.aggregate({
+    where: { examId: exam.id },
+    _count: true,
+    _sum: { points: true },
+  });
 
   return NextResponse.json({
     id: exam.id,
@@ -41,6 +46,7 @@ export async function GET(_request: Request, { params }: Context) {
     passingScorePercentage: exam.passingScorePercentage,
     maxAttempts: exam.maxAttempts,
     questionCount: validity.questionCount,
+    totalPoints: questionsAggregate._sum.points ?? 0,
     available: validity.available,
     ...stats,
     history: history.map((attempt) => ({
