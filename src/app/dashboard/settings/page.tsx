@@ -5,12 +5,23 @@ import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
 import { User, Globe, Moon, Shield, LogOut, ChevronLeft } from "lucide-react";
+import { useState } from "react";
 import SirajLoading from "@/components/ui/SirajLoading";
+import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
 
 export default function SettingsPage() {
   const { t, lang, toggleLang } = useLang();
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, isAuthLoading, user, logout } = useAuth();
+  const { dialog, notify } = useSirajMessage();
+
+  const [name, setName] = useState("");
+  const [nameLoaded, setNameLoaded] = useState(false);
+  const [nameSaving, setNameSaving] = useState(false);
+
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
 
   if (isAuthLoading) {
     return <SirajLoading />;
@@ -25,6 +36,49 @@ export default function SettingsPage() {
     );
   }
 
+  if (!nameLoaded && user?.name) {
+    setName(user.name);
+    setNameLoaded(true);
+  }
+
+  const handleSaveName = async () => {
+    setNameSaving(true);
+    try {
+      const res = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "failed");
+      notify(t("تم الحفظ بنجاح", "Saved successfully"), "success");
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "failed", "error");
+    } finally {
+      setNameSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPwSaving(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "failed");
+      notify(t("تم التحديث بنجاح", "Updated successfully"), "success");
+      setCurrentPw("");
+      setNewPw("");
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "failed", "error");
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   const sections = [
     {
       icon: <User size={18} />,
@@ -35,7 +89,8 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("الاسم", "Name")}</label>
             <input
               type="text"
-              defaultValue={user?.name || ""}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
@@ -43,13 +98,20 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("البريد الإلكتروني", "Email")}</label>
             <input
               type="email"
-              defaultValue={user?.email || ""}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-colors"
+              value={user?.email || ""}
+              disabled
+              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white outline-none opacity-60 cursor-not-allowed"
             />
           </div>
-          <button className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors">
-            {t("حفظ التغييرات", "Save Changes")}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveName}
+              disabled={nameSaving || !name.trim()}
+              className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              {nameSaving ? t("جارٍ الحفظ...", "Saving...") : t("حفظ التغييرات", "Save Changes")}
+            </button>
+          </div>
         </div>
       ),
     },
@@ -98,6 +160,8 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("كلمة المرور الحالية", "Current Password")}</label>
             <input
               type="password"
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
               className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-colors"
               placeholder="••••••••"
             />
@@ -106,13 +170,22 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("كلمة المرور الجديدة", "New Password")}</label>
             <input
               type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
               className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-colors"
               placeholder="••••••••"
+              minLength={8}
             />
           </div>
-          <button className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors">
-            {t("تحديث كلمة المرور", "Update Password")}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleChangePassword}
+              disabled={pwSaving || !currentPw || !newPw || newPw.length < 8}
+              className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              {pwSaving ? t("جارٍ التحديث...", "Updating...") : t("تحديث كلمة المرور", "Update Password")}
+            </button>
+          </div>
         </div>
       ),
     },
@@ -164,6 +237,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      <SirajDialog {...dialog} />
     </div>
   );
 }

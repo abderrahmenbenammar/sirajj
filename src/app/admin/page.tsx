@@ -8,6 +8,7 @@ import { useLang } from "@/lib/lang-context";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 import SirajTooltip from "@/components/ui/SirajTooltip";
 import SirajLoading from "@/components/ui/SirajLoading";
+import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
 type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
@@ -177,7 +178,7 @@ export default function AdminPage() {
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
   const [certificates, setCertificates] = useState<AdminCertificate[]>([]);
   const [certSearch, setCertSearch] = useState("");
-  const [message, setMessage] = useState("");
+  const { dialog, notify } = useSirajMessage();
   const [userSearch, setUserSearch] = useState("");
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE_FORM);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -275,7 +276,7 @@ export default function AdminPage() {
     if (!window.confirm(t("هل تريد حذف هذا العنصر؟", "Delete this item?"))) return;
     const response = await fetch(`/api/admin/library/${itemId}`, { method: "DELETE" });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حذف العنصر", "Item deleted") : (result?.error ?? t("تعذر الحذف", "Could not delete")));
+    notify(response.ok ? t("تم حذف العنصر", "Item deleted") : (result?.error ?? t("تعذر الحذف", "Could not delete")), response.ok ? "success" : "error");
     if (response.ok) await loadLibrary();
   };
 
@@ -286,7 +287,7 @@ export default function AdminPage() {
       body: JSON.stringify({ titleAr: libraryDraft.titleAr, authorName: libraryDraft.authorName || null, type: libraryDraft.type, contentUrl: libraryDraft.contentUrl }),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حفظ العنصر", "Item saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")));
+    notify(response.ok ? t("تم حفظ العنصر", "Item saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")), response.ok ? "success" : "error");
     if (response.ok) {
       setEditingLibraryId("");
       await loadLibrary();
@@ -301,7 +302,7 @@ export default function AdminPage() {
       body: JSON.stringify(categoryForm),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تمت إضافة التصنيف", "Category added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")));
+    notify(response.ok ? t("تمت إضافة التصنيف", "Category added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")), response.ok ? "success" : "error");
     if (response.ok) {
       setCategoryForm({ nameAr: "", nameEn: "", slug: "" });
       await loadCategories();
@@ -315,7 +316,7 @@ export default function AdminPage() {
       body: JSON.stringify(categoryDraft),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حفظ التصنيف", "Category saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")));
+    notify(response.ok ? t("تم حفظ التصنيف", "Category saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")), response.ok ? "success" : "error");
     if (response.ok) {
       setEditingCategoryId("");
       await loadCategories();
@@ -326,7 +327,7 @@ export default function AdminPage() {
     if (!window.confirm(`${t("هل تريد حذف تصنيف", "Delete category")} "${category.nameAr}"؟`)) return;
     const response = await fetch(`/api/admin/categories/${category.id}`, { method: "DELETE" });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حذف التصنيف", "Category deleted") : (result?.error ?? t("تعذر الحذف", "Could not delete")));
+    notify(response.ok ? t("تم حذف التصنيف", "Category deleted") : (result?.error ?? t("تعذر الحذف", "Could not delete")), response.ok ? "success" : "error");
     if (response.ok) {
       await loadCategories();
       await loadCourses();
@@ -342,7 +343,7 @@ export default function AdminPage() {
       body: JSON.stringify({ ...faqForm, orderIndex: Number(faqForm.orderIndex) }),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تمت إضافة السؤال", "Question added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")));
+    notify(response.ok ? t("تمت إضافة السؤال", "Question added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")), response.ok ? "success" : "error");
     if (response.ok) {
       setFaqForm({ questionAr: "", questionEn: "", answerAr: "", answerEn: "", orderIndex: "0" });
       await loadFaqsAdmin();
@@ -356,7 +357,7 @@ export default function AdminPage() {
       body: JSON.stringify({ ...faqDraft, orderIndex: Number(faqDraft.orderIndex) }),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حفظ السؤال", "Question saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")));
+    notify(response.ok ? t("تم حفظ السؤال", "Question saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")), response.ok ? "success" : "error");
     if (response.ok) {
       setEditingFaqId("");
       await loadFaqsAdmin();
@@ -366,7 +367,7 @@ export default function AdminPage() {
   const deleteFaq = async (faqId: string) => {
     if (!window.confirm(t("هل تريد حذف هذا السؤال؟", "Delete this question?"))) return;
     const response = await fetch(`/api/admin/faqs/${faqId}`, { method: "DELETE" });
-    setMessage(response.ok ? t("تم حذف السؤال", "Question deleted") : t("تعذر الحذف", "Could not delete"));
+    notify(response.ok ? t("تم حذف السؤال", "Question deleted") : t("تعذر الحذف", "Could not delete"), response.ok ? "success" : "error");
     if (response.ok) await loadFaqsAdmin();
   };
 
@@ -377,7 +378,7 @@ export default function AdminPage() {
       body: JSON.stringify({ status }),
     });
     if (response.ok) await loadContactMessages();
-    else setMessage(t("تعذر تحديث الرسالة", "Could not update message"));
+    else notify(t("تعذر تحديث الرسالة", "Could not update message"), "error");
   };
 
   const loadExams = async () => {
@@ -394,7 +395,7 @@ export default function AdminPage() {
     if (!window.confirm(`${t("هل تريد حذف اختبار", "Delete exam")} "${exam.titleAr}"؟`)) return;
     const response = await fetch(`/api/admin/exams/${exam.id}`, { method: "DELETE" });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حذف الاختبار", "Exam deleted") : (result?.error ?? t("تعذر حذف الاختبار", "Could not delete exam")));
+    notify(response.ok ? t("تم حذف الاختبار", "Exam deleted") : (result?.error ?? t("تعذر حذف الاختبار", "Could not delete exam")), response.ok ? "success" : "error");
     if (response.ok) {
       if (selectedExam?.id === exam.id) setSelectedExam(null);
       await loadExams();
@@ -405,7 +406,7 @@ export default function AdminPage() {
     if (!window.confirm(t("هل تريد حذف هذا السؤال؟", "Delete this question?"))) return;
     const response = await fetch(`/api/admin/questions/${questionId}`, { method: "DELETE" });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حذف السؤال", "Question deleted") : (result?.error ?? t("تعذر حذف السؤال", "Could not delete question")));
+    notify(response.ok ? t("تم حذف السؤال", "Question deleted") : (result?.error ?? t("تعذر حذف السؤال", "Could not delete question")), response.ok ? "success" : "error");
     if (response.ok && selectedExam) {
       await loadExamDetail(selectedExam.id);
       await loadExams();
@@ -419,7 +420,7 @@ export default function AdminPage() {
       !Number.isInteger(Number(questionDraft.points)) ||
       Number(questionDraft.points) < 1
     ) {
-      setMessage(t("نص السؤال بالعربية والإنجليزية ودرجة صحيحة مطلوبة", "Arabic and English question text and a valid mark are required"));
+      notify(t("نص السؤال بالعربية والإنجليزية ودرجة صحيحة مطلوبة", "Arabic and English question text and a valid mark are required"), "error");
       return;
     }
     const response = await fetch(`/api/admin/questions/${questionId}`, {
@@ -432,7 +433,7 @@ export default function AdminPage() {
       }),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حفظ السؤال", "Question saved") : (result?.error ?? t("تعذر حفظ السؤال", "Could not save question")));
+    notify(response.ok ? t("تم حفظ السؤال", "Question saved") : (result?.error ?? t("تعذر حفظ السؤال", "Could not save question")), response.ok ? "success" : "error");
     if (response.ok) {
       setEditingQuestionId("");
       if (selectedExam) {
@@ -446,7 +447,7 @@ export default function AdminPage() {
     if (!window.confirm(t("هل تريد حذف هذا الخيار؟", "Delete this option?"))) return;
     const response = await fetch(`/api/admin/options/${optionId}`, { method: "DELETE" });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حذف الخيار", "Option deleted") : (result?.error ?? t("تعذر حذف الخيار", "Could not delete option")));
+    notify(response.ok ? t("تم حذف الخيار", "Option deleted") : (result?.error ?? t("تعذر حذف الخيار", "Could not delete option")), response.ok ? "success" : "error");
     if (response.ok && selectedExam) await loadExamDetail(selectedExam.id);
   };
 
@@ -457,7 +458,7 @@ export default function AdminPage() {
       body: JSON.stringify({ optionTextAr: optionDraft }),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حفظ الخيار", "Option saved") : (result?.error ?? t("تعذر حفظ الخيار", "Could not save option")));
+    notify(response.ok ? t("تم حفظ الخيار", "Option saved") : (result?.error ?? t("تعذر حفظ الخيار", "Could not save option")), response.ok ? "success" : "error");
     if (response.ok) {
       setEditingOptionId("");
       if (selectedExam) await loadExamDetail(selectedExam.id);
@@ -513,18 +514,18 @@ export default function AdminPage() {
     });
     const result = await response.json().catch(() => null);
     if (response.ok) {
-      setMessage(t("تمت إضافة الاختبار", "Exam added"));
+      notify(t("تمت إضافة الاختبار", "Exam added"), "success");
       resetExamBuilder();
       await loadExams();
     } else {
-      setBuilderError(result?.error ?? t("تعذر تنفيذ العملية", "Operation failed"));
+      notify(result?.error ?? t("تعذر تنفيذ العملية", "Operation failed"), "error");
     }
   };
 
   const submitQuestion = async (event: FormEvent) => {
     event.preventDefault();
     if (!selectedExam) {
-      setMessage(t("اختر اختبارًا أولًا", "Select an exam first"));
+      notify(t("اختر اختبارًا أولًا", "Select an exam first"), "warning");
       return;
     }
     if (
@@ -536,7 +537,7 @@ export default function AdminPage() {
       !Number.isInteger(Number(detailQuestion.points)) ||
       Number(detailQuestion.points) < 1
     ) {
-      setMessage(t("أكمل بيانات السؤال والخيارات وحدد إجابة صحيحة واحدة", "Complete the question and options and select exactly one correct answer"));
+      notify(t("أكمل بيانات السؤال والخيارات وحدد إجابة صحيحة واحدة", "Complete the question and options and select exactly one correct answer"), "error");
       return;
     }
     const response = await fetch("/api/admin/quizzes", {
@@ -551,7 +552,7 @@ export default function AdminPage() {
       }),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تمت إضافة السؤال", "Question added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")));
+    notify(response.ok ? t("تمت إضافة السؤال", "Question added") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")), response.ok ? "success" : "error");
     if (response.ok) {
       setDetailQuestion(makeBuilderQuestion());
       await loadExamDetail(selectedExam.id);
@@ -563,7 +564,7 @@ export default function AdminPage() {
     if (!window.confirm(`${t("هل تريد حذف دورة", "Delete course")} "${course.titleAr}"؟`)) return;
     const response = await fetch(`/api/admin/courses/${course.id}`, { method: "DELETE" });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم حذف الدورة", "Course deleted") : (result?.error ?? t("تعذر حذف الدورة", "Could not delete course")));
+    notify(response.ok ? t("تم حذف الدورة", "Course deleted") : (result?.error ?? t("تعذر حذف الدورة", "Could not delete course")), response.ok ? "success" : "error");
     if (response.ok) {
       // The cascade removes the course's exams, lessons and certificates too —
       // refresh everything affected so no stale item stays visible (and a
@@ -590,7 +591,7 @@ export default function AdminPage() {
       body: JSON.stringify(patch),
     });
     const result = await response.json().catch(() => null);
-    setMessage(response.ok ? t("تم تحديث المشترك", "Subscriber updated") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")));
+    notify(response.ok ? t("تم تحديث المشترك", "Subscriber updated") : (result?.error ?? t("تعذر تنفيذ العملية", "Operation failed")), response.ok ? "success" : "error");
     if (response.ok) {
       await loadSubscribers(userSearch);
       if (selectedSubscriber?.id === subscriberId) await showSubscriberDetails(subscriberId);
@@ -617,7 +618,7 @@ export default function AdminPage() {
       await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
       setCourseImage(null);
       setCourseForm(EMPTY_COURSE_FORM);
-    } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image")); }
+    } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image"), "error"); }
   };
 
   const startEditCourse = (course: Course) => {
@@ -652,13 +653,13 @@ export default function AdminPage() {
         body: JSON.stringify(payload),
       });
       const result = await response.json().catch(() => null);
-      setMessage(response.ok ? t("تم تحديث الدورة", "Course updated") : (result?.error ?? t("تعذر تحديث الدورة", "Could not update course")));
+      notify(response.ok ? t("تم تحديث الدورة", "Course updated") : (result?.error ?? t("تعذر تحديث الدورة", "Could not update course")), response.ok ? "success" : "error");
       if (response.ok) {
         setEditingCourse(null);
         setEditCourseImage(null);
         await loadCourses();
       }
-    } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image")); }
+    } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image"), "error"); }
   };
 
   const submitLesson = async (event: FormEvent) => {
@@ -667,7 +668,7 @@ export default function AdminPage() {
       const videoUrl = lessonVideo ? await uploadFile(lessonVideo, "video") : lessonForm.videoUrl;
       await submit(event, "/api/admin/lessons", { ...lessonForm, videoUrl, orderIndex: Number(lessonForm.orderIndex) }, t("تمت إضافة الدرس", "Lesson added"));
       setLessonVideo(null);
-    } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الفيديو", "Could not upload video")); }
+    } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الفيديو", "Could not upload video"), "error"); }
   };
 
   const submitLibrary = async (event: FormEvent) => {
@@ -677,13 +678,13 @@ export default function AdminPage() {
       const mediaUrl = libraryFile ? await uploadFile(libraryFile, fileKind) : libraryForm.mediaUrl;
       await submit(event, "/api/admin/library", { ...libraryForm, mediaUrl }, t("تمت إضافة عنصر المكتبة", "Library item added"));
       setLibraryFile(null);
-    } catch (error) { setMessage(error instanceof Error ? error.message : t("تعذر رفع الملف", "Could not upload file")); }
+    } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الملف", "Could not upload file"), "error"); }
   };
 
   const submit = async (event: FormEvent, url: string, body: object, success: string) => {
     event.preventDefault();
     const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    setMessage(response.ok ? success : t("تعذر تنفيذ العملية", "Operation failed"));
+    notify(response.ok ? success : t("تعذر تنفيذ العملية", "Operation failed"), response.ok ? "success" : "error");
     if (response.ok) { await loadCourses(); await loadLibrary(); }
   };
 
@@ -697,8 +698,6 @@ export default function AdminPage() {
           <ShieldCheck className="text-emerald-600" />
           <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("لوحة إدارة الأكاديمية", "Academy Administration")}</h1><p className="text-sm text-gray-500 dark:text-gray-400">{t("إدارة المحتوى من الخادم بشكل آمن", "Secure server-side content management")}</p></div>
         </div>
-        {message && <p className="mb-6 p-3 rounded-xl bg-emerald-50 text-emerald-700 text-sm">{message}</p>}
-
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           <form onSubmit={submitCourse} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-3">
             <h2 className="font-bold flex items-center gap-2 text-gray-900 dark:text-white"><BookPlus size={18} />{t("إضافة دورة", "Add course")}</h2>
@@ -1195,6 +1194,7 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+      <SirajDialog {...dialog} />
     </div>
   );
 }

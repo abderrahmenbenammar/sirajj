@@ -5,19 +5,18 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Mail, Phone, MapPin, Send, MessageCircle, HelpCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
 
 export default function ContactPage() {
   const { t } = useLang();
   const { user } = useAuth();
+  const { dialog, notify } = useSirajMessage();
   const [form, setForm] = useState({ name: user?.name || "", email: user?.email || "", subject: "", message: "" });
-  const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
-  const [submitError, setSubmitError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
-    setSubmitError("");
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -28,11 +27,10 @@ export default function ContactPage() {
         const body = await response.json().catch(() => null);
         throw new Error(body && typeof body.error === "string" ? body.error : "send-failed");
       }
-      setSent(true);
-      setTimeout(() => setSent(false), 3000);
+      notify(t("تم إرسال رسالتك بنجاح", "Your message has been sent successfully"), "success");
       setForm({ ...form, subject: "", message: "" });
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "send-failed");
+      notify(err instanceof Error ? err.message : "send-failed", "error");
     } finally {
       setSending(false);
     }
@@ -151,11 +149,8 @@ export default function ContactPage() {
                   className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20"
                 >
                   <Send size={16} />
-                  {sent ? t("تم الإرسال ✓", "Sent ✓") : t("إرسال الرسالة", "Send Message")}
+                  {t("إرسال الرسالة", "Send Message")}
                 </button>
-                {submitError && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>
-                )}
               </form>
             </div>
           </div>
@@ -179,6 +174,7 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+      <SirajDialog {...dialog} />
     </div>
   );
 }
