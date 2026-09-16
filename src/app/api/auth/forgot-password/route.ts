@@ -8,12 +8,19 @@ export async function POST(request: Request) {
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
   if (user) {
-    // Single-use hash-only tokens (see PasswordResetToken): invalidate previous unused ones.
-    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id, used: false } });
-    const { rawToken, tokenHash } = createAuthToken();
-    await prisma.passwordResetToken.create({ data: { userId: user.id, token: tokenHash, expiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
-    const url = `${process.env.APP_URL ?? "http://localhost:3000"}/auth/reset-password?token=${rawToken}`;
-    await sendAuthEmail(user.email, "إعادة تعيين كلمة المرور في سراج", url);
+    try {
+      await prisma.passwordResetToken.deleteMany({ where: { userId: user.id, used: false } });
+      const { rawToken, tokenHash } = createAuthToken();
+      await prisma.passwordResetToken.create({ data: { userId: user.id, token: tokenHash, expiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
+      const url = `${process.env.APP_URL ?? "http://localhost:3000"}/auth/reset-password?token=${rawToken}`;
+      await sendAuthEmail(user.email, "إعادة تعيين كلمة المرور في سراج", url);
+    } catch (error) {
+      console.error("[auth] forgot-password email failed:", error instanceof Error ? error.message : error);
+      return NextResponse.json(
+        { success: false, error: "تعذر إرسال رابط إعادة التعيين حالياً، يرجى المحاولة لاحقاً" },
+        { status: 500 }
+      );
+    }
   }
 
   return NextResponse.json({ success: true });

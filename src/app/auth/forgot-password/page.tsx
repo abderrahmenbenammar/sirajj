@@ -9,15 +9,22 @@ export default function ForgotPasswordPage() {
   const { t, lang } = useLang();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     if (email) {
-      await fetch("/api/auth/forgot-password", {
+      const response = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        setError(t("تعذر إرسال رابط إعادة التعيين حالياً، يرجى المحاولة لاحقاً", "Couldn't send a reset link right now. Please try again later."));
+        return;
+      }
       setSent(true);
     }
   };
@@ -26,20 +33,27 @@ export default function ForgotPasswordPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4">
             <img
               src="/siraj-logo.png"
               alt={t("سراج", "SIRAJ")}
               width={1254}
               height={1254}
-              className="h-16 w-auto object-contain"
+              className="h-12 sm:h-14 w-auto object-contain shrink-0"
             />
             <img
               src="/siraj-wordmark.png"
               alt=""
               width={2048}
               height={2048}
-              className="h-20 aspect-[1284/742] w-auto object-cover object-center"
+              className="h-16 sm:h-[4.5rem] aspect-[1284/742] w-auto object-cover object-center shrink-0"
+            />
+            <img
+              src="/siraj-logo.png"
+              alt=""
+              width={1254}
+              height={1254}
+              className="h-12 sm:h-14 w-auto object-contain shrink-0"
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -56,6 +70,11 @@ export default function ForgotPasswordPage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
           {!sent ? (
             <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <p className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm">
+                  {error}
+                </p>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   {t("البريد الإلكتروني", "Email")}
@@ -90,8 +109,8 @@ export default function ForgotPasswordPage() {
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                 {t(
-                  `تم إرسال رابط إعادة تعيين كلمة المرور إلى ${email}. يرجى التحقق من بريدك.`,
-                  `A password reset link has been sent to ${email}. Please check your email.`
+                  "إذا كان البريد الإلكتروني مسجلاً لدينا، فسنرسل إليه رابط إعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
+                  `If that email is registered with us, we'll send it a password reset link. Please check your inbox.`
                 )}
               </p>
               <button

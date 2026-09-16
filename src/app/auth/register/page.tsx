@@ -39,20 +39,27 @@ export default function RegisterPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4">
             <img
               src="/siraj-logo.png"
               alt={t("سراج", "SIRAJ")}
               width={1254}
               height={1254}
-              className="h-16 w-auto object-contain"
+              className="h-12 sm:h-14 w-auto object-contain shrink-0"
             />
             <img
               src="/siraj-wordmark.png"
               alt=""
               width={2048}
               height={2048}
-              className="h-20 aspect-[1284/742] w-auto object-cover object-center"
+              className="h-16 sm:h-[4.5rem] aspect-[1284/742] w-auto object-cover object-center shrink-0"
+            />
+            <img
+              src="/siraj-logo.png"
+              alt=""
+              width={1254}
+              height={1254}
+              className="h-12 sm:h-14 w-auto object-contain shrink-0"
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("إنشاء حساب", "Create Account")}</h1>

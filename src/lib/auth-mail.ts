@@ -16,13 +16,18 @@ export function getMailer() {
 }
 
 export async function sendAuthEmail(to: string, subject: string, url: string) {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-    if (process.env.NODE_ENV !== "production") console.info(`[auth] ${subject}: ${url}`);
-    return;
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+  const from = process.env.SMTP_FROM;
+
+  if (!host || !user || !pass || !from) {
+    if (process.env.NODE_ENV !== "production") console.info("[auth] SMTP not configured; skipping send");
+    throw new Error("SMTP configuration is incomplete (missing host, user, password, or from)");
   }
 
   await getMailer().sendMail({
-    from: process.env.SMTP_FROM,
+    from,
     to,
     subject,
     text: `${subject}\n\n${url}`,
