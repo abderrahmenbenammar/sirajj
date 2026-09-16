@@ -92,13 +92,18 @@ export async function POST(request: Request) {
   if (guard.response) return guard.response;
   const body = await request.json();
   const courseId = asText(body.courseId);
-  const titleAr = asText(body.titleAr);
-  if (!courseId || !titleAr) {
+  if (!courseId) {
     return NextResponse.json({ error: "بيانات الاختبار غير صحيحة" }, { status: 400 });
   }
-  if (!(await prisma.course.findUnique({ where: { id: courseId }, select: { id: true } }))) {
+  const course = await prisma.course.findUnique({ where: { id: courseId }, select: { id: true, titleAr: true, titleEn: true } });
+  if (!course) {
     return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
   }
+  // The title is required by the schema. It is no longer collected in the UI,
+  // so when it's omitted we derive it from the course title + timestamp
+  // (explicitly provided titles remain honored, keeping old callers working).
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const titleAr = asText(body.titleAr) ?? `اختبار ${course.titleAr} — ${stamp}`;
   const lessonId = asText(body.lessonId);
   if (lessonId) {
     const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { courseId: true } });

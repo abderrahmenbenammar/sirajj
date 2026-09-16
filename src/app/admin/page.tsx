@@ -186,7 +186,7 @@ export default function AdminPage() {
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
   const [detailQuestion, setDetailQuestion] = useState<BuilderQuestion>(() => makeBuilderQuestion());
   const [exams, setExams] = useState<AdminExam[]>([]);
-  const [examForm, setExamForm] = useState({ courseId: "", lessonId: "", titleAr: "", titleEn: "", passing: "60", max: "3" });
+  const [examForm, setExamForm] = useState({ courseId: "", lessonId: "" });
   const [builderQuestions, setBuilderQuestions] = useState<BuilderQuestion[]>(() => [makeBuilderQuestion()]);
   const [builderError, setBuilderError] = useState("");
   const [selectedExam, setSelectedExam] = useState<AdminExamDetail | null>(null);
@@ -479,7 +479,7 @@ export default function AdminPage() {
     setBuilderQuestions((current) => current.filter((question) => question.id !== id));
 
   const resetExamBuilder = () => {
-    setExamForm({ courseId: "", lessonId: "", titleAr: "", titleEn: "", passing: "60", max: "3" });
+    setExamForm({ courseId: "", lessonId: "" });
     setBuilderQuestions([makeBuilderQuestion()]);
     setBuilderError("");
   };
@@ -487,7 +487,6 @@ export default function AdminPage() {
   const submitExam = async (event: FormEvent) => {
     event.preventDefault();
     if (!examForm.courseId) return setBuilderError(t("اختر الدورة", "Select the course"));
-    if (!examForm.titleAr.trim()) return setBuilderError(t("عنوان الاختبار بالعربية مطلوب", "Arabic exam title is required"));
     if (builderQuestions.length === 0) return setBuilderError(t("أضف سؤالًا واحدًا على الأقل", "Add at least one question"));
     for (const [index, question] of builderQuestions.entries()) {
       const label = `${t("السؤال", "Question")} ${index + 1}`;
@@ -504,10 +503,6 @@ export default function AdminPage() {
       body: JSON.stringify({
         courseId: examForm.courseId,
         lessonId: examForm.lessonId || undefined,
-        titleAr: examForm.titleAr,
-        titleEn: examForm.titleEn || undefined,
-        passingScorePercentage: Number(examForm.passing),
-        maxAttempts: Number(examForm.max),
         questions: builderQuestions.map((question) => ({
           questionTextAr: question.textAr,
           questionTextEn: question.textEn,
@@ -775,10 +770,6 @@ export default function AdminPage() {
                 <option value="">{t("بدون فيديو مرتبط", "No linked video")}</option>
                 {builderLessons.map((lesson) => <option key={lesson.id} value={lesson.id}>{lesson.titleAr}</option>)}
               </select>
-              <input required placeholder={t("عنوان الاختبار بالعربية", "Exam title in Arabic")} value={examForm.titleAr} onChange={(e) => setExamForm({ ...examForm, titleAr: e.target.value })} className="admin-input" />
-              <input placeholder={t("عنوان الاختبار بالإنجليزية", "Exam title in English")} value={examForm.titleEn} onChange={(e) => setExamForm({ ...examForm, titleEn: e.target.value })} className="admin-input" />
-              <input required type="number" min="0" max="100" placeholder={t("نسبة النجاح %", "Pass percentage %")} value={examForm.passing} onChange={(e) => setExamForm({ ...examForm, passing: e.target.value })} className="admin-input" />
-              <input required type="number" min="1" placeholder={t("عدد المحاولات", "Attempts")} value={examForm.max} onChange={(e) => setExamForm({ ...examForm, max: e.target.value })} className="admin-input" />
             </div>
           </div>
 
