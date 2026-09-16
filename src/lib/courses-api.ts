@@ -8,6 +8,8 @@ export interface ApiCurriculumItem {
   duration: string;
   type: string;
   videoUrl: string;
+  locked?: boolean;
+  hasExam?: boolean;
 }
 
 export interface ApiCourse {
@@ -25,6 +27,7 @@ export interface ApiCourse {
   duration: string;
   lessons: number;
   curriculum: ApiCurriculumItem[];
+  examLessonIds?: string[];
   objectives: string[];
   objectivesEn: string[];
   references: string[];

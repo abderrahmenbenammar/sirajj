@@ -32,6 +32,7 @@ export async function GET(request: Request) {
       return {
         id: exam.id,
         courseId: exam.courseId,
+        lessonId: exam.lessonId,
         courseTitleAr: exam.course.titleAr,
         courseTitleEn: exam.course.titleEn,
         titleAr: exam.titleAr,

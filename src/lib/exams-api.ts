@@ -4,6 +4,7 @@
 export interface ExamListItem {
   id: string;
   courseId: string;
+  lessonId: string | null;
   courseTitleAr: string;
   courseTitleEn: string;
   titleAr: string;
@@ -22,6 +23,40 @@ export interface ExamListItem {
     scorePercentage: number;
     passed: boolean;
   } | null;
+}
+
+export interface ExamHistoryItem {
+  attemptId: string;
+  attemptNumber: number;
+  score: number;
+  scorePercentage: number;
+  passed: boolean;
+  submittedAt: string | null;
+}
+
+export interface ExamDetail {
+  id: string;
+  courseId: string;
+  courseTitleAr: string;
+  courseTitleEn: string;
+  titleAr: string;
+  titleEn: string;
+  passingScorePercentage: number;
+  maxAttempts: number;
+  questionCount: number;
+  totalPoints: number;
+  available: boolean;
+  attemptsUsed: number;
+  attemptsLeft: number;
+  inProgressAttemptId: string | null;
+  lastResult: {
+    attemptId: string;
+    attemptNumber: number;
+    score: number;
+    scorePercentage: number;
+    passed: boolean;
+  } | null;
+  history: ExamHistoryItem[];
 }
 
 export interface TakeOption {
@@ -82,6 +117,12 @@ export async function fetchExams(courseId?: string): Promise<ExamListItem[]> {
   if (!response.ok) throw new Error(`fetch-exams-${response.status}`);
   const data: unknown = await response.json();
   return Array.isArray(data) ? (data as ExamListItem[]) : [];
+}
+
+export async function fetchExamDetail(examId: string): Promise<ExamDetail> {
+  const response = await fetch(`/api/exams/${examId}`);
+  if (!response.ok) throw new Error(`detail-${response.status}`);
+  return readJson<ExamDetail>(response);
 }
 
 export async function startAttempt(examId: string): Promise<StartResponse> {

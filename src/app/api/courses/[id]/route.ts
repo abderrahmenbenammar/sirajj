@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { COURSE_PATH_LABELS } from "@/lib/course-paths";
+import { loadCourseGate } from "@/lib/lesson-gate";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -40,6 +41,9 @@ export async function GET(_request: Request, { params }: Context) {
     });
     completedLessonIds = rows.map((row) => row.lessonId);
   }
+  // Server-resolved exam gate: locked lessons are flagged and their video URL
+  // is withheld here (the gated lesson endpoint is the only content source).
+  const gate = await loadCourseGate(studentId ?? null, course.id);
   return NextResponse.json({
     id: course.id,
     title: course.titleAr,
@@ -54,7 +58,20 @@ export async function GET(_request: Request, { params }: Context) {
     pathEn: COURSE_PATH_LABELS[course.path].en,
     duration: `${course.lessons.length} درس`,
     lessons: course.lessons.length,
-    curriculum: course.lessons.map((lesson) => ({ id: lesson.id, title: lesson.titleAr, titleEn: lesson.titleEn, duration: "فيديو", type: "video", videoUrl: lesson.videoUrl })),
+    curriculum: course.lessons.map((lesson) => {
+      const locked = gate.lockedLessonIds.has(lesson.id);
+      return {
+        id: lesson.id,
+        title: lesson.titleAr,
+        titleEn: lesson.titleEn,
+        duration: "فيديو",
+        type: "video",
+        videoUrl: locked ? "" : lesson.videoUrl,
+        locked,
+        hasExam: gate.gatedLessonIds.has(lesson.id),
+      };
+    }),
+    examLessonIds: [...gate.gatedLessonIds],
     objectives: [],
     objectivesEn: [],
     references: [],

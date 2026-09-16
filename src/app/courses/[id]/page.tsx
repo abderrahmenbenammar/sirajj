@@ -9,7 +9,7 @@ import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import { type ExamListItem } from "@/lib/exams-api";
 import { fetchCourseCertificate, issueCertificate, type CourseCertificateState } from "@/lib/certificates-api";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, CheckCircle, PlayCircle, FileText, HelpCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, CheckCircle, PlayCircle, FileText, HelpCircle, Lock } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -75,6 +75,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
   const progress = course.progress || 0;
   const doneSet = new Set(course.completedLessonIds ?? []);
+  const courseExams = exams.filter((exam) => !exam.lessonId);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -164,6 +165,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         {t(item.title, item.titleEn)}
                       </span>
                     </div>
+                      {item.hasExam && (
+                        <span className="text-xs px-2 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg shrink-0">
+                          {t("اختبار مطلوب", "Exam required")}
+                        </span>
+                      )}
+                      {item.locked && <Lock size={14} className="text-gray-400 shrink-0" />}
                       <span className="text-xs text-gray-400">{item.duration}</span>
                       {doneSet.has(item.id) && (
                         <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
@@ -191,14 +198,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
-            {/* Exams */}
-            {exams.length > 0 && (
+            {/* Exams (course-level only; lesson exams live inside their lesson) */}
+            {courseExams.length > 0 && (
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                   {t("اختبارات الدورة", "Course Exams")}
                 </h2>
                 <div className="space-y-2">
-                  {exams.map((exam) => (
+                  {courseExams.map((exam) => (
                     <Link
                       key={exam.id}
                       href={`/exams/${exam.id}`}

@@ -5,8 +5,25 @@ import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
-import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle } from "lucide-react";
+import type { ExamDetail } from "@/lib/exams-api";
+import ExamRunner from "@/components/exams/ExamRunner";
+import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle, Lock, ClipboardList } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
+
+interface GatedLesson {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  orderIndex: number;
+  videoUrl: string;
+}
+
+interface LockedInfo {
+  requiredLesson: { id: string; titleAr: string; titleEn: string } | null;
+  requiredExam: { id: string; titleAr: string; titleEn: string } | null;
+}
+
+type GateStatus = "loading" | "ok" | "locked" | "error";
 
 export default function LessonPage({
   params,
@@ -15,20 +32,61 @@ export default function LessonPage({
 }) {
   const { id, lessonId } = use(params);
   const { t, lang } = useLang();
-  const [course, setCourse] = useState<ApiCourse | null>(null);
+  const { isAuthenticated } = useAuth();
+  const [course, setCourse] = useState<ApiCourse | null | undefined>(undefined);
+  const [lessonData, setLessonData] = useState<GatedLesson | null>(null);
+  const [exams, setExams] = useState<ExamDetail[]>([]);
+  const [gateStatus, setGateStatus] = useState<GateStatus>("loading");
+  const [lockedInfo, setLockedInfo] = useState<LockedInfo>({ requiredLesson: null, requiredExam: null });
+  const [examPassed, setExamPassed] = useState(true);
   const [completed, setCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completeError, setCompleteError] = useState("");
-  const [loadingCourse, setLoadingCourse] = useState(true);
-  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    setLoadingCourse(true);
+    let active = true;
+    setGateStatus("loading");
+    setLessonData(null);
+    setExams([]);
+
     fetchCourse(id).then((data) => {
+      if (!active) return;
       setCourse(data);
       setCompleted(data?.completedLessonIds?.includes(lessonId) ?? false);
-      setLoadingCourse(false);
     });
-  }, [id, lessonId]);
+
+    fetch(`/api/courses/${id}/lessons/${lessonId}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!active) return;
+        if (response.status === 403) {
+          const body = await response.json().catch(() => null);
+          if (!active) return;
+          setLockedInfo({
+            requiredLesson: body?.requiredLesson ?? null,
+            requiredExam: body?.requiredExam ?? null,
+          });
+          setGateStatus("locked");
+          return;
+        }
+        if (!response.ok) {
+          setGateStatus("error");
+          return;
+        }
+        const body: { lesson: GatedLesson; exams?: ExamDetail[]; examPassed?: boolean } = await response.json();
+        if (!active) return;
+        setLessonData(body.lesson);
+        setExams(Array.isArray(body.exams) ? body.exams : []);
+        setExamPassed(body.examPassed !== false);
+        setGateStatus("ok");
+      })
+      .catch(() => {
+        if (active) setGateStatus("error");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, lessonId, isAuthenticated]);
 
   const markComplete = async () => {
     setSaving(true);
@@ -48,14 +106,12 @@ export default function LessonPage({
       setSaving(false);
     }
   };
-  const lessonIndex = course?.curriculum.findIndex((l) => l.id === lessonId) ?? -1;
-  const lesson = lessonIndex >= 0 ? course?.curriculum[lessonIndex] : null;
 
-  if (loadingCourse) {
+  if (course === undefined || gateStatus === "loading") {
     return <SirajLoading />;
   }
 
-  if (!course || !lesson) {
+  if (gateStatus === "error" || !course) {
     return (
       <div className="py-20 text-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
@@ -68,8 +124,11 @@ export default function LessonPage({
     );
   }
 
+  const lessonIndex = course.curriculum.findIndex((entry) => entry.id === lessonId);
+  const lesson = lessonIndex >= 0 ? course.curriculum[lessonIndex] : null;
   const prevLesson = lessonIndex > 0 ? course.curriculum[lessonIndex - 1] : null;
-  const nextLesson = lessonIndex < course.curriculum.length - 1 ? course.curriculum[lessonIndex + 1] : null;
+  const nextLesson = lessonIndex >= 0 && lessonIndex < course.curriculum.length - 1 ? course.curriculum[lessonIndex + 1] : null;
+  const nextHref = nextLesson ? `/courses/${id}/lessons/${nextLesson.id}` : undefined;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -79,6 +138,70 @@ export default function LessonPage({
       default: return <Play size={14} />;
     }
   };
+
+  // Locked lesson: the server refused the content request. Offer a clear path
+  // back to the exam that unlocks it (never a client-only illusion of access).
+  if (gateStatus === "locked") {
+    return (
+      <div className="py-8 sm:py-12">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-8">
+            <Link href="/courses" className="hover:text-emerald-600 dark:hover:text-emerald-400">{t("الدورات", "Courses")}</Link>
+            <span>/</span>
+            <Link href={`/courses/${id}`} className="hover:text-emerald-600 dark:hover:text-emerald-400">{t(course.title, course.titleEn)}</Link>
+          </div>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-amber-200 dark:border-amber-900/50 p-8 sm:p-10 text-center">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center mb-5">
+              <Lock size={28} className="text-amber-600 dark:text-amber-400" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              {t("هذا الدرس مقفل", "This lesson is locked")}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              {t("يجب اجتياز الاختبار للمتابعة قبل فتح هذا الدرس.", "You must pass the exam to continue before this lesson unlocks.")}
+            </p>
+            {lockedInfo.requiredExam && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+                {t("الاختبار المطلوب", "Required exam")}: {t(lockedInfo.requiredExam.titleAr, lockedInfo.requiredExam.titleEn)}
+              </p>
+            )}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              {lockedInfo.requiredLesson && (
+                <Link
+                  href={`/courses/${id}/lessons/${lockedInfo.requiredLesson.id}`}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors"
+                >
+                  <HelpCircle size={18} />
+                  {t("العودة إلى الاختبار", "Back to the exam")}
+                </Link>
+              )}
+              <Link
+                href={`/courses/${id}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 transition-colors"
+              >
+                {t("العودة للدورة", "Back to Course")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!lesson || !lessonData) {
+    return (
+      <div className="py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          {t("الدرس غير موجود", "Lesson not found")}
+        </h1>
+        <Link href={`/courses/${id}`} className="text-emerald-700 dark:text-emerald-400 hover:underline">
+          {t("العودة للدورة", "Back to course")}
+        </Link>
+      </div>
+    );
+  }
+
+  const videoUrl = lessonData.videoUrl;
 
   return (
     <div className="py-8 sm:py-12">
@@ -120,8 +243,8 @@ export default function LessonPage({
               return url;
             }
           };
-          const embedUrl = lesson.videoUrl ? getEmbedUrl(lesson.videoUrl) : null;
-          const isMp4 = lesson.videoUrl?.endsWith(".mp4");
+          const embedUrl = videoUrl ? getEmbedUrl(videoUrl) : null;
+          const isMp4 = videoUrl?.endsWith(".mp4");
           // Derive watch URL for "Open on YouTube" link
           const getWatchUrl = (url: string): string => {
             if (!url) return url;
@@ -143,7 +266,7 @@ export default function LessonPage({
               <div className="aspect-video bg-gray-900 dark:bg-gray-950 rounded-2xl overflow-hidden mb-8 border border-gray-800">
                 {isMp4 ? (
                   <video
-                    src={lesson.videoUrl}
+                    src={videoUrl}
                     title={t(lesson.title, lesson.titleEn)}
                     className="w-full h-full"
                     controls
@@ -177,7 +300,7 @@ export default function LessonPage({
                 <p className="-mt-4 mb-8 text-sm text-gray-500 dark:text-gray-400">
                   {t("إذا لم يعمل التشغيل داخل الصفحة، افتح الفيديو مباشرة على YouTube.", "If playback does not work here, open the video directly on YouTube.")} {" "}
                   <a
-                    href={getWatchUrl(lesson.videoUrl!)}
+                    href={getWatchUrl(videoUrl!)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-emerald-700 dark:text-emerald-400 hover:underline"
@@ -238,17 +361,17 @@ export default function LessonPage({
             )}
             {lesson.type === "quiz" && (
               <div className="prose dark:prose-invert max-w-none">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t("اختبار الوحدة", "Unit Assessment")}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t("اختبار الدرس", "Lesson Exam")}</h3>
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
                   {t(
                     "اختبر معلوماتك في هذا الاختبار القصير. يحتوي على أسئلة متعددة الخيارات لتقييم فهمك للمادة الدراسية.",
                     "Test your knowledge with this short quiz. It contains multiple choice questions to assess your understanding of the study material."
                   )}
                 </p>
-                <Link href="/exams" className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors">
+                <a href="#lesson-exam" className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors">
                   <HelpCircle size={18} />
-                  {t("ابدأ الاختبار", "Start Quiz")}
-                </Link>
+                  {t("اذهب إلى الاختبار", "Go to the exam")}
+                </a>
               </div>
             )}
           </div>
@@ -284,6 +407,48 @@ export default function LessonPage({
           </div>
         </div>
 
+        {/* Lesson Exam (part of the lesson, after the content) */}
+        {exams.length > 0 && (
+          <div id="lesson-exam" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8 mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <ClipboardList size={16} />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{t("اختبار الدرس", "Lesson Exam")}</h2>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              {t("يجب اجتياز الاختبار للمتابعة", "You must pass the exam to continue")}
+            </p>
+            {isAuthenticated ? (
+              <div className="space-y-6">
+                {exams.map((exam) => (
+                  <ExamRunner
+                    key={exam.id}
+                    examId={exam.id}
+                    initialDetail={exam}
+                    embedded
+                    continueHref={nextHref}
+                    continueLabel={{ ar: "الانتقال إلى الدرس التالي", en: "Continue to the next lesson" }}
+                    onPassed={() => setExamPassed(true)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {exams.map((exam) => `${t(exam.titleAr, exam.titleEn)} (${t("النجاح من", "Pass at")} ${exam.passingScorePercentage}%)`).join(" · ")}
+                </p>
+                <Link
+                  href="/auth/login"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors"
+                >
+                  {t("سجل الدخول لخوض الاختبار", "Sign in to take the exam")}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Navigation */}
         <div className="flex items-center justify-between gap-4">
           {prevLesson ? (
@@ -296,13 +461,23 @@ export default function LessonPage({
             </Link>
           ) : <div />}
           {nextLesson ? (
-            <Link
-              href={`/courses/${id}/lessons/${nextLesson.id}`}
-              className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
-            >
-              {t(nextLesson.title, nextLesson.titleEn)}
-              {lang === "ar" ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-            </Link>
+            examPassed ? (
+              <Link
+                href={`/courses/${id}/lessons/${nextLesson.id}`}
+                className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+              >
+                {t(nextLesson.title, nextLesson.titleEn)}
+                {lang === "ar" ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+              </Link>
+            ) : (
+              <a
+                href="#lesson-exam"
+                className="flex items-center gap-2 px-5 py-3 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-sm font-medium rounded-xl border border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+              >
+                <Lock size={16} />
+                {t("يجب اجتياز الاختبار للمتابعة", "You must pass the exam to continue")}
+              </a>
+            )
           ) : (
             <Link
               href={`/courses/${id}`}
@@ -331,6 +506,12 @@ export default function LessonPage({
                 <span className="w-6 text-center text-xs font-medium">{i + 1}</span>
                 {getTypeIcon(item.type)}
                 <span className="flex-1">{t(item.title, item.titleEn)}</span>
+                {item.hasExam && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
+                    {t("اختبار مطلوب", "Exam required")}
+                  </span>
+                )}
+                {item.locked && <Lock size={14} className="text-gray-400 shrink-0" />}
                 <span className="text-xs text-gray-400">{item.duration}</span>
               </Link>
             ))}
