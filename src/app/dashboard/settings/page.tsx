@@ -5,11 +5,16 @@ import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
 import { User, Globe, Moon, Shield, LogOut, ChevronLeft } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function SettingsPage() {
   const { t, lang, toggleLang } = useLang();
   const { theme, toggleTheme } = useTheme();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isAuthLoading, user, logout } = useAuth();
+
+  if (isAuthLoading) {
+    return <SirajLoading />;
+  }
 
   if (!isAuthenticated) {
     return (

@@ -5,6 +5,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
   user: { name: string; nameEn: string; email: string; role?: string } | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
@@ -13,6 +14,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
+  isAuthLoading: false,
   user: null,
   login: async () => false,
   register: async () => false,
@@ -40,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => { await signOut({ redirect: false }); };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: status === "authenticated", user, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated: status === "authenticated", isAuthLoading: status === "loading", user, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

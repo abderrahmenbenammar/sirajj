@@ -10,6 +10,7 @@ import { type ExamListItem } from "@/lib/exams-api";
 import { fetchCourseCertificate, issueCertificate, type CourseCertificateState } from "@/lib/certificates-api";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, CheckCircle, PlayCircle, FileText, HelpCircle } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -56,23 +57,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   };
 
   if (loadingCourse) {
-    return (
-      <div className="py-12 sm:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
-            <div className="h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-4">
-                <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-                <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-              </div>
-              <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <SirajLoading />;
   }
 
   if (!course) {

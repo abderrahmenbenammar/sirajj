@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GraduationCap, BookOpen, Award, TrendingUp, PlayCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 interface OverviewCourse {
   id: string;
@@ -28,7 +29,7 @@ interface Overview {
 
 export default function DashboardPage() {
   const { t, lang } = useLang();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isAuthLoading, user } = useAuth();
   const router = useRouter();
   const [overview, setOverview] = useState<Overview | null>(null);
 
@@ -45,6 +46,10 @@ export default function DashboardPage() {
       })
       .catch(() => undefined);
   }, [isAuthenticated]);
+
+  if (isAuthLoading) {
+    return <SirajLoading />;
+  }
 
   if (!isAuthenticated || user?.role === "ADMIN") {
     return (

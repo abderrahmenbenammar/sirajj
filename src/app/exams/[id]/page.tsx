@@ -11,6 +11,7 @@ import {
   type TakeQuestion,
 } from "@/lib/exams-api";
 import { CheckCircle2, XCircle, ClipboardList, ArrowLeft, ArrowRight } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 interface ExamDetail {
   id: string;
@@ -127,9 +128,7 @@ export default function ExamTakePage({ params }: { params: Promise<{ id: string 
   };
 
   if (phase === "loading") {
-    return (
-      <div className="py-20 text-center text-gray-500 dark:text-gray-400">{t("جارٍ التحميل...", "Loading...")}</div>
-    );
+    return <SirajLoading />;
   }
 
   if (phase === "error" || !detail) {

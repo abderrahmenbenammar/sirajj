@@ -5,6 +5,7 @@ import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { Award, Calendar, User, ArrowLeft, BadgeCheck } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 interface CertificateItem {
   id: string;
@@ -17,7 +18,7 @@ interface CertificateItem {
 
 export default function CertificatesPage() {
   const { t } = useLang();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isAuthLoading, user } = useAuth();
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [studentName, setStudentName] = useState("");
 
@@ -32,6 +33,10 @@ export default function CertificatesPage() {
       })
       .catch(() => undefined);
   }, [isAuthenticated]);
+
+  if (isAuthLoading) {
+    return <SirajLoading />;
+  }
 
   if (!isAuthenticated) {
     return (

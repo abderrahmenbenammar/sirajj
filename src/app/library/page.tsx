@@ -5,6 +5,7 @@ import LibraryCard from "@/components/library/LibraryCard";
 import { fetchCategories, fetchLibrary, type ApiCategory, type ApiLibraryItem } from "@/lib/library-api";
 import { useEffect, useState } from "react";
 import { BookOpen, FileText, Search, Mic } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 type Tab = "books" | "articles" | "research" | "lectures";
 
@@ -126,7 +127,7 @@ export default function LibraryPage() {
 
         {/* Grid */}
         {loading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-20">{t("جارٍ التحميل...", "Loading...")}</p>
+          <SirajLoading />
         ) : error ? (
           <p className="text-center text-red-600 dark:text-red-400 py-20">{error}</p>
         ) : items.length > 0 ? (

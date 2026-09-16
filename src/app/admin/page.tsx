@@ -7,6 +7,7 @@ import { BookPlus, Film, ImagePlus, ListPlus, ShieldCheck, Trash2, Users, X, Lib
 import { useLang } from "@/lib/lang-context";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 import SirajTooltip from "@/components/ui/SirajTooltip";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
 type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
@@ -502,7 +503,8 @@ export default function AdminPage() {
     if (response.ok) { await loadCourses(); await loadLibrary(); }
   };
 
-  if (status === "loading" || session?.user?.role !== "ADMIN") return null;
+  if (status === "loading") return <SirajLoading />;
+  if (session?.user?.role !== "ADMIN") return null;
 
   return (
     <div className="py-10 sm:py-14">

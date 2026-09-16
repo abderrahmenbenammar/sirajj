@@ -5,6 +5,7 @@ import { useLang } from "@/lib/lang-context";
 import { fetchExams, type ExamListItem } from "@/lib/exams-api";
 import { useEffect, useState } from "react";
 import { ClipboardList, CheckCircle2, XCircle } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function ExamsPage() {
   const { t } = useLang();
@@ -32,7 +33,7 @@ export default function ExamsPage() {
         </div>
 
         {loading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-16">{t("جارٍ التحميل...", "Loading...")}</p>
+          <SirajLoading />
         ) : error ? (
           <p className="text-center text-red-600 dark:text-red-400 py-16">{error}</p>
         ) : exams.length === 0 ? (

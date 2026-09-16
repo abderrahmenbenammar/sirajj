@@ -5,6 +5,7 @@ import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { User, Mail, Calendar, BookOpen, Award, ArrowLeft, ArrowRight } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 interface OverviewCourse {
   id: string;
@@ -22,7 +23,7 @@ interface Overview {
 
 export default function ProfilePage() {
   const { t } = useLang();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isAuthLoading, user } = useAuth();
   const [overview, setOverview] = useState<Overview | null>(null);
 
   useEffect(() => {
@@ -34,6 +35,10 @@ export default function ProfilePage() {
       })
       .catch(() => undefined);
   }, [isAuthenticated]);
+
+  if (isAuthLoading) {
+    return <SirajLoading />;
+  }
 
   if (!isAuthenticated) {
     return (

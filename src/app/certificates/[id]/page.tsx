@@ -5,6 +5,7 @@ import { use, useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { fetchCertificate, type CertificateDetail } from "@/lib/certificates-api";
 import { Award, BadgeCheck, Calendar, Printer } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function CertificatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -24,7 +25,7 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
   }, [id]);
 
   if (loading) {
-    return <div className="py-20 text-center text-gray-500 dark:text-gray-400">{t("جارٍ التحميل...", "Loading...")}</div>;
+    return <SirajLoading />;
   }
 
   if (missing || !certificate) {

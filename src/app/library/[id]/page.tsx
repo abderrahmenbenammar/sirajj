@@ -6,6 +6,7 @@ import { useLang } from "@/lib/lang-context";
 import { fetchLibraryItem, type ApiLibraryItem } from "@/lib/library-api";
 import { useEffect, useState } from "react";
 import { BookOpen, FileText, Search, Mic, User, Calendar, ExternalLink } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 const TYPE_META: Record<string, { label: string; labelEn: string; icon: React.ReactNode; badge: string }> = {
   book: { label: "كتاب", labelEn: "Book", icon: <BookOpen size={14} />, badge: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" },
@@ -32,7 +33,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   }, [id]);
 
   if (loading) {
-    return <div className="py-20 text-center text-gray-500 dark:text-gray-400">{t("جارٍ التحميل...", "Loading...")}</div>;
+    return <SirajLoading />;
   }
 
   if (missing || !item) {

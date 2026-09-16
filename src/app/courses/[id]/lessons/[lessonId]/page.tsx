@@ -6,6 +6,7 @@ import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function LessonPage({
   params,
@@ -51,17 +52,7 @@ export default function LessonPage({
   const lesson = lessonIndex >= 0 ? course?.curriculum[lessonIndex] : null;
 
   if (loadingCourse) {
-    return (
-      <div className="py-8 sm:py-12">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
-            <div className="aspect-video bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-            <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    );
+    return <SirajLoading />;
   }
 
   if (!course || !lesson) {

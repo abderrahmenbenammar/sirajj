@@ -3,6 +3,7 @@
 import { useLang } from "@/lib/lang-context";
 import { useEffect, useState } from "react";
 import { ChevronDown, HelpCircle, Search } from "lucide-react";
+import SirajLoading from "@/components/ui/SirajLoading";
 
 interface ApiFaq {
   id: string;
@@ -70,7 +71,7 @@ export default function FAQPage() {
 
         {/* Accordion */}
         {loading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-10">{t("جارٍ التحميل...", "Loading...")}</p>
+          <SirajLoading />
         ) : filtered.length > 0 ? (
           <div className="space-y-3">
             {filtered.map((faq) => (
