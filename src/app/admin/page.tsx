@@ -184,7 +184,7 @@ export default function AdminPage() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER" });
   const [editCourseImage, setEditCourseImage] = useState<File | null>(null);
-  const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", orderIndex: "0", videoUrl: "" });
+  const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", videoUrl: "" });
   const [detailQuestion, setDetailQuestion] = useState<BuilderQuestion>(() => makeBuilderQuestion());
   const [exams, setExams] = useState<AdminExam[]>([]);
   const [examForm, setExamForm] = useState({ courseId: "", lessonId: "" });
@@ -666,7 +666,7 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const videoUrl = lessonVideo ? await uploadFile(lessonVideo, "video") : lessonForm.videoUrl;
-      await submit(event, "/api/admin/lessons", { ...lessonForm, videoUrl, orderIndex: Number(lessonForm.orderIndex) }, t("تمت إضافة الدرس", "Lesson added"));
+      await submit(event, "/api/admin/lessons", { ...lessonForm, videoUrl }, t("تمت إضافة الدرس", "Lesson added"));
       setLessonVideo(null);
     } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الفيديو", "Could not upload video"), "error"); }
   };
@@ -723,7 +723,6 @@ export default function AdminPage() {
             <select required value={lessonForm.courseId} onChange={(e) => setLessonForm({ ...lessonForm, courseId: e.target.value })} className="admin-input"><option value="">{t("اختر الدورة", "Select course")}</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.titleAr}</option>)}</select>
             <input required placeholder={t("عنوان الدرس", "Lesson title")} value={lessonForm.titleAr} onChange={(e) => setLessonForm({ ...lessonForm, titleAr: e.target.value })} className="admin-input" />
             <input placeholder={t("عنوان الدرس بالإنجليزية", "English lesson title")} value={lessonForm.titleEn} onChange={(e) => setLessonForm({ ...lessonForm, titleEn: e.target.value })} className="admin-input" />
-            <input required type="number" min="0" placeholder="orderIndex" value={lessonForm.orderIndex} onChange={(e) => setLessonForm({ ...lessonForm, orderIndex: e.target.value })} className="admin-input" />
             <input placeholder="YouTube أو /videos/file.mp4" value={lessonForm.videoUrl} onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })} className="admin-input" />
             <SirajTooltip label={t("اختر ملف فيديو الدرس", "Choose the lesson video file")} side="top" className="w-full">
               <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setLessonVideo(e.target.files?.[0] ?? null)} className="admin-input" />
