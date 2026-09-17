@@ -25,11 +25,6 @@ export class InvalidLessonOrderError extends Error {
   }
 }
 
-// Temporary slot used while renumbering. Every lesson is parked here first so
-// the final 1..N writes can never collide with the (courseId, orderIndex)
-// unique constraint (renumbering in place would clash while swapping rows).
-const REORDER_TEMP_BASE = 1_000_000;
-
 // orderIndex is assigned automatically as one past the highest index in the
 // course, so new lessons always appear last. The read + insert run in one
 // transaction and retry on the (courseId, orderIndex) unique clash, which can
@@ -59,29 +54,69 @@ export async function createLessonWithNextOrder(data: NewLessonInput) {
 // `orderedLessonIds`. The caller must pass exactly the ids that currently
 // belong to the course; anything else (missing, unknown or duplicate ids) is
 // rejected so a lesson can never move between courses or leave a gap.
+//
+// The whole reorder runs in ONE transaction but issues only a fixed number of
+// statements (validate + two bulk UPDATEs + reload) instead of the previous
+// 2 + 2N per-row updates. That matters on a pooled/high-latency connection
+// (Supabase transaction pooler): a 16-lesson course used to need 34 sequential
+// round-trips and blew past Prisma's 5s interactive-transaction timeout (P2028);
+// now it needs 4 no matter how many lessons there are.
+//
+// The swap is done in two bulk UPDATEs because PostgreSQL enforces the
+// (courseId, orderIndex) unique constraint row by row, not at statement end;
+// writing final values directly could momentarily collide while two rows swap.
+// Phase 1 parks every lesson ABOVE the course's current maximum index (a range
+// no live row occupies, so it can never clash and no fixed constant is needed),
+// then phase 2 writes the final 1..N values into slots that are now all free.
 export async function reorderCourseLessons(courseId: string, orderedLessonIds: string[]) {
   for (let attempt = 0; attempt <= MAX_ORDER_RETRIES; attempt++) {
     try {
-      return await prisma.$transaction(async (tx) => {
-        const lessons = await tx.lesson.findMany({ where: { courseId }, select: { id: true } });
-        const existingIds = new Set(lessons.map((lesson) => lesson.id));
-        const requestedIds = new Set(orderedLessonIds);
-        const isValid =
-          orderedLessonIds.length === lessons.length &&
-          requestedIds.size === orderedLessonIds.length &&
-          orderedLessonIds.every((id) => existingIds.has(id));
-        if (!isValid) throw new InvalidLessonOrderError();
+      return await prisma.$transaction(
+        async (tx) => {
+          const lessons = await tx.lesson.findMany({
+            where: { courseId },
+            select: { id: true, orderIndex: true },
+          });
+          const existingIds = new Set(lessons.map((lesson) => lesson.id));
+          const requestedIds = new Set(orderedLessonIds);
+          const isValid =
+            orderedLessonIds.length === lessons.length &&
+            requestedIds.size === orderedLessonIds.length &&
+            orderedLessonIds.every((id) => existingIds.has(id));
+          if (!isValid) throw new InvalidLessonOrderError();
+          if (orderedLessonIds.length === 0) return [];
 
-        // Phase 1: park every lesson in a unique, non-conflicting slot.
-        for (let index = 0; index < orderedLessonIds.length; index++) {
-          await tx.lesson.update({ where: { id: orderedLessonIds[index] }, data: { orderIndex: REORDER_TEMP_BASE + index } });
-        }
-        // Phase 2: write the final contiguous 1..N order.
-        for (let index = 0; index < orderedLessonIds.length; index++) {
-          await tx.lesson.update({ where: { id: orderedLessonIds[index] }, data: { orderIndex: index + 1 } });
-        }
-        return tx.lesson.findMany({ where: { courseId }, orderBy: { orderIndex: "asc" } });
-      });
+          const tempBase = lessons.reduce((max, lesson) => Math.max(max, lesson.orderIndex), 0) + 1;
+
+          // Phase 1: park everything in one statement, all of it parameterized.
+          const parked = Prisma.join(
+            orderedLessonIds.map((id, index) => Prisma.sql`(${id}::uuid, ${tempBase + index}::int)`)
+          );
+          await tx.$executeRaw`
+            UPDATE "lessons" AS l
+            SET "order_index" = v."new_order"
+            FROM (VALUES ${parked}) AS v("id", "new_order")
+            WHERE l."id" = v."id" AND l."course_id" = ${courseId}::uuid
+          `;
+
+          // Phase 2: write the final contiguous 1..N order in one statement.
+          const finalOrder = Prisma.join(
+            orderedLessonIds.map((id, index) => Prisma.sql`(${id}::uuid, ${index + 1}::int)`)
+          );
+          await tx.$executeRaw`
+            UPDATE "lessons" AS l
+            SET "order_index" = v."new_order"
+            FROM (VALUES ${finalOrder}) AS v("id", "new_order")
+            WHERE l."id" = v."id" AND l."course_id" = ${courseId}::uuid
+          `;
+
+          return tx.lesson.findMany({ where: { courseId }, orderBy: { orderIndex: "asc" } });
+        },
+        // Safety net only. The design above keeps this at 4 statements, so the
+        // default 5s is ample; this guards a cold pooled connection being slow
+        // to acquire. It is NOT the fix for the round-trip cost.
+        { maxWait: 15000, timeout: 20000 }
+      );
     } catch (error) {
       if (error instanceof InvalidLessonOrderError) throw error;
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") continue;
