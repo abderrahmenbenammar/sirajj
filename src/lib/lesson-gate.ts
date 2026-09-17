@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { examValidity, passedExamIdsForStudent } from "@/lib/exams-server";
 
 // Server-side lesson gating. A lesson's exam lives on the lesson itself
-// (Exam.lessonId); the student must pass it before the *next* lesson in
-// orderIndex becomes reachable. Truth is always read from ExamAttempt rows,
-// so hiding UI is never the protection.
+// (Exam.lessonId); the student must pass it before any *later* lesson in
+// orderIndex becomes reachable. Locks are cumulative: an unmet required exam in
+// any earlier lesson keeps every following lesson locked. Truth is always read
+// from ExamAttempt rows, so hiding UI is never the protection.
 
 export interface GateLesson {
   id: string;
@@ -103,14 +104,17 @@ export async function loadCourseGate(studentId: string | null, courseId: string)
     }
   }
 
-  // Only the immediately previous lesson's gate is checked: by induction that
-  // already enforces every earlier gate, and it keeps a non-exam lesson from
-  // blocking on an unrelated earlier exam.
+  // Locks are cumulative: once any earlier lesson has an unmet required exam,
+  // every following lesson stays locked until that exam is passed. A gated
+  // lesson itself is never locked by its own exam (only the lessons after it),
+  // so the student can always open it and take the exam. This is what makes the
+  // sequence Lesson1(Exam) -> Lesson2 -> Lesson3(Exam) -> ... hold for any count.
   const lockedLessonIds = new Set<string>();
-  for (let index = 1; index < lessons.length; index += 1) {
-    const previous = lessons[index - 1];
-    if (gatedLessonIds.has(previous.id) && !clearedLessonIds.has(previous.id)) {
-      lockedLessonIds.add(lessons[index].id);
+  let hasEarlierUnmetGate = false;
+  for (const lesson of lessons) {
+    if (hasEarlierUnmetGate) lockedLessonIds.add(lesson.id);
+    if (gatedLessonIds.has(lesson.id) && !clearedLessonIds.has(lesson.id)) {
+      hasEarlierUnmetGate = true;
     }
   }
 

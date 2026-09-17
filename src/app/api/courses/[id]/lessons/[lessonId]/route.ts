@@ -38,15 +38,23 @@ export async function GET(_request: Request, { params }: Context) {
 
   if (gate.lockedLessonIds.has(lessonId)) {
     const index = gate.lessons.findIndex((entry) => entry.id === lessonId);
-    const previous = index > 0 ? gate.lessons[index - 1] : null;
-    const requiredExam = previous
-      ? (gate.examsByLesson.get(previous.id) ?? []).find((exam) => exam.available) ?? null
+    // The blocker to send the student back to is the *earliest* earlier lesson
+    // whose required exam is still unmet: locks are cumulative, so that is the
+    // next gate they must clear before any later lesson becomes reachable.
+    const blocker =
+      (index > 0
+        ? gate.lessons
+            .slice(0, index)
+            .find((entry) => gate.gatedLessonIds.has(entry.id) && !gate.clearedLessonIds.has(entry.id))
+        : null) ?? null;
+    const requiredExam = blocker
+      ? (gate.examsByLesson.get(blocker.id) ?? []).find((exam) => exam.available) ?? null
       : null;
     return NextResponse.json(
       {
         error: "يجب اجتياز اختبار الدرس السابق أولًا",
         locked: true,
-        requiredLesson: previous ? { id: previous.id, titleAr: previous.titleAr, titleEn: previous.titleEn } : null,
+        requiredLesson: blocker ? { id: blocker.id, titleAr: blocker.titleAr, titleEn: blocker.titleEn } : null,
         requiredExam: requiredExam ? { id: requiredExam.id, titleAr: requiredExam.titleAr, titleEn: requiredExam.titleEn } : null,
       },
       { status: 403 }
