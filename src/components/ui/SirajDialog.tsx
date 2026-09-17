@@ -12,6 +12,10 @@ export type SirajDialogProps = {
   title?: string;
   message: string;
   confirmLabel?: string;
+  cancelLabel?: string;
+  confirmVariant?: "primary" | "danger";
+  /** When provided the dialog asks for confirmation (Cancel + Confirm). */
+  onConfirm?: () => void;
   onClose: () => void;
 };
 
@@ -51,6 +55,9 @@ export default function SirajDialog({
   title,
   message,
   confirmLabel,
+  cancelLabel,
+  confirmVariant = "primary",
+  onConfirm,
   onClose,
 }: SirajDialogProps) {
   const { t } = useLang();
@@ -88,7 +95,7 @@ export default function SirajDialog({
           if (event.key === "Escape") onClose();
           if (event.key === "Enter") {
             event.preventDefault();
-            onClose();
+            (onConfirm ?? onClose)();
           }
         }}
         className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-900"
@@ -113,14 +120,29 @@ export default function SirajDialog({
               {message}
             </p>
           </div>
-          <button
-            ref={confirmRef}
-            type="button"
-            onClick={onClose}
-            className="admin-button mt-1 w-full"
-          >
-            {confirmLabel ?? t("حسنًا", "OK")}
-          </button>
+          <div className="mt-1 flex w-full gap-2">
+            {onConfirm && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                {cancelLabel ?? t("إلغاء", "Cancel")}
+              </button>
+            )}
+            <button
+              ref={confirmRef}
+              type="button"
+              onClick={onConfirm ?? onClose}
+              className={
+                onConfirm && confirmVariant === "danger"
+                  ? "flex-1 inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+                  : "admin-button flex-1"
+              }
+            >
+              {confirmLabel ?? t("حسنًا", "OK")}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -155,4 +177,64 @@ export function useSirajMessage() {
   };
 
   return { dialog, notify };
+}
+
+export function useSirajConfirm() {
+  const [state, setState] = useState<{
+    open: boolean;
+    type: SirajDialogType;
+    title?: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    confirmVariant?: "primary" | "danger";
+  }>({ open: false, type: "warning", message: "" });
+  const resolveRef = useRef<((value: boolean) => void) | null>(null);
+
+  const confirm = useCallback(
+    (
+      message: string,
+      options?: {
+        type?: SirajDialogType;
+        title?: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        confirmVariant?: "primary" | "danger";
+      }
+    ) =>
+      new Promise<boolean>((resolve) => {
+        resolveRef.current = resolve;
+        setState({
+          open: true,
+          type: options?.type ?? "warning",
+          title: options?.title,
+          message,
+          confirmLabel: options?.confirmLabel,
+          cancelLabel: options?.cancelLabel,
+          confirmVariant: options?.confirmVariant,
+        });
+      }),
+    []
+  );
+
+  const settle = useCallback((value: boolean) => {
+    const resolve = resolveRef.current;
+    resolveRef.current = null;
+    resolve?.(value);
+    setState((current) => ({ ...current, open: false }));
+  }, []);
+
+  const dialog: SirajDialogProps = {
+    open: state.open,
+    type: state.type,
+    title: state.title,
+    message: state.message,
+    confirmLabel: state.confirmLabel,
+    cancelLabel: state.cancelLabel,
+    confirmVariant: state.confirmVariant,
+    onConfirm: () => settle(true),
+    onClose: () => settle(false),
+  };
+
+  return { dialog, confirm };
 }

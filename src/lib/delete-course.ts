@@ -100,3 +100,44 @@ export async function deleteCourseWithDependencies(db: Db, courseId: string): Pr
   }
   await db.course.delete({ where: { id: courseId } });
 }
+
+/**
+ * Deletes a single lesson without touching anything that must survive.
+ *
+ * Lesson FKs are safe by schema: `exams.lesson_id` is ON DELETE SET NULL and
+ * `lesson_completions.lesson_id` is ON DELETE CASCADE. The only RESTRICT FKs in
+ * the schema (exam_attempt_answers -> questions/options) are unrelated to the
+ * lesson row, so deleting a lesson can never break attempts or answers.
+ *
+ * The linked exam detach is done explicitly so intent is clear, then the lesson
+ * is removed. Exams and their attempts/results are preserved as course-level
+ * exams; only the deleted lesson's own completion rows are removed with it.
+ *
+ * Remaining lessons are then renumbered to a contiguous 1..N within the same
+ * transaction. Walking ascending is collision-free: each target slot is either
+ * the deleted row's slot or one just vacated by a previously moved row.
+ */
+export async function deleteLessonWithDependencies(db: Db, lessonId: string) {
+  const lesson = await db.lesson.findUnique({ where: { id: lessonId }, select: { courseId: true } });
+  if (!lesson) throw new Error("Lesson not found");
+
+  const linkedExams = await db.exam.findMany({ where: { lessonId }, select: { id: true } });
+  if (linkedExams.length > 0) {
+    await db.exam.updateMany({ where: { lessonId }, data: { lessonId: null } });
+  }
+  const removedCompletions = await db.lessonCompletion.count({ where: { lessonId } });
+  await db.lesson.delete({ where: { id: lessonId } });
+
+  const remaining = await db.lesson.findMany({
+    where: { courseId: lesson.courseId },
+    orderBy: { orderIndex: "asc" },
+    select: { id: true, orderIndex: true },
+  });
+  for (let index = 0; index < remaining.length; index += 1) {
+    if (remaining[index].orderIndex !== index + 1) {
+      await db.lesson.update({ where: { id: remaining[index].id }, data: { orderIndex: index + 1 } });
+    }
+  }
+
+  return { detachedExamIds: linkedExams.map((exam) => exam.id), removedCompletions };
+}

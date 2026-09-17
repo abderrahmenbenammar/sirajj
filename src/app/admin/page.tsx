@@ -9,6 +9,7 @@ import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 import SirajTooltip from "@/components/ui/SirajTooltip";
 import SirajLoading from "@/components/ui/SirajLoading";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
+import CourseLessonsManager from "@/components/admin/CourseLessonsManager";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
 type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
@@ -222,7 +223,11 @@ export default function AdminPage() {
     const response = await fetch("/api/admin/courses");
     if (response.ok) {
       const data = await response.json();
-      setCourses(Array.isArray(data) ? data : data.courses);
+      const list: Course[] = Array.isArray(data) ? data : data.courses;
+      setCourses(list);
+      // Keep the open edit panel in sync after a lesson add/reorder/delete so
+      // it always reflects the database order, never a stale snapshot.
+      setEditingCourse((current) => (current ? list.find((course) => course.id === current.id) ?? null : current));
     }
   };
 
@@ -1131,7 +1136,8 @@ export default function AdminPage() {
           <h2 className="font-bold text-gray-900 dark:text-white mb-4">{t("الدورات الحالية", "Current courses")}</h2>
 
           {editingCourse && (
-            <form onSubmit={submitEditCourse} className="mb-6 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 space-y-3">
+            <>
+            <form onSubmit={submitEditCourse} className="mb-4 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 space-y-3">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><BookPlus size={16} />{t("تعديل الدورة", "Edit course")}: {editingCourse.titleAr}</h3>
               <input required placeholder={t("العنوان بالعربية", "Arabic title")} value={editForm.titleAr} onChange={(e) => setEditForm({ ...editForm, titleAr: e.target.value })} className="admin-input" />
               <input placeholder={t("العنوان بالإنجليزية", "English title")} value={editForm.titleEn} onChange={(e) => setEditForm({ ...editForm, titleEn: e.target.value })} className="admin-input" />
@@ -1150,6 +1156,15 @@ export default function AdminPage() {
                 <button type="button" onClick={() => { setEditingCourse(null); setEditCourseImage(null); }} className="px-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">{t("إلغاء", "Cancel")}</button>
               </div>
             </form>
+            <CourseLessonsManager
+              key={editingCourse.id}
+              courseId={editingCourse.id}
+              lessons={editingCourse.lessons}
+              exams={exams}
+              onChanged={loadCourses}
+              notify={notify}
+            />
+            </>
           )}
 
           <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {course.instructor ? course.instructor.nameAr : t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-2 shrink-0"><SirajTooltip label={t("فتح بيانات الدورة لتعديلها", "Open the course data for editing")} side="top"><button type="button" onClick={() => startEditCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={14} />{t("تعديل", "Edit")}</button></SirajTooltip><SirajTooltip label={t("حذف الدورة مع كل محتواها ودروسها", "Delete the course and all its lessons and content")} side="top"><button type="button" onClick={() => deleteCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={14} />{t("حذف", "Delete")}</button></SirajTooltip></div></div>)}</div>
