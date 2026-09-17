@@ -160,7 +160,7 @@ export default function DashboardPage() {
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate">
                         {t(course.titleAr, course.titleEn)}
                       </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t(course.instructorAr, course.instructorEn)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{lang === "ar" ? (course.instructorAr || course.instructorEn) : (course.instructorEn || course.instructorAr)}</p>
                       <div className="mt-2 flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                           <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${course.completion}%` }} />

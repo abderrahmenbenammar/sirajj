@@ -6,8 +6,11 @@ import { Clock, User } from "lucide-react";
 import type { ApiCourse } from "@/lib/courses-api";
 
 export default function CourseCard({ course, locked = false }: { course: ApiCourse; locked?: boolean }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const progress = 0;
+  const instructorName = lang === "ar"
+    ? (course.instructor || course.instructorEn)
+    : (course.instructorEn || course.instructor);
 
   const hasImage = Boolean(course.image);
   const card = (
@@ -47,10 +50,12 @@ export default function CourseCard({ course, locked = false }: { course: ApiCour
             {t(course.title, course.titleEn)}
           </h3>
           <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-1.5">
-              <User size={13} />
-              {t(course.instructor, course.instructorEn)}
-            </span>
+            {instructorName && (
+              <span className="flex items-center gap-1.5">
+                <User size={13} />
+                {instructorName}
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <Clock size={13} />
               {course.duration}

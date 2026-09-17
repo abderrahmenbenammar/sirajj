@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: Context) {
   const titleEn = patchField(body, "titleEn");
   if (titleEn !== undefined && titleEn) updates.titleEn = titleEn;
   // Nullable fields: explicitly send an empty string to clear.
-  for (const key of ["shortDescriptionAr", "shortDescriptionEn", "curriculumAr", "curriculumEn"] as const) {
+  for (const key of ["shortDescriptionAr", "shortDescriptionEn", "curriculumAr", "curriculumEn", "instructorNameAr", "instructorNameEn"] as const) {
     const value = patchField(body, key);
     if (value !== undefined) updates[key] = value;
   }

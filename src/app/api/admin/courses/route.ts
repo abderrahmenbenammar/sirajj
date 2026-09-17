@@ -41,6 +41,8 @@ export async function POST(request: Request) {
       shortDescriptionEn: asText(body.shortDescriptionEn),
       curriculumAr: asText(body.curriculumAr),
       curriculumEn: asText(body.curriculumEn),
+      instructorNameAr: asText(body.instructorNameAr),
+      instructorNameEn: asText(body.instructorNameEn),
       path,
       instructorId,
       coverImageUrl: asText(body.coverImageUrl) ?? asText(body.image),

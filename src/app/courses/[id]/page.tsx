@@ -76,6 +76,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const progress = course.progress || 0;
   const doneSet = new Set(course.completedLessonIds ?? []);
   const courseExams = exams.filter((exam) => !exam.lessonId);
+  // Free-text instructor name: prefer the current language, fall back to the
+  // other language, and render nothing (calm empty state) when both are empty.
+  const instructorName = lang === "ar"
+    ? (course.instructor || course.instructorEn)
+    : (course.instructorEn || course.instructor);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -125,7 +130,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 {t(course.description, course.descriptionEn)}
               </p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                <span className="flex items-center gap-1.5"><Users size={15} /> {t(course.instructor, course.instructorEn)}</span>
+                {instructorName && <span className="flex items-center gap-1.5"><Users size={15} /> {instructorName}</span>}
                 <span className="flex items-center gap-1.5"><Clock size={15} /> {course.duration}</span>
                 <span className="flex items-center gap-1.5"><BookOpen size={15} /> {course.lessons} {t("درس", "lessons")}</span>
               </div>
@@ -295,10 +300,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   <span className="text-gray-500 dark:text-gray-400">{t("عدد الدروس", "Lessons")}</span>
                   <span className="font-medium text-gray-900 dark:text-white">{course.lessons}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{t(course.instructor, course.instructorEn)}</span>
-                </div>
+                {instructorName && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{instructorName}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

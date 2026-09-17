@@ -83,6 +83,11 @@ model Course {
   shortDescriptionEn String?     @map("short_description_en")
   curriculumAr       String?     @map("curriculum_ar")
   curriculumEn       String?     @map("curriculum_en")
+  // Free-text instructor name owned by the course (authored by the admin).
+  // Independent of the legacy Instructor relation below, which is kept for
+  // backward compatibility but is no longer required to create/edit a course.
+  instructorNameAr   String?     @map("instructor_name_ar")
+  instructorNameEn   String?     @map("instructor_name_en")
   instructorId       String?     @map("instructor_id") @db.Uuid
   instructor         Instructor? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
   path               CoursePath  @default(BEGINNER) @map("path")

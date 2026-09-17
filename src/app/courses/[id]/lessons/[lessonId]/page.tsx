@@ -202,6 +202,7 @@ export default function LessonPage({
   }
 
   const videoUrl = lessonData.videoUrl;
+  const instructorName = lang === "ar" ? (course.instructor || course.instructorEn) : (course.instructorEn || course.instructor);
 
   return (
     <div className="py-8 sm:py-12">
@@ -324,7 +325,7 @@ export default function LessonPage({
                 {t(lesson.title, lesson.titleEn)}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                {lesson.duration} · {course.instructor && t(course.instructor, course.instructorEn)}
+                {lesson.duration}{instructorName ? ` · ${instructorName}` : ""}
               </p>
             </div>
           </div>

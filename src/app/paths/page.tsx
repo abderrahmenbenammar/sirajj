@@ -75,6 +75,7 @@ export default function PathsPage() {
                 <div className="grid gap-3">
                   {group.courses.length > 0 ? (
                     group.courses.map((course) => {
+                      const instructorName = lang === "ar" ? (course.instructor || course.instructorEn) : (course.instructorEn || course.instructor);
                       const content = (
                         <div className="flex items-center gap-4 rounded-xl bg-white/80 dark:bg-gray-900/60 border border-white/70 dark:border-gray-800/60 p-4 hover:bg-white dark:hover:bg-gray-900 transition-colors">
                           <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-500 dark:text-gray-400 shrink-0">
@@ -82,7 +83,7 @@ export default function PathsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-gray-900 dark:text-white truncate">{t(course.title, course.titleEn)}</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t(course.instructor, course.instructorEn)} · {course.lessons} {t("درس", "lessons")}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{instructorName ? `${instructorName} · ` : ""}{course.lessons} {t("درس", "lessons")}</p>
                           </div>
                           {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
                         </div>

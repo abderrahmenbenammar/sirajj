@@ -12,8 +12,7 @@ import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
 import CourseLessonsManager from "@/components/admin/CourseLessonsManager";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
-type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
-type AdminInstructor = { id: string; nameAr: string; nameEn: string };
+type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorNameAr: string | null; instructorNameEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[] };
 type Subscriber = { id: string; fullName: string; email: string; authProvider: string; role: string; status: string; createdAt: string; _count: { courseProgress: number; certificates: number } };
 type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
@@ -62,7 +61,7 @@ const makeBuilderQuestion = (): BuilderQuestion => ({
   ],
 });
 
-const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorId: "" };
+const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "" };
 
 function QuestionCard({
   question,
@@ -174,7 +173,6 @@ export default function AdminPage() {
   const { t } = useLang();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [instructors, setInstructors] = useState<AdminInstructor[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [selectedSubscriber, setSelectedSubscriber] = useState<SubscriberDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -185,7 +183,7 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE_FORM);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorId: "" });
+  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "" });
   const [editCourseImage, setEditCourseImage] = useState<File | null>(null);
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", videoUrl: "" });
   const [detailQuestion, setDetailQuestion] = useState<BuilderQuestion>(() => makeBuilderQuestion());
@@ -227,7 +225,6 @@ export default function AdminPage() {
       const data = await response.json();
       const list: Course[] = Array.isArray(data) ? data : data.courses;
       setCourses(list);
-      setInstructors(Array.isArray(data) ? [] : data.instructors ?? []);
       // Keep the open edit panel in sync after a lesson add/reorder/delete so
       // it always reflects the database order, never a stale snapshot.
       setEditingCourse((current) => (current ? list.find((course) => course.id === current.id) ?? null : current));
@@ -622,7 +619,7 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const coverImageUrl = courseImage ? await uploadFile(courseImage, "image") : courseForm.coverImageUrl;
-      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, shortDescriptionEn: courseForm.shortDescriptionEn, coverImageUrl, path: courseForm.path, instructorId: courseForm.instructorId };
+      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, shortDescriptionEn: courseForm.shortDescriptionEn, coverImageUrl, path: courseForm.path, instructorNameAr: courseForm.instructorNameAr, instructorNameEn: courseForm.instructorNameEn };
       await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
       setCourseImage(null);
       setCourseForm(EMPTY_COURSE_FORM);
@@ -638,7 +635,8 @@ export default function AdminPage() {
       shortDescriptionEn: course.shortDescriptionEn ?? "",
       coverImageUrl: course.coverImageUrl ?? "",
       path: course.path,
-      instructorId: course.instructorId ?? "",
+      instructorNameAr: course.instructorNameAr ?? "",
+      instructorNameEn: course.instructorNameEn ?? "",
     });
     setEditCourseImage(null);
   };
@@ -655,7 +653,8 @@ export default function AdminPage() {
         shortDescriptionEn: editForm.shortDescriptionEn,
         coverImageUrl,
         path: editForm.path,
-        instructorId: editForm.instructorId,
+        instructorNameAr: editForm.instructorNameAr,
+        instructorNameEn: editForm.instructorNameEn,
       };
       const response = await fetch(`/api/admin/courses/${editingCourse.id}`, {
         method: "PATCH",
@@ -720,7 +719,8 @@ export default function AdminPage() {
               {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
             </select>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</label>
-            {instructors.length === 0 ? <p className="text-xs rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-3 py-2 text-gray-500 dark:text-gray-400">{t("لا يوجد معلمون مضافون بعد", "No instructors have been added yet")}</p> : <select value={courseForm.instructorId} onChange={(e) => setCourseForm({ ...courseForm, instructorId: e.target.value })} className="admin-input"><option value="">{t("بدون معلم", "No instructor")}</option>{instructors.map((instructor) => <option key={instructor.id} value={instructor.id}>{instructor.nameEn ? `${instructor.nameAr} — ${instructor.nameEn}` : instructor.nameAr}</option>)}</select>}
+            <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={courseForm.instructorNameAr} onChange={(e) => setCourseForm({ ...courseForm, instructorNameAr: e.target.value })} className="admin-input" />
+            <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={courseForm.instructorNameEn} onChange={(e) => setCourseForm({ ...courseForm, instructorNameEn: e.target.value })} className="admin-input" />
             <input placeholder={t("مسار الصورة", "Image path")} value={courseForm.coverImageUrl} onChange={(e) => setCourseForm({ ...courseForm, coverImageUrl: e.target.value })} className="admin-input" />
             <SirajTooltip label={t("اختر صورة الغلاف للدورة", "Choose the course cover image")} side="top" className="w-full">
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
@@ -1155,7 +1155,8 @@ export default function AdminPage() {
                 {COURSE_PATHS.map((key) => <option key={key} value={key}>{t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}</option>)}
               </select>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</label>
-              {instructors.length === 0 ? <p className="text-xs rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-3 py-2 text-gray-500 dark:text-gray-400">{t("لا يوجد معلمون مضافون بعد", "No instructors have been added yet")}</p> : <select value={editForm.instructorId} onChange={(e) => setEditForm({ ...editForm, instructorId: e.target.value })} className="admin-input"><option value="">{t("بدون معلم", "No instructor")}</option>{instructors.map((instructor) => <option key={instructor.id} value={instructor.id}>{instructor.nameEn ? `${instructor.nameAr} — ${instructor.nameEn}` : instructor.nameAr}</option>)}</select>}
+              <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={editForm.instructorNameAr} onChange={(e) => setEditForm({ ...editForm, instructorNameAr: e.target.value })} className="admin-input" />
+              <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={editForm.instructorNameEn} onChange={(e) => setEditForm({ ...editForm, instructorNameEn: e.target.value })} className="admin-input" />
               <input placeholder={t("مسار الصورة", "Image path")} value={editForm.coverImageUrl} onChange={(e) => setEditForm({ ...editForm, coverImageUrl: e.target.value })} className="admin-input" />
               <SirajTooltip label={t("اختر صورة جديدة للدورة", "Choose a new course image")} side="top" className="w-full">
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setEditCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
@@ -1176,7 +1177,7 @@ export default function AdminPage() {
             </>
           )}
 
-          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {course.instructor ? course.instructor.nameAr : t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-2 shrink-0"><SirajTooltip label={t("فتح بيانات الدورة لتعديلها", "Open the course data for editing")} side="top"><button type="button" onClick={() => startEditCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={14} />{t("تعديل", "Edit")}</button></SirajTooltip><SirajTooltip label={t("حذف الدورة مع كل محتواها ودروسها", "Delete the course and all its lessons and content")} side="top"><button type="button" onClick={() => deleteCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={14} />{t("حذف", "Delete")}</button></SirajTooltip></div></div>)}</div>
+          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {course.instructorNameAr || course.instructorNameEn || t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-2 shrink-0"><SirajTooltip label={t("فتح بيانات الدورة لتعديلها", "Open the course data for editing")} side="top"><button type="button" onClick={() => startEditCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={14} />{t("تعديل", "Edit")}</button></SirajTooltip><SirajTooltip label={t("حذف الدورة مع كل محتواها ودروسها", "Delete the course and all its lessons and content")} side="top"><button type="button" onClick={() => deleteCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={14} />{t("حذف", "Delete")}</button></SirajTooltip></div></div>)}</div>
         </div>
 
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
