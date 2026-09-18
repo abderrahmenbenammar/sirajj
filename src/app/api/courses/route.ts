@@ -7,6 +7,10 @@ export async function GET() {
     include: {
       instructor: { select: { nameAr: true, nameEn: true } },
       lessons: { orderBy: { orderIndex: "asc" } },
+      libraryReferences: {
+        include: { libraryItem: { include: { category: { select: { id: true, nameAr: true, nameEn: true } } } } },
+        orderBy: { orderIndex: "asc" },
+      },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -25,8 +29,15 @@ export async function GET() {
     duration: `${course.lessons.length} درس`,
     lessons: course.lessons.length,
     curriculum: course.lessons.map((lesson) => ({ id: lesson.id, title: lesson.titleAr, titleEn: lesson.titleEn, duration: "فيديو", type: "video", videoUrl: lesson.videoUrl })),
-    objectives: [],
-    objectivesEn: [],
-    references: [],
+    references: course.libraryReferences.map((ref) => ({
+      id: ref.libraryItem.id,
+      type: ref.libraryItem.type,
+      titleAr: ref.libraryItem.titleAr,
+      titleEn: ref.libraryItem.titleEn,
+      authorName: ref.libraryItem.authorName,
+      contentUrl: ref.libraryItem.contentUrl,
+      categoryAr: ref.libraryItem.category?.nameAr ?? null,
+      categoryEn: ref.libraryItem.category?.nameEn ?? null,
+    })),
   })));
 }

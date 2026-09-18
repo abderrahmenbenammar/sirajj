@@ -12,6 +12,17 @@ export interface ApiCurriculumItem {
   hasExam?: boolean;
 }
 
+export interface ApiCourseReference {
+  id: string;
+  type: string;
+  titleAr: string;
+  titleEn: string;
+  authorName: string | null;
+  contentUrl: string;
+  categoryAr: string | null;
+  categoryEn: string | null;
+}
+
 export interface ApiCourse {
   id: string;
   title: string;
@@ -28,9 +39,7 @@ export interface ApiCourse {
   lessons: number;
   curriculum: ApiCurriculumItem[];
   examLessonIds?: string[];
-  objectives: string[];
-  objectivesEn: string[];
-  references: string[];
+  references: ApiCourseReference[];
   progress?: number;
   completedLessonIds?: string[];
 }

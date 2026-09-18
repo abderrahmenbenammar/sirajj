@@ -9,7 +9,8 @@ import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import { type ExamListItem } from "@/lib/exams-api";
 import { fetchCourseCertificate, issueCertificate, type CourseCertificateState } from "@/lib/certificates-api";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, CheckCircle, PlayCircle, FileText, HelpCircle, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock } from "lucide-react";
+import { libraryTypeLabel } from "@/lib/library-types";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -136,25 +137,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            {/* Objectives */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                {t("أهداف الدورة", "Course Objectives")}
-              </h2>
-              <ul className="space-y-3">
-                {(lang === "ar" ? course.objectives : course.objectivesEn).map((obj: string, i: number) => (
-                  <li key={i} className="flex items-start gap-3 text-gray-600 dark:text-gray-400">
-                    <CheckCircle size={18} className="text-emerald-500 mt-0.5 shrink-0" />
-                    <span>{obj}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             {/* Curriculum */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                {t("منهاج الدورة", "Course Curriculum")}
+                {t("دروس الدورة", "Course Lessons")}
               </h2>
               <div className="space-y-2">
                 {course.curriculum.map((item, i) => (
@@ -187,19 +173,38 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            {/* References */}
+            {/* References & Sources (real LibraryItems linked to the course) */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("المراجع والمصادر", "References & Sources")}
               </h2>
-              <ul className="space-y-2">
-                {course.references.map((ref, i) => (
-                  <li key={i} className="flex items-start gap-3 text-gray-600 dark:text-gray-400 text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
-                    {ref}
-                  </li>
-                ))}
-              </ul>
+              {course.references.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t("لا توجد مراجع لهذه الدورة بعد.", "No references for this course yet.")}
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {course.references.map((ref) => (
+                    <li key={ref.id}>
+                      <Link
+                        href={`/library/${ref.id}`}
+                        className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400 rounded-xl p-2 -m-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
+                        <span className="min-w-0">
+                          <span className="font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                            {t(ref.titleAr, ref.titleEn)}
+                          </span>
+                          <span className="block text-xs text-gray-400 mt-0.5">
+                            {t(libraryTypeLabel(ref.type).ar, libraryTypeLabel(ref.type).en)}
+                            {ref.authorName ? ` · ${ref.authorName}` : ""}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 

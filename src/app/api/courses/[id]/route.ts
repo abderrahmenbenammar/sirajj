@@ -18,6 +18,10 @@ export async function GET(_request: Request, { params }: Context) {
     include: {
       instructor: { select: { nameAr: true, nameEn: true } },
       lessons: { orderBy: { orderIndex: "asc" } },
+      libraryReferences: {
+        include: { libraryItem: { include: { category: { select: { id: true, nameAr: true, nameEn: true } } } } },
+        orderBy: { orderIndex: "asc" },
+      },
     },
   });
   if (!course) return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
@@ -72,9 +76,16 @@ export async function GET(_request: Request, { params }: Context) {
       };
     }),
     examLessonIds: [...gate.gatedLessonIds],
-    objectives: [],
-    objectivesEn: [],
-    references: [],
+    references: course.libraryReferences.map((ref) => ({
+      id: ref.libraryItem.id,
+      type: ref.libraryItem.type,
+      titleAr: ref.libraryItem.titleAr,
+      titleEn: ref.libraryItem.titleEn,
+      authorName: ref.libraryItem.authorName,
+      contentUrl: ref.libraryItem.contentUrl,
+      categoryAr: ref.libraryItem.category?.nameAr ?? null,
+      categoryEn: ref.libraryItem.category?.nameEn ?? null,
+    })),
     progress,
     completedLessonIds,
   });

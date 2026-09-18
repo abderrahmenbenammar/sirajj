@@ -95,11 +95,12 @@ model Course {
   createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  lessons      Lesson[]
-  resources    CourseResource[]
-  exams        Exam[]
-  certificates Certificate[]
-  progress     StudentCourseProgress[]
+  lessons            Lesson[]
+  resources          CourseResource[]
+  libraryReferences  CourseLibraryReference[]
+  exams              Exam[]
+  certificates       Certificate[]
+  progress           StudentCourseProgress[]
 
   @@index([instructorId], map: "idx_courses_instructor_id")
   @@map("courses")
@@ -157,10 +158,34 @@ model LibraryItem {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  courseReferences CourseLibraryReference[]
+
   @@index([categoryId], map: "idx_library_items_category_id")
   @@index([type], map: "idx_library_items_type")
   @@index([publishedAt(sort: Desc)], map: "idx_library_items_published")
   @@map("library_items")
+}
+
+// Many-to-many join: courses reference real LibraryItem rows (the library is
+// the source of truth — nothing is copied into the course). Deleting a course
+// removes only its join rows (LibraryItems survive); deleting a LibraryItem
+// removes only its join rows (courses survive). Never use CourseResource for
+// this: it is legacy manual text/file resources and stays untouched.
+model CourseLibraryReference {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId      String      @map("course_id") @db.Uuid
+  course        Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  libraryItemId String      @map("library_item_id") @db.Uuid
+  libraryItem   LibraryItem @relation(fields: [libraryItemId], references: [id], onDelete: Cascade)
+  // Admin-selected order, kept stable across page reloads.
+  orderIndex    Int         @default(0) @map("order_index")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([courseId, libraryItemId], map: "course_library_references_course_id_library_item_id_key")
+  @@index([courseId], map: "idx_course_library_references_course_id")
+  @@index([libraryItemId], map: "idx_course_library_references_library_item_id")
+  @@map("course_library_references")
 }
 
 model Exam {

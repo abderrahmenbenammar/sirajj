@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { deleteCourseWithDependencies } from "@/lib/delete-course";
 import { isCoursePath } from "@/lib/course-paths";
+import { normalizeLibraryItemIds, libraryItemsExist } from "@/lib/course-references";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -62,13 +63,40 @@ export async function PATCH(request: Request, { params }: Context) {
     updates.instructorId = instructorId;
   }
 
-  if (Object.keys(updates).length === 0) {
+  // References: a full-set replacement when provided (absent = untouched).
+  // Client ids are deduped/validated and every one must exist as a LibraryItem;
+  // the swap runs atomically inside the same transaction as any scalar update.
+  const libraryItemIds = body.libraryItemIds === undefined ? undefined : normalizeLibraryItemIds(body.libraryItemIds);
+  if (libraryItemIds === null) {
+    return NextResponse.json({ error: "معرفات المراجع غير صحيحة" }, { status: 400 });
+  }
+
+  if (Object.keys(updates).length === 0 && libraryItemIds === undefined) {
     return NextResponse.json({ error: "لا توجد حقول قابلة للتعديل" }, { status: 400 });
   }
 
-  const course = await prisma.course.update({
-    where: { id: courseId },
-    data: updates,
+  const existing = await prisma.course.findUnique({ where: { id: courseId }, select: { id: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "الدورة غير موجودة" }, { status: 404 });
+  }
+
+  if (libraryItemIds !== undefined && !(await libraryItemsExist(prisma, libraryItemIds))) {
+    return NextResponse.json({ error: "أحد عناصر المكتبة المختارة غير موجود" }, { status: 400 });
+  }
+
+  const course = await prisma.$transaction(async (tx) => {
+    const updated = Object.keys(updates).length > 0
+      ? await tx.course.update({ where: { id: courseId }, data: updates })
+      : (await tx.course.findUniqueOrThrow({ where: { id: courseId } }));
+    if (libraryItemIds !== undefined) {
+      await tx.courseLibraryReference.deleteMany({ where: { courseId } });
+      if (libraryItemIds.length > 0) {
+        await tx.courseLibraryReference.createMany({
+          data: libraryItemIds.map((libraryItemId, orderIndex) => ({ courseId, libraryItemId, orderIndex })),
+        });
+      }
+    }
+    return updated;
   });
   return NextResponse.json(course);
 }
