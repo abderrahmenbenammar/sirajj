@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import Link from "next/link";
 import { BookOpen, FileText, Search, Mic } from "lucide-react";
@@ -7,7 +8,9 @@ import type { ApiLibraryItem } from "@/lib/library-api";
 
 export default function LibraryCard({ item }: { item: ApiLibraryItem }) {
   const { t } = useLang();
+  const [broken, setBroken] = useState(false);
   const type = item.type;
+  const cover = item.coverImageUrl && !broken;
 
   const getIcon = () => {
     switch (type) {
@@ -32,8 +35,18 @@ export default function LibraryCard({ item }: { item: ApiLibraryItem }) {
   return (
     <Link href={`/library/${item.id}`} className="group block">
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800/60 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-black/20 hover:-translate-y-0.5">
-        <div className={`h-32 bg-gradient-to-br ${getColor()} flex items-center justify-center relative`}>
-          <div className="opacity-40">{getIcon()}</div>
+        <div className={`relative ${cover ? "" : `bg-gradient-to-br ${getColor()} flex items-center justify-center`} ${type === "book" ? "aspect-[3/4]" : "h-32"}`}>
+          {cover ? (
+            <img
+              src={item.coverImageUrl ?? ""}
+              alt={t(item.titleAr, item.titleEn)}
+              loading="lazy"
+              onError={() => setBroken(true)}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="opacity-40">{getIcon()}</div>
+          )}
           <div className="absolute top-3 end-3">
             <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
               {t(type === "book" ? "كتاب" : type === "article" ? "مقال" : type === "research" ? "بحث" : "محاضرة",

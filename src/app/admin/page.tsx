@@ -19,7 +19,7 @@ type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
   lessonCompletions: { completedAt: string; lesson: { titleAr: string; orderIndex: number; course: { titleAr: string } } }[];
 };
-type LibraryItem = { id: string; type: string; titleAr: string; authorName: string | null; contentUrl: string; categoryId: string | null };
+type LibraryItem = { id: string; type: string; titleAr: string; authorName: string | null; contentUrl: string; coverImageUrl: string | null; categoryId: string | null };
 type AdminCategory = { id: string; nameAr: string; nameEn: string; slug: string };
 type AdminFaq = { id: string; questionAr: string; questionEn: string; answerAr: string; answerEn: string; category: string; orderIndex: number };
 type AdminContact = { id: string; name: string; email: string; subject: string; message: string; status: string; createdAt: string };
@@ -63,6 +63,12 @@ const makeBuilderQuestion = (): BuilderQuestion => ({
 });
 
 const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] };
+
+// Cover image rules mirror the server's upload route (kind "image"):
+// JPG/PNG/WEBP, up to 10MB. Enforced client-side for instant feedback; the
+// server re-checks MIME + size regardless of what the client sends.
+const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_COVER_SIZE = 10 * 1024 * 1024;
 
 function QuestionCard({
   question,
@@ -200,9 +206,12 @@ export default function AdminPage() {
   const [libraryForm, setLibraryForm] = useState({ type: "book", title: "", author: "", category: "", description: "", content: "", mediaUrl: "" });
   const [courseImage, setCourseImage] = useState<File | null>(null);
   const [lessonVideo, setLessonVideo] = useState<File | null>(null);
+  const [libraryCoverFile, setLibraryCoverFile] = useState<File | null>(null);
+  const [libraryCoverPreview, setLibraryCoverPreview] = useState<string | null>(null);
   const [libraryFile, setLibraryFile] = useState<File | null>(null);
   const [editingLibraryId, setEditingLibraryId] = useState("");
-  const [libraryDraft, setLibraryDraft] = useState({ titleAr: "", authorName: "", type: "book", contentUrl: "" });
+  const [libraryDraft, setLibraryDraft] = useState({ titleAr: "", authorName: "", type: "book", contentUrl: "", coverImageUrl: null as string | null });
+  const [editCover, setEditCover] = useState<{ file: File | null; preview: string | null; removeCover: boolean }>({ file: null, preview: null, removeCover: false });
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [categoryForm, setCategoryForm] = useState({ nameAr: "", nameEn: "", slug: "" });
   const [editingCategoryId, setEditingCategoryId] = useState("");
@@ -287,17 +296,62 @@ export default function AdminPage() {
   };
 
   const saveLibraryEdit = async (itemId: string) => {
-    const response = await fetch(`/api/admin/library/${itemId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ titleAr: libraryDraft.titleAr, authorName: libraryDraft.authorName || null, type: libraryDraft.type, contentUrl: libraryDraft.contentUrl }),
-    });
-    const result = await response.json().catch(() => null);
-    notify(response.ok ? t("تم حفظ العنصر", "Item saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")), response.ok ? "success" : "error");
-    if (response.ok) {
-      setEditingLibraryId("");
-      await loadLibrary();
+    try {
+      let coverImageUrl: string | null | undefined;
+      if (editCover.file) {
+        coverImageUrl = await uploadFile(editCover.file, "image");
+        notify(t("تم رفع الغلاف بنجاح", "Cover uploaded successfully"), "success");
+      } else if (editCover.removeCover) {
+        coverImageUrl = "";
+      } else {
+        coverImageUrl = libraryDraft.coverImageUrl ?? undefined;
+      }
+      const response = await fetch(`/api/admin/library/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titleAr: libraryDraft.titleAr, authorName: libraryDraft.authorName || null, type: libraryDraft.type, contentUrl: libraryDraft.contentUrl, coverImageUrl }),
+      });
+      const result = await response.json().catch(() => null);
+      notify(response.ok ? t("تم حفظ العنصر", "Item saved") : (result?.error ?? t("تعذر الحفظ", "Could not save")), response.ok ? "success" : "error");
+      if (response.ok) {
+        setEditingLibraryId("");
+        setEditCover({ file: null, preview: null, removeCover: false });
+        await loadLibrary();
+      }
+    } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الصورة", "Could not upload image"), "error"); }
+  };
+
+  const pickLibraryCover = (file: File | null) => {
+    setLibraryCoverPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setLibraryCoverFile(null);
+    if (!file) return;
+    if (!COVER_TYPES.includes(file.type)) {
+      notify(t("نوع الملف غير مدعوم", "File type not supported"), "error");
+      return;
     }
+    if (file.size > MAX_COVER_SIZE) {
+      notify(t("حجم الملف غير صالح (بحد أقصى 10 ميجابايت)", "Invalid file size (max 10MB)"), "error");
+      return;
+    }
+    setLibraryCoverFile(file);
+    setLibraryCoverPreview(URL.createObjectURL(file));
+  };
+
+  const pickEditCover = (file: File | null) => {
+    setEditCover((prev) => {
+      if (prev.preview) URL.revokeObjectURL(prev.preview);
+      return { file: null, preview: null, removeCover: false };
+    });
+    if (!file) return;
+    if (!COVER_TYPES.includes(file.type)) {
+      notify(t("نوع الملف غير مدعوم", "File type not supported"), "error");
+      return;
+    }
+    if (file.size > MAX_COVER_SIZE) {
+      notify(t("حجم الملف غير صالح (بحد أقصى 10 ميجابايت)", "Invalid file size (max 10MB)"), "error");
+      return;
+    }
+    setEditCover({ file, preview: URL.createObjectURL(file), removeCover: false });
   };
 
   const submitCategory = async (event: FormEvent) => {
@@ -688,8 +742,12 @@ export default function AdminPage() {
     try {
       const fileKind = libraryFile?.type.startsWith("image/") ? "image" : libraryFile?.type.startsWith("video/") ? "video" : "document";
       const mediaUrl = libraryFile ? await uploadFile(libraryFile, fileKind) : libraryForm.mediaUrl;
-      await submit(event, "/api/admin/library", { ...libraryForm, mediaUrl }, t("تمت إضافة عنصر المكتبة", "Library item added"));
+      const coverImageUrl = libraryCoverFile ? await uploadFile(libraryCoverFile, "image") : null;
+      if (libraryCoverFile) notify(t("تم رفع الغلاف بنجاح", "Cover uploaded successfully"), "success");
+      await submit(event, "/api/admin/library", { ...libraryForm, mediaUrl, coverImageUrl }, t("تمت إضافة عنصر المكتبة", "Library item added"));
       setLibraryFile(null);
+      setLibraryCoverFile(null);
+      setLibraryCoverPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الملف", "Could not upload file"), "error"); }
   };
 
@@ -755,8 +813,31 @@ export default function AdminPage() {
             <input required placeholder={t("العنوان", "Title")} value={libraryForm.title} onChange={(e) => setLibraryForm({ ...libraryForm, title: e.target.value })} className="admin-input" />
             <input placeholder={t("المؤلف أو المحاضر", "Author or speaker")} value={libraryForm.author} onChange={(e) => setLibraryForm({ ...libraryForm, author: e.target.value })} className="admin-input" />
             <input placeholder={t("التصنيف", "Category")} value={libraryForm.category} onChange={(e) => setLibraryForm({ ...libraryForm, category: e.target.value })} className="admin-input" />
-            <input placeholder={t("رابط الغلاف أو الملف", "Cover or media URL")} value={libraryForm.mediaUrl} onChange={(e) => setLibraryForm({ ...libraryForm, mediaUrl: e.target.value })} className="admin-input" />
-            <SirajTooltip label={t("اختر صورة أو فيديو أو ملف PDF للعنصر", "Choose an image, video, or PDF for the item")} side="top" className="w-full">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t("رفع صورة الغلاف", "Upload cover image")}</p>
+              {libraryCoverPreview ? (
+                <div className="flex items-start gap-3">
+                  <div className="w-20 aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
+                    <img src={libraryCoverPreview} alt={t("معاينة الغلاف", "Cover preview")} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs px-2.5 py-1.5 rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 w-fit">
+                      {t("استبدال الصورة", "Replace image")}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => pickLibraryCover(e.target.files?.[0] ?? null)} />
+                    </label>
+                    <button type="button" onClick={() => pickLibraryCover(null)} className="text-xs px-2.5 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 w-fit">{t("حذف الصورة", "Remove image")}</button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 cursor-pointer text-gray-500 dark:text-gray-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                  <ImagePlus size={22} />
+                  <span className="text-sm text-center">{t("اختر صورة للغلاف (JPG، PNG، WEBP)", "Choose a cover image (JPG, PNG, WEBP)")}</span>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => pickLibraryCover(e.target.files?.[0] ?? null)} />
+                </label>
+              )}
+            </div>
+            <input placeholder={t("رابط الملف أو المحتوى", "Content or media URL")} value={libraryForm.mediaUrl} onChange={(e) => setLibraryForm({ ...libraryForm, mediaUrl: e.target.value })} className="admin-input" />
+            <SirajTooltip label={t("اختر الملف النصي أو الفيديو أو PDF للعنصر", "Choose the item's text, video, or PDF file")} side="top" className="w-full">
               <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,text/plain" onChange={(e) => setLibraryFile(e.target.files?.[0] ?? null)} className="admin-input" />
             </SirajTooltip>
             <textarea placeholder={t("الوصف أو المحتوى", "Description or content")} value={libraryForm.content} onChange={(e) => setLibraryForm({ ...libraryForm, content: e.target.value })} className="admin-input min-h-24" />
@@ -1127,9 +1208,27 @@ export default function AdminPage() {
                   <input value={libraryDraft.titleAr} onChange={(e) => setLibraryDraft({ ...libraryDraft, titleAr: e.target.value })} className="admin-input" />
                   <input value={libraryDraft.authorName} onChange={(e) => setLibraryDraft({ ...libraryDraft, authorName: e.target.value })} placeholder={t("المؤلف", "Author")} className="admin-input" />
                   <select value={libraryDraft.type} onChange={(e) => setLibraryDraft({ ...libraryDraft, type: e.target.value })} className="admin-input"><option value="book">كتاب</option><option value="article">مقال</option><option value="research">بحث</option><option value="lecture">محاضرة</option></select>
+                  <div className="flex items-center gap-2">
+                    {(editCover.preview || (libraryDraft.coverImageUrl && !editCover.removeCover)) ? (
+                      <div className="w-14 aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
+                        <img src={editCover.preview ?? libraryDraft.coverImageUrl ?? ""} alt={t("الغلاف الحالي", "Current cover")} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-14 aspect-[3/4] rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 shrink-0"><ImagePlus size={16} /></div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs px-2 py-1 rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 w-fit">
+                        {t(editCover.preview ? "استبدال الصورة" : "اختر صورة", editCover.preview ? "Replace image" : "Choose image")}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => pickEditCover(e.target.files?.[0] ?? null)} />
+                      </label>
+                      {(libraryDraft.coverImageUrl || editCover.preview) && (
+                        <button type="button" onClick={() => setEditCover((prev) => { if (prev.preview) URL.revokeObjectURL(prev.preview); return { file: null, preview: null, removeCover: true }; })} className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 w-fit">{t("حذف الصورة", "Remove image")}</button>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex gap-1">
                     <button type="button" onClick={() => saveLibraryEdit(item.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">{t("حفظ", "Save")}</button>
-                    <button type="button" onClick={() => setEditingLibraryId("")} className="text-xs px-2 py-1 text-gray-500">{t("إلغاء", "Cancel")}</button>
+                    <button type="button" onClick={() => { setEditingLibraryId(""); setEditCover({ file: null, preview: null, removeCover: false }); }} className="text-xs px-2 py-1 text-gray-500">{t("إلغاء", "Cancel")}</button>
                   </div>
                 </div>
               ) : (
@@ -1137,7 +1236,7 @@ export default function AdminPage() {
                   <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{item.titleAr}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.type} {item.authorName ? `· ${item.authorName}` : ""}</p>
                   <div className="flex gap-1 mt-2">
-                    <button type="button" onClick={() => { setEditingLibraryId(item.id); setLibraryDraft({ titleAr: item.titleAr, authorName: item.authorName ?? "", type: item.type, contentUrl: item.contentUrl }); }} className="text-xs px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">{t("تعديل", "Edit")}</button>
+                    <button type="button" onClick={() => { setEditingLibraryId(item.id); setEditCover({ file: null, preview: null, removeCover: false }); setLibraryDraft({ titleAr: item.titleAr, authorName: item.authorName ?? "", type: item.type, contentUrl: item.contentUrl, coverImageUrl: item.coverImageUrl ?? null }); }} className="text-xs px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">{t("تعديل", "Edit")}</button>
                     <button type="button" onClick={() => deleteLibraryItem(item.id)} className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">{t("حذف", "Delete")}</button>
                   </div>
                 </>

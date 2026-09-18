@@ -34,6 +34,19 @@ export async function PATCH(request: Request, { params }: Context) {
     return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 400 });
   }
 
+  // Cover: absent = keep existing, "" = clear (set null), otherwise must be an
+  // absolute http(s) URL (normally one produced by /api/admin/upload).
+  let coverImageUrl: string | null | undefined;
+  if (body.coverImageUrl === undefined) {
+    coverImageUrl = undefined;
+  } else {
+    const trimmed = asText(body.coverImageUrl);
+    coverImageUrl = trimmed || null;
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+      return NextResponse.json({ error: "رابط صورة الغلاف غير صالح" }, { status: 400 });
+    }
+  }
+
   try {
     const item = await prisma.libraryItem.update({
       where: { id: itemId },
@@ -46,7 +59,7 @@ export async function PATCH(request: Request, { params }: Context) {
         descriptionEn: asText(body.descriptionEn) ?? asText(body.description) ?? undefined,
         contentUrl: asText(body.contentUrl) ?? asText(body.mediaUrl) ?? undefined,
         categoryId: body.categoryId === null || body.categoryId === "" ? null : (categoryId ?? undefined),
-        coverImageUrl: asText(body.coverImageUrl) ?? undefined,
+        coverImageUrl,
       },
     });
     return NextResponse.json(item);

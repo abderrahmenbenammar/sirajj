@@ -38,6 +38,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "التصنيف غير موجود" }, { status: 400 });
   }
   const publishedAt = body.publishedAt ? new Date(body.publishedAt) : null;
+  const coverImageUrl = asText(body.coverImageUrl);
+  // A cover must be an absolute URL (normally one produced by the secure
+  // /api/admin/upload endpoint); anything else is rejected server-side.
+  if (coverImageUrl && !/^https?:\/\//i.test(coverImageUrl)) {
+    return NextResponse.json({ error: "رابط صورة الغلاف غير صالح" }, { status: 400 });
+  }
   const item = await prisma.libraryItem.create({
     data: {
       type,
@@ -48,7 +54,7 @@ export async function POST(request: Request) {
       descriptionEn: asText(body.descriptionEn) ?? asText(body.description),
       contentUrl: asText(body.contentUrl) ?? asText(body.mediaUrl) ?? "",
       categoryId,
-      coverImageUrl: asText(body.coverImageUrl),
+      coverImageUrl,
       publishedAt: publishedAt && !Number.isNaN(publishedAt.getTime()) ? publishedAt : null,
     },
   });
