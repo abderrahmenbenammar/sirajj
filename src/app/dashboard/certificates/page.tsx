@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
-import { Award, Calendar, User, ArrowLeft, BadgeCheck } from "lucide-react";
+import { Award, Calendar, User, ArrowLeft, BadgeCheck, Download } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 interface CertificateItem {
@@ -123,11 +123,10 @@ export default function CertificatesPage() {
                     >
                       {t("عرض الشهادة", "View certificate")}
                     </Link>
-                    {cert.pdfUrl ? (
-                    <a href={cert.pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors">
+                    <a href={`/api/certificates/${cert.id}/image`} download={`siraj-certificate-${cert.certificateCode}.png`} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors">
+                      <Download size={14} />
                       {t("تحميل الشهادة", "Download Certificate")}
                     </a>
-                  ) : null}
                   </div>
                 </div>
               </div>

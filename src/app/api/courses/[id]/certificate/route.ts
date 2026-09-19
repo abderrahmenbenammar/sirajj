@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { checkEligibility, findOwnCertificate, makeCertificateCode } from "@/lib/certificates-server";
+import { checkEligibility, ensureCertificate, findOwnCertificate } from "@/lib/certificates-server";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -39,22 +38,18 @@ export async function POST(_request: Request, { params }: Context) {
     );
   }
 
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    try {
-      const certificate = await prisma.certificate.create({
-        data: { studentId, courseId, certificateCode: makeCertificateCode() },
-      });
-      return NextResponse.json({ certificate, existed: false }, { status: 201 });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        const raced = await findOwnCertificate(studentId, courseId);
-        if (raced) return NextResponse.json({ certificate: raced, existed: true });
-        continue;
-      }
-      throw error;
+  try {
+    const issued = await ensureCertificate(studentId, courseId);
+    if (!issued) {
+      return NextResponse.json({ error: "شروط الشهادة غير مستوفاة" }, { status: 403 });
     }
+    return NextResponse.json(
+      { certificate: issued.certificate, existed: issued.existed },
+      { status: issued.existed ? 200 : 201 }
+    );
+  } catch {
+    return NextResponse.json({ error: "تعذر إصدار الشهادة، حاول مجددًا" }, { status: 500 });
   }
-  return NextResponse.json({ error: "تعذر إصدار الشهادة، حاول مجددًا" }, { status: 500 });
 }
 
 // Own certificate state for a course (for button states). Never another student's.

@@ -92,6 +92,10 @@ model Course {
   instructor         Instructor? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
   path               CoursePath  @default(BEGINNER) @map("path")
   coverImageUrl      String?     @map("cover_image_url")
+  // Optional course length in whole hours (maintained by the admin).
+  // Certificates print it as مدة الدورة; courses without a value fall back
+  // to a lesson-count label instead.
+  durationHours      Int?        @map("duration_hours")
   createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 

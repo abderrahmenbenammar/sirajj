@@ -13,7 +13,7 @@ import CourseLessonsManager from "@/components/admin/CourseLessonsManager";
 import CourseReferencesPicker from "@/components/admin/CourseReferencesPicker";
 
 type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
-type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorNameAr: string | null; instructorNameEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; path: string; lessons: AdminLesson[]; libraryReferences: { libraryItemId: string }[] };
+type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorNameAr: string | null; instructorNameEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; durationHours: number | null; path: string; lessons: AdminLesson[]; libraryReferences: { libraryItemId: string }[] };
 type Subscriber = { id: string; fullName: string; email: string; authProvider: string; role: string; status: string; createdAt: string; _count: { courseProgress: number; certificates: number } };
 type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
@@ -62,7 +62,7 @@ const makeBuilderQuestion = (): BuilderQuestion => ({
   ],
 });
 
-const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] };
+const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", durationHours: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] };
 
 // Cover image rules mirror the server's upload route (kind "image"):
 // JPG/PNG/WEBP, up to 10MB. Enforced client-side for instant feedback; the
@@ -190,7 +190,7 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE_FORM);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] });
+  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", durationHours: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] });
   const [editCourseImage, setEditCourseImage] = useState<File | null>(null);
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", videoUrl: "" });
   const [detailQuestion, setDetailQuestion] = useState<BuilderQuestion>(() => makeBuilderQuestion());
@@ -674,7 +674,7 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const coverImageUrl = courseImage ? await uploadFile(courseImage, "image") : courseForm.coverImageUrl;
-      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, shortDescriptionEn: courseForm.shortDescriptionEn, coverImageUrl, path: courseForm.path, instructorNameAr: courseForm.instructorNameAr, instructorNameEn: courseForm.instructorNameEn, libraryItemIds: courseForm.libraryItemIds };
+      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, shortDescriptionEn: courseForm.shortDescriptionEn, coverImageUrl, durationHours: courseForm.durationHours === "" ? null : Math.max(0, Math.floor(Number(courseForm.durationHours) || 0)), path: courseForm.path, instructorNameAr: courseForm.instructorNameAr, instructorNameEn: courseForm.instructorNameEn, libraryItemIds: courseForm.libraryItemIds };
       await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
       setCourseImage(null);
       setCourseForm(EMPTY_COURSE_FORM);
@@ -689,6 +689,7 @@ export default function AdminPage() {
       shortDescriptionAr: course.shortDescriptionAr ?? "",
       shortDescriptionEn: course.shortDescriptionEn ?? "",
       coverImageUrl: course.coverImageUrl ?? "",
+      durationHours: course.durationHours === null || course.durationHours === undefined ? "" : String(course.durationHours),
       path: course.path,
       instructorNameAr: course.instructorNameAr ?? "",
       instructorNameEn: course.instructorNameEn ?? "",
@@ -708,6 +709,7 @@ export default function AdminPage() {
         shortDescriptionAr: editForm.shortDescriptionAr,
         shortDescriptionEn: editForm.shortDescriptionEn,
         coverImageUrl,
+        durationHours: editForm.durationHours === "" ? null : Math.max(0, Math.floor(Number(editForm.durationHours) || 0)),
         path: editForm.path,
         instructorNameAr: editForm.instructorNameAr,
         instructorNameEn: editForm.instructorNameEn,
@@ -782,6 +784,7 @@ export default function AdminPage() {
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</label>
             <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={courseForm.instructorNameAr} onChange={(e) => setCourseForm({ ...courseForm, instructorNameAr: e.target.value })} className="admin-input" />
             <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={courseForm.instructorNameEn} onChange={(e) => setCourseForm({ ...courseForm, instructorNameEn: e.target.value })} className="admin-input" />
+            <input type="number" min="0" step="1" placeholder={t("مدة الدورة بالساعات (اختياري)", "Course duration in hours (optional)")} value={courseForm.durationHours} onChange={(e) => setCourseForm({ ...courseForm, durationHours: e.target.value })} className="admin-input" />
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-3 space-y-2">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"><LibraryBig size={15} className="text-emerald-600 dark:text-emerald-400" />{t("المراجع والمصادر", "References & Sources")}</h3>
               <CourseReferencesPicker value={courseForm.libraryItemIds} onChange={(ids) => setCourseForm({ ...courseForm, libraryItemIds: ids })} />
@@ -1263,6 +1266,7 @@ export default function AdminPage() {
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</label>
               <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={editForm.instructorNameAr} onChange={(e) => setEditForm({ ...editForm, instructorNameAr: e.target.value })} className="admin-input" />
               <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={editForm.instructorNameEn} onChange={(e) => setEditForm({ ...editForm, instructorNameEn: e.target.value })} className="admin-input" />
+              <input type="number" min="0" step="1" placeholder={t("مدة الدورة بالساعات (اختياري)", "Course duration in hours (optional)")} value={editForm.durationHours} onChange={(e) => setEditForm({ ...editForm, durationHours: e.target.value })} className="admin-input" />
               <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white/60 dark:bg-gray-900/40 p-3 space-y-2">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"><LibraryBig size={15} className="text-emerald-600 dark:text-emerald-400" />{t("المراجع والمصادر", "References & Sources")}</h3>
                 <CourseReferencesPicker value={editForm.libraryItemIds} onChange={(ids) => setEditForm({ ...editForm, libraryItemIds: ids })} />

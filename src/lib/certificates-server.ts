@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // Shared server-side certificate logic. Identity always comes from the caller
@@ -59,4 +60,36 @@ export async function findOwnCertificate(studentId: string, courseId: string) {
   return prisma.certificate.findUnique({
     where: { studentId_courseId: { studentId, courseId } },
   });
+}
+
+// Idempotent auto-issuance shared by the manual endpoint and the automatic
+// hooks (lesson completion, exam submit). Returns the existing certificate
+// when one was already issued, creates one when eligibility holds, and
+// returns null when the student is not eligible yet. The UNIQUE
+// (student, course) constraint is the final backstop against races.
+export async function ensureCertificate(studentId: string, courseId: string) {
+  const existing = await findOwnCertificate(studentId, courseId);
+  if (existing) {
+    return { certificate: existing, existed: true };
+  }
+  const eligibility = await checkEligibility(studentId, courseId);
+  if (!eligibility.eligible) {
+    return null;
+  }
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const certificate = await prisma.certificate.create({
+        data: { studentId, courseId, certificateCode: makeCertificateCode() },
+      });
+      return { certificate, existed: false };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const raced = await findOwnCertificate(studentId, courseId);
+        if (raced) return { certificate: raced, existed: true };
+        continue; // code collision → retry with a fresh code
+      }
+      throw error;
+    }
+  }
+  throw new Error("certificate-issue-failed");
 }

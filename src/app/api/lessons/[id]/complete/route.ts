@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ensureCertificate } from "@/lib/certificates-server";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -65,6 +66,17 @@ export async function POST(_request: Request, { params }: Context) {
 
     return { alreadyCompleted: existing !== null, progress, doneLessons, totalLessons };
   });
+
+  // Auto-issue when finishing the last lesson completes eligibility (the exam
+  // may already be passed). Isolated: a certificate failure must never break
+  // progress tracking — it only logs server-side.
+  if (result.totalLessons > 0 && result.doneLessons >= result.totalLessons) {
+    try {
+      await ensureCertificate(studentId, lesson.courseId);
+    } catch (error) {
+      console.error("[certificates/auto-issue] complete hook failed", studentId, lesson.courseId, error);
+    }
+  }
 
   return NextResponse.json({ success: true, completed: true, ...result });
 }

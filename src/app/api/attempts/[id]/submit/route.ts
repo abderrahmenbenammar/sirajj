@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { myExamStats } from "@/lib/exams-server";
+import { ensureCertificate } from "@/lib/certificates-server";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -126,9 +127,20 @@ export async function POST(_request: Request, { params }: Context) {
   // Attempt counter is read after the transaction commits so the just-finished
   // attempt is included in attemptsUsed/attemptsLeft on the first response too.
   const attemptedStats = await myExamStats(existing.examId, studentId, existing.exam.maxAttempts);
+  const result = buildResult(graded.final, existing.exam, graded.correctCount, graded.totalQuestions, graded.totalPoints, attemptedStats.attemptsUsed);
+  // Auto-issue the course certificate the moment a passing submit completes
+  // eligibility (lessons already done). Isolated: a certificate failure must
+  // never break grading — it only logs server-side.
+  if (result.passed) {
+    try {
+      await ensureCertificate(studentId, existing.exam.courseId);
+    } catch (error) {
+      console.error("[certificates/auto-issue] submit hook failed", studentId, existing.exam.courseId, error);
+    }
+  }
   return NextResponse.json({
     success: true,
-    ...buildResult(graded.final, existing.exam, graded.correctCount, graded.totalQuestions, graded.totalPoints, attemptedStats.attemptsUsed),
+    ...result,
     alreadySubmitted: graded.alreadySubmitted,
   });
 }

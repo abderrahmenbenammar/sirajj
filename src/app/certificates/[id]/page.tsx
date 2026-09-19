@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { fetchCertificate, type CertificateDetail } from "@/lib/certificates-api";
-import { Award, BadgeCheck, Calendar, Printer } from "lucide-react";
+import { Award, BadgeCheck, Calendar, Download, Printer } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function CertificatePage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,6 +43,11 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
     <div className="py-12 sm:py-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden">
+          <img
+            src={`/api/certificates/${certificate.id}/image`}
+            alt={t("صورة الشهادة", "Certificate image")}
+            className="w-full h-auto block"
+          />
           <div className="relative bg-gradient-to-br from-emerald-50 via-white to-emerald-50 dark:from-emerald-950/20 dark:via-gray-900 dark:to-emerald-950/20 p-8 sm:p-12 text-center border-b border-emerald-100 dark:border-emerald-900/30">
             <div className="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center mx-auto mb-6">
               <Award size={30} className="text-white" />
@@ -80,16 +85,14 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
               {t("تحقق من صحة الشهادة", "Verify this certificate")}
             </Link>
             <div className="flex items-center gap-2">
-              {certificate.pdfUrl ? (
-                <a
-                  href={certificate.pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  {t("تحميل PDF", "Download PDF")}
-                </a>
-              ) : null}
+              <a
+                href={`/api/certificates/${certificate.id}/image`}
+                download={`siraj-certificate-${certificate.certificateCode}.png`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <Download size={14} />
+                {t("تحميل الشهادة", "Download Certificate")}
+              </a>
               <button
                 onClick={() => window.print()}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 transition-colors"
