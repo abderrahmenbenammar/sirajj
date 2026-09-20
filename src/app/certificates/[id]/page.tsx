@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { fetchCertificate, type CertificateDetail } from "@/lib/certificates-api";
-import { Award, BadgeCheck, Calendar, Download, Printer } from "lucide-react";
+import { Award, BadgeCheck, Calendar, Clock, Download, Printer } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function CertificatePage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,9 +63,13 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
               {t(certificate.course.titleAr, certificate.course.titleEn)}
             </h3>
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-              {certificate.bestScorePercentage !== null && (
-                <span>{t("النتيجة", "Score")}: {certificate.bestScorePercentage}%</span>
+              {certificate.finalScorePercentage !== null && (
+                <span>{t("النتيجة", "Score")}: {certificate.finalScorePercentage}%</span>
               )}
+              <span className="flex items-center gap-1.5">
+                <Clock size={14} />
+                {t("المدة", "Duration")}: {certificate.durationText}
+              </span>
               <span className="flex items-center gap-1.5">
                 <Calendar size={14} />
                 {new Date(certificate.issueDate).toLocaleDateString("ar")}

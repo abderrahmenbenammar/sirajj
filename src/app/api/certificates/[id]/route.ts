@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { computeFinalScore } from "@/lib/certificates/score";
+import { formatDurationDetailed } from "@/lib/certificates/layout";
+import { getCourseDuration } from "@/lib/certificates/videos";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -27,12 +30,15 @@ export async function GET(_request: Request, { params }: Context) {
     return NextResponse.json({ error: "الشهادة غير موجودة" }, { status: 404 });
   }
 
-  const attempts = await prisma.examAttempt.findMany({
-    where: { studentId, status: "completed", exam: { courseId: certificate.courseId } },
-    include: { exam: { select: { passingScorePercentage: true } } },
-    orderBy: { scorePercentage: "desc" },
-  });
-  const best = attempts.find((attempt) => Number(attempt.scorePercentage) >= attempt.exam.passingScorePercentage) ?? null;
+  // Final grade across all course exams (Σ approved points ÷ Σ totals).
+  // The stored snapshots win; the live computation covers legacy rows.
+  const stored = certificate.finalScorePercentage === null ? null : Number(certificate.finalScorePercentage);
+  const final = stored ?? (await computeFinalScore(studentId, certificate.courseId)).percentage;
+  const liveDuration =
+    certificate.durationSeconds === null || certificate.durationSeconds === undefined
+      ? (await getCourseDuration(certificate.courseId)).totalSeconds
+      : null;
+  const totalSeconds = certificate.durationSeconds ?? liveDuration ?? null;
 
   return NextResponse.json({
     id: certificate.id,
@@ -41,6 +47,7 @@ export async function GET(_request: Request, { params }: Context) {
     pdfUrl: certificate.pdfUrl,
     course: certificate.course,
     studentName: certificate.student.fullName,
-    bestScorePercentage: best ? Number(best.scorePercentage) : null,
+    finalScorePercentage: final,
+    durationText: formatDurationDetailed(totalSeconds),
   });
 }

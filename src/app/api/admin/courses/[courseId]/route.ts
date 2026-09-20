@@ -13,16 +13,6 @@ function asText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-// Optional whole-hours course length for PATCH: absent = untouched,
-// blank/null = clear, otherwise a non-negative integer.
-function asDurationHours(value: unknown): number | null | "INVALID" {
-  if (value === undefined) return null;
-  if (value === null || value === "") return null;
-  const n = typeof value === "number" ? value : Number(String(value).trim());
-  if (!Number.isInteger(n) || n < 0 || n > 10000) return "INVALID";
-  return n;
-}
-
 // For PATCH only: distinguish "absent" (don't touch) from "present but empty"
 // (clear the nullable field). Returns undefined when the key is missing.
 function patchField(body: Record<string, unknown>, key: string): string | null | undefined {
@@ -41,7 +31,7 @@ export async function PATCH(request: Request, { params }: Context) {
   const body = await request.json();
 
   // Accredited patchable fields — the exact Course columns the admin may edit.
-  const updates: Record<string, string | number | null> = {};
+  const updates: Record<string, string | null> = {};
 
   // Titles: an empty value leaves the existing title untouched (matching the
   // pre-existing partial-update behavior); only non-empty values are written.
@@ -62,14 +52,6 @@ export async function PATCH(request: Request, { params }: Context) {
   if (path !== undefined) {
     if (!isCoursePath(path)) return NextResponse.json({ error: "مسار غير صالح" }, { status: 400 });
     updates.path = path;
-  }
-  // Duration: absent = untouched, blank/null = clear, else non-negative int.
-  if ("durationHours" in body) {
-    const durationHours = asDurationHours(body.durationHours);
-    if (durationHours === "INVALID") {
-      return NextResponse.json({ error: "مدة الدورة غير صالحة" }, { status: 400 });
-    }
-    updates.durationHours = durationHours;
   }
   const instructorId = patchField(body, "instructorId");
   if (instructorId !== undefined) {

@@ -12,11 +12,13 @@ import {
   CERT_INK,
   gradeFor,
   formatScore,
-  formatDuration,
+  formatDurationDetailed,
   formatDateAr,
   verifyUrlFor,
   type CertTextZone,
 } from "./layout";
+import { computeFinalScore } from "./score";
+import { getCourseDuration } from "./videos";
 
 // Deterministic certificate image generation on the immutable template.
 // Arabic shaping/RTL comes from satori's own layout engine (verified against
@@ -129,33 +131,33 @@ export async function getCertificateRenderData(certificateId: string): Promise<C
   const certificate = await prisma.certificate.findUnique({
     where: { id: certificateId },
     include: {
-      course: { select: { id: true, titleAr: true, durationHours: true } },
+      course: { select: { id: true, titleAr: true } },
       student: { select: { fullName: true } },
     },
   });
   if (!certificate) return null;
-  const [lessonCount, progress, attempts] = await Promise.all([
-    prisma.lesson.count({ where: { courseId: certificate.courseId } }),
+  const [duration, progress, final] = await Promise.all([
+    certificate.durationSeconds === null || certificate.durationSeconds === undefined
+      ? getCourseDuration(certificate.courseId)
+      : null,
     prisma.studentCourseProgress.findUnique({
       where: { studentId_courseId: { studentId: certificate.studentId, courseId: certificate.courseId } },
       select: { completedAt: true },
     }),
-    prisma.examAttempt.findMany({
-      where: { studentId: certificate.studentId, status: "completed", exam: { courseId: certificate.courseId } },
-      include: { exam: { select: { passingScorePercentage: true } } },
-      orderBy: { scorePercentage: "desc" },
-    }),
+    computeFinalScore(certificate.studentId, certificate.courseId),
   ]);
-  const best =
-    attempts.find((attempt) => Number(attempt.scorePercentage) >= attempt.exam.passingScorePercentage) ?? null;
-  const bestScore = best ? Number(best.scorePercentage) : 0;
+  // Stored snapshots win (history never shifts under edits); the live
+  // computation is only a fallback for rows issued before it existed.
+  const stored = certificate.finalScorePercentage === null ? null : Number(certificate.finalScorePercentage);
+  const bestScore = stored ?? final.percentage ?? 0;
+  const totalSeconds = certificate.durationSeconds ?? duration?.totalSeconds ?? null;
   return {
     studentName: certificate.student.fullName,
     courseTitle: certificate.course.titleAr,
     scoreText: formatScore(bestScore),
     gradeText: gradeFor(bestScore),
     dateText: formatDateAr(progress?.completedAt ?? certificate.issueDate),
-    durationText: formatDuration(certificate.course.durationHours, lessonCount),
+    durationText: formatDurationDetailed(totalSeconds),
     code: certificate.certificateCode,
     verifyUrl: verifyUrlFor(certificate.certificateCode),
   };

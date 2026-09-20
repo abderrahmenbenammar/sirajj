@@ -9,6 +9,7 @@ export type NewLessonInput = {
   titleEn: string;
   videoUrl: string;
   subtitleUrl?: string | null;
+  videoDurationSeconds?: number | null;
 };
 
 export class LessonOrderConflictError extends Error {

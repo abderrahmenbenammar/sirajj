@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { computeFinalScore } from "@/lib/certificates/score";
+import { getCourseDuration } from "@/lib/certificates/videos";
 
 // Shared server-side certificate logic. Identity always comes from the caller
 // (session); nothing here trusts client-supplied user/course ownership.
@@ -78,8 +80,26 @@ export async function ensureCertificate(studentId: string, courseId: string) {
   }
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
+      // Snapshots at issue time: final grade across all course exams AND the
+      // current course video total. Later exam/lesson edits never rewrite an
+      // issued certificate. A snapshot failure stores NULL and readers fall
+      // back to the live computation — issuance never blocks.
+      let finalScore: number | null = null;
+      let durationSecs: number | null = null;
+      try {
+        finalScore = (await computeFinalScore(studentId, courseId)).percentage;
+        durationSecs = (await getCourseDuration(courseId)).totalSeconds;
+      } catch (error) {
+        console.error("[certificates/snapshot] live compute failed at issue", studentId, courseId, error);
+      }
       const certificate = await prisma.certificate.create({
-        data: { studentId, courseId, certificateCode: makeCertificateCode() },
+        data: {
+          studentId,
+          courseId,
+          certificateCode: makeCertificateCode(),
+          finalScorePercentage: finalScore,
+          durationSeconds: durationSecs,
+        },
       });
       return { certificate, existed: false };
     } catch (error) {

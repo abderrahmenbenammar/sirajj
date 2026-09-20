@@ -65,17 +65,27 @@ export function formatScore(scorePercentage: number): string {
   return `${text}%`;
 }
 
-// Duration prefers the admin-maintained hours column; courses without a value
-// fall back to the existing platform convention ("N درس").
-export function formatDuration(durationHours: number | null, lessonCount: number): string {
-  if (durationHours !== null && Number.isInteger(durationHours) && durationHours >= 0) {
-    if (durationHours === 0) return "أقل من ساعة";
-    if (durationHours === 1) return "ساعة واحدة";
-    if (durationHours === 2) return "ساعتان";
-    if (durationHours <= 10) return `${durationHours} ساعات`;
-    return `${durationHours} ساعة`;
-  }
-  return `${lessonCount} درس`;
+// Duration prefers the summed lesson video lengths (whole seconds).
+// Display keeps hour/minute precision Arabic style ("6 ساعات و25 دقيقة");
+// sub-minute totals collapse to "أقل من دقيقة". Null (no known lesson
+// length at all) renders as "غير محددة" — never a fabricated number.
+function arabicCount(n: number, one: string, two: string, few: string, many: string): string {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  if (n <= 10) return `${n} ${few}`;
+  return `${n} ${many}`;
+}
+
+export function formatDurationDetailed(totalSeconds: number | null): string {
+  if (totalSeconds === null) return "غير محددة";
+  const s = Math.max(0, Math.round(totalSeconds));
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const parts: string[] = [];
+  if (hours > 0) parts.push(arabicCount(hours, "ساعة واحدة", "ساعتان", "ساعات", "ساعة"));
+  if (minutes > 0) parts.push(arabicCount(minutes, "دقيقة واحدة", "دقيقتان", "دقائق", "دقيقة"));
+  if (parts.length === 0) return "أقل من دقيقة";
+  return parts.join(" و");
 }
 
 export function formatDateAr(date: Date): string {

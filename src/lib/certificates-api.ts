@@ -16,7 +16,8 @@ export interface CertificateDetail {
   pdfUrl: string | null;
   course: { id: string; titleAr: string; titleEn: string };
   studentName: string;
-  bestScorePercentage: number | null;
+  finalScorePercentage: number | null;
+  durationText: string;
 }
 
 export interface Verification {
@@ -26,6 +27,9 @@ export interface Verification {
   courseTitleAr?: string;
   courseTitleEn?: string;
   issueDate?: string;
+  scoreText?: string;
+  gradeText?: string;
+  durationText?: string;
 }
 
 export async function fetchCourseCertificate(courseId: string): Promise<CourseCertificateState | null> {

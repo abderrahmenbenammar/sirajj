@@ -92,10 +92,6 @@ model Course {
   instructor         Instructor? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
   path               CoursePath  @default(BEGINNER) @map("path")
   coverImageUrl      String?     @map("cover_image_url")
-  // Optional course length in whole hours (maintained by the admin).
-  // Certificates print it as مدة الدورة; courses without a value fall back
-  // to a lesson-count label instead.
-  durationHours      Int?        @map("duration_hours")
   createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -119,6 +115,9 @@ model Lesson {
   orderIndex  Int      @default(0) @map("order_index")
   videoUrl    String   @map("video_url")
   subtitleUrl String?  @map("subtitle_url")
+  // Measured video length in seconds (NULL = unknown: no video, pasted
+  // non-YouTube URL, or unfetchable). Course totals sum this column.
+  videoDurationSeconds Int? @map("video_duration_seconds")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -299,6 +298,13 @@ model Certificate {
   certificateCode String   @unique(map: "certificates_certificate_code_key") @map("certificate_code")
   issueDate       DateTime @default(dbgenerated("CURRENT_DATE")) @map("issue_date") @db.Date
   pdfUrl          String?  @map("pdf_url")
+  // Final grade persisted at issue time: Σ approved-attempt points ÷ Σ exam
+  // totals × 100 (NULL on legacy rows → computed live as fallback).
+  finalScorePercentage Decimal? @db.Decimal(5, 2) @map("final_score_percentage")
+  // Course video total (seconds) snapshotted at issue time, so later
+  // lesson/video edits never rewrite an issued certificate (NULL on legacy
+  // rows → computed live as fallback; NULL also means "unknown at issue").
+  durationSeconds Int? @map("duration_seconds")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -306,6 +312,18 @@ model Certificate {
   @@index([studentId], map: "idx_certificates_student_id")
   @@index([courseId], map: "idx_certificates_course_id")
   @@map("certificates")
+}
+
+// Server-side YouTube duration cache: one row per video ID, shared by every
+// lesson embedding that video. durationSeconds NULL means "fetched but
+// unavailable" (private/deleted/blocked) so failures are not refetched on
+// every recompute; the admin refresh endpoint forces refetch explicitly.
+model YoutubeVideoDuration {
+  videoId         String   @id @map("video_id")
+  durationSeconds Int?     @map("duration_seconds")
+  fetchedAt       DateTime @default(now()) @map("fetched_at") @db.Timestamptz(6)
+
+  @@map("youtube_video_durations")
 }
 
 model StudentCourseProgress {

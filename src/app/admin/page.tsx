@@ -6,14 +6,15 @@ import { useRouter } from "next/navigation";
 import { BookPlus, Check, Film, GraduationCap, ImagePlus, ListPlus, Plus, ShieldCheck, Trash2, Users, X, LibraryBig } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
+import { formatDurationDetailed } from "@/lib/certificates/layout";
 import SirajTooltip from "@/components/ui/SirajTooltip";
 import SirajLoading from "@/components/ui/SirajLoading";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
 import CourseLessonsManager from "@/components/admin/CourseLessonsManager";
 import CourseReferencesPicker from "@/components/admin/CourseReferencesPicker";
 
-type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string };
-type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorNameAr: string | null; instructorNameEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; durationHours: number | null; path: string; lessons: AdminLesson[]; libraryReferences: { libraryItemId: string }[] };
+type AdminLesson = { id: string; titleAr: string; titleEn: string; orderIndex: number; videoUrl: string; videoDurationSeconds: number | null };
+type Course = { id: string; titleAr: string; titleEn: string; shortDescriptionAr: string | null; shortDescriptionEn: string | null; curriculumAr: string | null; curriculumEn: string | null; instructorNameAr: string | null; instructorNameEn: string | null; instructorId: string | null; instructor: { nameAr: string; nameEn: string } | null; coverImageUrl: string | null; computedDurationSeconds: number | null; path: string; lessons: AdminLesson[]; libraryReferences: { libraryItemId: string }[] };
 type Subscriber = { id: string; fullName: string; email: string; authProvider: string; role: string; status: string; createdAt: string; _count: { courseProgress: number; certificates: number } };
 type SubscriberDetails = Subscriber & {
   courseProgress: { completionPercentage: number; status: string; completedAt: string | null; course: { id: string; titleAr: string } }[];
@@ -62,7 +63,7 @@ const makeBuilderQuestion = (): BuilderQuestion => ({
   ],
 });
 
-const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", durationHours: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] };
+const EMPTY_COURSE_FORM = { titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] };
 
 // Cover image rules mirror the server's upload route (kind "image"):
 // JPG/PNG/WEBP, up to 10MB. Enforced client-side for instant feedback; the
@@ -190,7 +191,7 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [courseForm, setCourseForm] = useState(EMPTY_COURSE_FORM);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", durationHours: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] });
+  const [editForm, setEditForm] = useState({ titleAr: "", titleEn: "", shortDescriptionAr: "", shortDescriptionEn: "", coverImageUrl: "", path: "BEGINNER", instructorNameAr: "", instructorNameEn: "", libraryItemIds: [] as string[] });
   const [editCourseImage, setEditCourseImage] = useState<File | null>(null);
   const [lessonForm, setLessonForm] = useState({ courseId: "", titleAr: "", titleEn: "", videoUrl: "" });
   const [detailQuestion, setDetailQuestion] = useState<BuilderQuestion>(() => makeBuilderQuestion());
@@ -206,6 +207,26 @@ export default function AdminPage() {
   const [libraryForm, setLibraryForm] = useState({ type: "book", title: "", author: "", category: "", description: "", content: "", mediaUrl: "" });
   const [courseImage, setCourseImage] = useState<File | null>(null);
   const [lessonVideo, setLessonVideo] = useState<File | null>(null);
+  const [lessonVideoSeconds, setLessonVideoSeconds] = useState<number | null>(null);
+
+  // Capture the uploaded file's own length from its metadata (never typed by
+  // hand): sent with the lesson payload so hosted videos get a real duration.
+  const handleLessonVideo = (file: File | null) => {
+    setLessonVideo(file);
+    setLessonVideoSeconds(null);
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      if (Number.isFinite(probe.duration) && probe.duration >= 0) {
+        setLessonVideoSeconds(Math.floor(probe.duration));
+      }
+      URL.revokeObjectURL(objectUrl);
+    };
+    probe.onerror = () => URL.revokeObjectURL(objectUrl);
+    probe.src = objectUrl;
+  };
   const [libraryCoverFile, setLibraryCoverFile] = useState<File | null>(null);
   const [libraryCoverPreview, setLibraryCoverPreview] = useState<string | null>(null);
   const [libraryFile, setLibraryFile] = useState<File | null>(null);
@@ -674,7 +695,7 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const coverImageUrl = courseImage ? await uploadFile(courseImage, "image") : courseForm.coverImageUrl;
-      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, shortDescriptionEn: courseForm.shortDescriptionEn, coverImageUrl, durationHours: courseForm.durationHours === "" ? null : Math.max(0, Math.floor(Number(courseForm.durationHours) || 0)), path: courseForm.path, instructorNameAr: courseForm.instructorNameAr, instructorNameEn: courseForm.instructorNameEn, libraryItemIds: courseForm.libraryItemIds };
+      const payload = { titleAr: courseForm.titleAr, titleEn: courseForm.titleEn, shortDescriptionAr: courseForm.shortDescriptionAr, shortDescriptionEn: courseForm.shortDescriptionEn, coverImageUrl, path: courseForm.path, instructorNameAr: courseForm.instructorNameAr, instructorNameEn: courseForm.instructorNameEn, libraryItemIds: courseForm.libraryItemIds };
       await submit(event, "/api/admin/courses", payload, t("تمت إضافة الدورة", "Course added"));
       setCourseImage(null);
       setCourseForm(EMPTY_COURSE_FORM);
@@ -689,7 +710,6 @@ export default function AdminPage() {
       shortDescriptionAr: course.shortDescriptionAr ?? "",
       shortDescriptionEn: course.shortDescriptionEn ?? "",
       coverImageUrl: course.coverImageUrl ?? "",
-      durationHours: course.durationHours === null || course.durationHours === undefined ? "" : String(course.durationHours),
       path: course.path,
       instructorNameAr: course.instructorNameAr ?? "",
       instructorNameEn: course.instructorNameEn ?? "",
@@ -709,7 +729,6 @@ export default function AdminPage() {
         shortDescriptionAr: editForm.shortDescriptionAr,
         shortDescriptionEn: editForm.shortDescriptionEn,
         coverImageUrl,
-        durationHours: editForm.durationHours === "" ? null : Math.max(0, Math.floor(Number(editForm.durationHours) || 0)),
         path: editForm.path,
         instructorNameAr: editForm.instructorNameAr,
         instructorNameEn: editForm.instructorNameEn,
@@ -734,9 +753,25 @@ export default function AdminPage() {
     event.preventDefault();
     try {
       const videoUrl = lessonVideo ? await uploadFile(lessonVideo, "video") : lessonForm.videoUrl;
-      await submit(event, "/api/admin/lessons", { ...lessonForm, videoUrl }, t("تمت إضافة الدرس", "Lesson added"));
+      await submit(event, "/api/admin/lessons", { ...lessonForm, videoUrl, videoDurationSeconds: lessonVideo ? lessonVideoSeconds : undefined }, t("تمت إضافة الدرس", "Lesson added"));
       setLessonVideo(null);
+      setLessonVideoSeconds(null);
     } catch (error) { notify(error instanceof Error ? error.message : t("تعذر رفع الفيديو", "Could not upload video"), "error"); }
+  };
+
+  // Recompute a course's video total (missing YouTube lengths refetched;
+  // force also refreshes cached ones). Public pages never trigger this.
+  const [refreshingDuration, setRefreshingDuration] = useState(false);
+  const refreshCourseDuration = async (courseId: string, force: boolean) => {
+    setRefreshingDuration(true);
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}/refresh-duration${force ? "?force=1" : ""}`, { method: "POST" });
+      const result = await response.json().catch(() => null);
+      notify(response.ok ? t("تم تحديث مدة الدورة", "Course duration refreshed") : (result?.error ?? t("تعذر تحديث المدة", "Could not refresh duration")), response.ok ? "success" : "error");
+      if (response.ok) await loadCourses();
+    } finally {
+      setRefreshingDuration(false);
+    }
   };
 
   const submitLibrary = async (event: FormEvent) => {
@@ -784,7 +819,6 @@ export default function AdminPage() {
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</label>
             <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={courseForm.instructorNameAr} onChange={(e) => setCourseForm({ ...courseForm, instructorNameAr: e.target.value })} className="admin-input" />
             <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={courseForm.instructorNameEn} onChange={(e) => setCourseForm({ ...courseForm, instructorNameEn: e.target.value })} className="admin-input" />
-            <input type="number" min="0" step="1" placeholder={t("مدة الدورة بالساعات (اختياري)", "Course duration in hours (optional)")} value={courseForm.durationHours} onChange={(e) => setCourseForm({ ...courseForm, durationHours: e.target.value })} className="admin-input" />
             <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-3 space-y-2">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"><LibraryBig size={15} className="text-emerald-600 dark:text-emerald-400" />{t("المراجع والمصادر", "References & Sources")}</h3>
               <CourseReferencesPicker value={courseForm.libraryItemIds} onChange={(ids) => setCourseForm({ ...courseForm, libraryItemIds: ids })} />
@@ -805,7 +839,7 @@ export default function AdminPage() {
             <input placeholder={t("عنوان الدرس بالإنجليزية", "English lesson title")} value={lessonForm.titleEn} onChange={(e) => setLessonForm({ ...lessonForm, titleEn: e.target.value })} className="admin-input" />
             <input placeholder="YouTube أو /videos/file.mp4" value={lessonForm.videoUrl} onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })} className="admin-input" />
             <SirajTooltip label={t("اختر ملف فيديو الدرس", "Choose the lesson video file")} side="top" className="w-full">
-              <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setLessonVideo(e.target.files?.[0] ?? null)} className="admin-input" />
+              <input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => handleLessonVideo(e.target.files?.[0] ?? null)} className="admin-input" />
             </SirajTooltip>
             <button className="admin-button"><ListPlus size={16} />{t("حفظ الدرس", "Save lesson")}</button>
           </form>
@@ -1255,6 +1289,13 @@ export default function AdminPage() {
             <>
             <form onSubmit={submitEditCourse} className="mb-4 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 space-y-3">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><BookPlus size={16} />{t("تعديل الدورة", "Edit course")}: {editingCourse.titleAr}</h3>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-gray-600 dark:text-gray-300">{t("المدة المحسوبة من الفيديوهات", "Computed video duration")}: <strong>{formatDurationDetailed(editingCourse.computedDurationSeconds ?? null)}</strong></span>
+                <button type="button" disabled={refreshingDuration} onClick={() => refreshCourseDuration(editingCourse.id, false)} className="text-xs px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 disabled:opacity-40">{t("إعادة حساب المدة", "Recompute duration")}</button>
+                <SirajTooltip label={t("إعادة جلب مدد فيديوهات YouTube من جديد", "Refetch YouTube video lengths")} side="top">
+                  <button type="button" disabled={refreshingDuration} onClick={() => refreshCourseDuration(editingCourse.id, true)} className="text-xs px-2.5 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40">{t("تحديث قسري", "Force refresh")}</button>
+                </SirajTooltip>
+              </div>
               <input required placeholder={t("العنوان بالعربية", "Arabic title")} value={editForm.titleAr} onChange={(e) => setEditForm({ ...editForm, titleAr: e.target.value })} className="admin-input" />
               <input placeholder={t("العنوان بالإنجليزية", "English title")} value={editForm.titleEn} onChange={(e) => setEditForm({ ...editForm, titleEn: e.target.value })} className="admin-input" />
               <textarea placeholder={t("الوصف بالعربية", "Arabic description")} value={editForm.shortDescriptionAr} onChange={(e) => setEditForm({ ...editForm, shortDescriptionAr: e.target.value })} className="admin-input min-h-20" />
@@ -1266,7 +1307,6 @@ export default function AdminPage() {
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t("المعلم", "Instructor")}</label>
               <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={editForm.instructorNameAr} onChange={(e) => setEditForm({ ...editForm, instructorNameAr: e.target.value })} className="admin-input" />
               <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={editForm.instructorNameEn} onChange={(e) => setEditForm({ ...editForm, instructorNameEn: e.target.value })} className="admin-input" />
-              <input type="number" min="0" step="1" placeholder={t("مدة الدورة بالساعات (اختياري)", "Course duration in hours (optional)")} value={editForm.durationHours} onChange={(e) => setEditForm({ ...editForm, durationHours: e.target.value })} className="admin-input" />
               <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-white/60 dark:bg-gray-900/40 p-3 space-y-2">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"><LibraryBig size={15} className="text-emerald-600 dark:text-emerald-400" />{t("المراجع والمصادر", "References & Sources")}</h3>
                 <CourseReferencesPicker value={editForm.libraryItemIds} onChange={(ids) => setEditForm({ ...editForm, libraryItemIds: ids })} />
@@ -1291,7 +1331,7 @@ export default function AdminPage() {
             </>
           )}
 
-          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {course.instructorNameAr || course.instructorNameEn || t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-2 shrink-0"><SirajTooltip label={t("فتح بيانات الدورة لتعديلها", "Open the course data for editing")} side="top"><button type="button" onClick={() => startEditCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={14} />{t("تعديل", "Edit")}</button></SirajTooltip><SirajTooltip label={t("حذف الدورة مع كل محتواها ودروسها", "Delete the course and all its lessons and content")} side="top"><button type="button" onClick={() => deleteCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={14} />{t("حذف", "Delete")}</button></SirajTooltip></div></div>)}</div>
+          <div className="space-y-2">{courses.map((course) => <div key={course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800"><div className="min-w-0"><span className="block text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span><span className="text-xs text-gray-500 dark:text-gray-400">{course.lessons.length} {t("دروس", "lessons")} · {t("المدة", "Duration")}: {formatDurationDetailed(course.computedDurationSeconds ?? null)} · {course.instructorNameAr || course.instructorNameEn || t("بدون مدرّس", "No instructor")}</span></div><div className="flex items-center gap-2 shrink-0"><SirajTooltip label={t("فتح بيانات الدورة لتعديلها", "Open the course data for editing")} side="top"><button type="button" onClick={() => startEditCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60" aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}><BookPlus size={14} />{t("تعديل", "Edit")}</button></SirajTooltip><SirajTooltip label={t("حذف الدورة مع كل محتواها ودروسها", "Delete the course and all its lessons and content")} side="top"><button type="button" onClick={() => deleteCourse(course)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60" aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}><Trash2 size={14} />{t("حذف", "Delete")}</button></SirajTooltip></div></div>)}</div>
         </div>
 
         <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">

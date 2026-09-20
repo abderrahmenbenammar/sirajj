@@ -62,6 +62,11 @@ function VerifyForm() {
               <div className="space-y-2 text-sm">
                 <p className="text-gray-900 dark:text-white font-semibold">{result.studentName}</p>
                 <p className="text-gray-600 dark:text-gray-400">{t(result.courseTitleAr ?? "", result.courseTitleEn ?? "")}</p>
+                {(result.scoreText || result.gradeText || result.durationText) && (
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {[result.scoreText, result.gradeText, result.durationText].filter(Boolean).join(" · ")}
+                  </p>
+                )}
                 <p className="text-xs text-gray-400">{result.certificateCode} · {result.issueDate ? new Date(result.issueDate).toLocaleDateString("ar") : ""}</p>
               </div>
             </div>

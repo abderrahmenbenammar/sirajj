@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { isCoursePath } from "@/lib/course-paths";
 import { normalizeLibraryItemIds, libraryItemsExist } from "@/lib/course-references";
+import { getCourseDuration } from "@/lib/certificates/videos";
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -21,20 +22,15 @@ export async function GET() {
     }),
     prisma.instructor.findMany({ orderBy: { nameAr: "asc" } }),
   ]);
-  return NextResponse.json({ courses, instructors });
+  // Computed video totals (summed lesson lengths); the admin UI shows these
+  // instead of any manual duration field.
+  const durations = await Promise.all(courses.map((course) => getCourseDuration(course.id)));
+  const withDurations = courses.map((course, i) => ({ ...course, computedDurationSeconds: durations[i].totalSeconds }));
+  return NextResponse.json({ courses: withDurations, instructors });
 }
 
 function asText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-// Optional whole-hours course length. Absent/blank clears to null;
-// anything else must be a non-negative integer.
-function asDurationHours(value: unknown): number | null | "INVALID" {
-  if (value === undefined || value === null || value === "") return null;
-  const n = typeof value === "number" ? value : Number(String(value).trim());
-  if (!Number.isInteger(n) || n < 0 || n > 10000) return "INVALID";
-  return n;
 }
 
 export async function POST(request: Request) {
@@ -62,10 +58,6 @@ export async function POST(request: Request) {
   if (!(await libraryItemsExist(prisma, libraryItemIds))) {
     return NextResponse.json({ error: "أحد عناصر المكتبة المختارة غير موجود" }, { status: 400 });
   }
-  const durationHours = asDurationHours(body.durationHours);
-  if (durationHours === "INVALID") {
-    return NextResponse.json({ error: "مدة الدورة غير صالحة" }, { status: 400 });
-  }
   const course = await prisma.$transaction(async (tx) => {
     const created = await tx.course.create({
       data: {
@@ -80,7 +72,6 @@ export async function POST(request: Request) {
         path,
         instructorId,
         coverImageUrl: asText(body.coverImageUrl) ?? asText(body.image),
-        durationHours,
         ...(libraryItemIds.length > 0
           ? {
               libraryReferences: {

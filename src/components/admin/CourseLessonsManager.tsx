@@ -2,7 +2,7 @@
 
 import { Fragment, useRef, useState } from "react";
 import type { DragEvent } from "react";
-import { Film, GraduationCap, GripVertical, Trash2 } from "lucide-react";
+import { Clock, Film, GraduationCap, GripVertical, Trash2 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajTooltip from "@/components/ui/SirajTooltip";
 import SirajDialog, { useSirajConfirm, type SirajDialogType } from "@/components/ui/SirajDialog";
@@ -13,7 +13,17 @@ export type CourseLesson = {
   titleEn: string;
   orderIndex: number;
   videoUrl: string;
+  videoDurationSeconds: number | null;
 };
+
+function formatShort(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
 
 type LessonExamRef = { id: string; lessonId: string | null; titleAr: string };
 
@@ -202,6 +212,17 @@ export default function CourseLessonsManager({
                         <Film size={11} />
                         {videoLabel(lesson.videoUrl, t)}
                       </span>
+                      {typeof lesson.videoDurationSeconds === "number" ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400">
+                          <Clock size={11} />
+                          {formatShort(lesson.videoDurationSeconds)}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400">
+                          <Clock size={11} />
+                          {t("بلا مدة", "No length")}
+                        </span>
+                      )}
                       {linked.length > 0 && (
                         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400">
                           <GraduationCap size={11} />

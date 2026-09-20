@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createLessonWithNextOrder, LessonOrderConflictError } from "@/lib/lesson-order";
+import { resolveLessonVideoDuration } from "@/lib/certificates/videos";
 
 function asText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -17,6 +18,13 @@ export async function POST(request: Request) {
   if (!courseId || !titleAr || !videoUrl) {
     return NextResponse.json({ error: "بيانات الدرس غير صحيحة" }, { status: 400 });
   }
+  // Lesson video length: YouTube URLs resolve via the Data API + cache;
+  // hosted files trust the client-measured length (validated); anything
+  // else stores null (unknown → excluded from course totals).
+  const duration = await resolveLessonVideoDuration(videoUrl, body.videoDurationSeconds);
+  if (duration === "INVALID") {
+    return NextResponse.json({ error: "مدة الفيديو غير صالحة" }, { status: 400 });
+  }
   try {
     const lesson = await createLessonWithNextOrder({
       courseId,
@@ -24,6 +32,7 @@ export async function POST(request: Request) {
       titleEn: asText(body.titleEn) ?? titleAr,
       videoUrl,
       subtitleUrl: asText(body.subtitleUrl),
+      videoDurationSeconds: duration,
     });
     return NextResponse.json(lesson, { status: 201 });
   } catch (error) {
