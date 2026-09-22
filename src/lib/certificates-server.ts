@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeFinalScore } from "@/lib/certificates/score";
-import { getCourseDuration } from "@/lib/certificates/videos";
+import { diagnoseCourseDuration, getCourseDuration } from "@/lib/certificates/videos";
 
 // Shared server-side certificate logic. Identity always comes from the caller
 // (session); nothing here trusts client-supplied user/course ownership.
@@ -89,6 +89,17 @@ export async function ensureCertificate(studentId: string, courseId: string) {
       try {
         finalScore = (await computeFinalScore(studentId, courseId)).percentage;
         durationSecs = (await getCourseDuration(courseId)).totalSeconds;
+        // A null duration is never silent: log exactly which lessons lack a
+        // usable length and why, so "غير محددة" is always traceable.
+        if (durationSecs === null) {
+          const diagnosis = await diagnoseCourseDuration(courseId);
+          console.warn(
+            "[certificates/snapshot] duration unknown at issue",
+            studentId,
+            courseId,
+            diagnosis.lessons.map((l) => `${l.titleAr.slice(0, 24)}:${l.reason}`).join(" | ")
+          );
+        }
       } catch (error) {
         console.error("[certificates/snapshot] live compute failed at issue", studentId, courseId, error);
       }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { extractYoutubeId, getCourseDuration, getYoutubeDuration } from "@/lib/certificates/videos";
+import { diagnoseCourseDuration, extractYoutubeId, getYoutubeDuration } from "@/lib/certificates/videos";
 import { formatDurationDetailed } from "@/lib/certificates/layout";
 
 type Context = { params: Promise<{ courseId: string }> };
@@ -29,7 +29,6 @@ export async function POST(request: Request, { params }: Context) {
     orderBy: { orderIndex: "asc" },
   });
 
-  const results: { id: string; titleAr: string; videoDurationSeconds: number | null }[] = [];
   for (const lesson of lessons) {
     let seconds = lesson.videoDurationSeconds;
     const ytId = extractYoutubeId(lesson.videoUrl);
@@ -39,15 +38,14 @@ export async function POST(request: Request, { params }: Context) {
         await prisma.lesson.update({ where: { id: lesson.id }, data: { videoDurationSeconds: seconds } });
       }
     }
-    results.push({ id: lesson.id, titleAr: lesson.titleAr, videoDurationSeconds: seconds });
   }
 
-  const total = await getCourseDuration(courseId);
+  const total = await diagnoseCourseDuration(courseId);
   return NextResponse.json({
     totalSeconds: total.totalSeconds,
     formatted: formatDurationDetailed(total.totalSeconds),
     knownCount: total.knownCount,
     lessonCount: total.lessonCount,
-    lessons: results,
+    lessons: total.lessons,
   });
 }

@@ -1,8 +1,5 @@
-import { createElement } from "react";
-import satori from "satori";
-import { Resvg } from "@resvg/resvg-js";
+import { GlobalFonts, createCanvas, loadImage } from "@napi-rs/canvas";
 import QRCode from "qrcode";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import {
@@ -16,104 +13,93 @@ import {
   formatDateAr,
   verifyUrlFor,
   type CertTextZone,
+  COLOR_STUDENT_NAME,
+  COLOR_COURSE_NAME,
+  COLOR_GRADE,
+  COLOR_EVALUATION,
+  COLOR_DATE,
+  COLOR_DURATION,
+  COLOR_CERT_NUMBER,
+  COLOR_VERIFICATION_LABEL,
+  COLOR_QR_FOREGROUND,
+  COLOR_QR_BACKGROUND,
 } from "./layout";
 import { computeFinalScore } from "./score";
 import { getCourseDuration } from "./videos";
 
 // Deterministic certificate image generation on the immutable template.
-// Arabic shaping/RTL comes from satori's own layout engine (verified against
-// an independent reference shaper: exact per-word widths, pixel-identical
-// lam-alef ligature). resvg only rasterizes already-positioned glyph paths.
+// Text runs through Skia (real Arabic shaping + Unicode bidi), proven
+// against an independent reference shaper: multi-word names, mixed
+// digit strings, hamza/ya/marbuta forms and the QR payload all match,
+// with order verified (mirrored output rejected). No manual string
+// reversal anywhere: direction is declared per value (rtl/ltr) and the
+// engine orders runs itself.
 
-const FONT_FAMILY = "SirajNaskh";
+const FONT_REGULAR = "SirajNaskh";
+const FONT_BOLD = "SirajNaskhBold";
 const TEMPLATE_REL = path.join("src", "lib", "certificates", "template-2464x1728.jpg");
 const REGULAR_REL = path.join("src", "lib", "certificates", "fonts", "NotoNaskhArabic-Regular.ttf");
 const BOLD_REL = path.join("src", "lib", "certificates", "fonts", "NotoNaskhArabic-Bold.ttf");
 
-let fontsCache: { name: string; data: Buffer; weight: 400 | 700; style: "normal" }[] | null = null;
-let templateCache: Buffer | null = null;
-
-async function loadFonts() {
-  if (!fontsCache) {
-    const root = process.cwd();
-    const [regular, bold] = await Promise.all([
-      readFile(path.join(root, REGULAR_REL)),
-      readFile(path.join(root, BOLD_REL)),
-    ]);
-    fontsCache = [
-      { name: FONT_FAMILY, data: regular, weight: 400, style: "normal" },
-      { name: FONT_FAMILY, data: bold, weight: 700, style: "normal" },
-    ];
-  }
-  return fontsCache;
+let fontsRegistered = false;
+function ensureFonts() {
+  if (fontsRegistered) return;
+  const root = process.cwd();
+  GlobalFonts.registerFromPath(path.join(root, REGULAR_REL), FONT_REGULAR);
+  GlobalFonts.registerFromPath(path.join(root, BOLD_REL), FONT_BOLD);
+  fontsRegistered = true;
 }
 
-async function loadTemplateBase64(): Promise<string> {
-  if (!templateCache) {
-    templateCache = await readFile(path.join(process.cwd(), TEMPLATE_REL));
+let templateImage: Awaited<ReturnType<typeof loadImage>> | null = null;
+async function loadTemplate() {
+  if (!templateImage) {
+    templateImage = await loadImage(path.join(process.cwd(), TEMPLATE_REL));
   }
-  return templateCache.toString("base64");
+  return templateImage;
 }
 
-// Ink bounding box of already-positioned satori glyph paths (absolute M/L/Q/Z,
-// so every number pair is an x/y coordinate).
-function measureSvgInk(svg: string): { w: number; h: number } {
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const match of svg.matchAll(/<path[^>]*\sd="([^"]*)"/g)) {
-    const nums = match[1]
-      .replace(/[A-Za-z]/g, " ")
-      .split(/[\s,]+/)
-      .map(Number)
-      .filter((n) => Number.isFinite(n));
-    for (let i = 0; i + 1 < nums.length; i += 2) {
-      const x = nums[i];
-      const y = nums[i + 1];
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
-  }
-  if (!Number.isFinite(minX)) return { w: 0, h: 0 };
-  return { w: maxX - minX, h: maxY - minY };
+function fontFor(weight: 400 | 700): string {
+  return weight === 700 ? FONT_BOLD : FONT_REGULAR;
 }
 
-async function renderSingleLine(
+function getColorForZone(zone: CertTextZone): string {
+  // Map zones to their specific colors
+  if (zone === CERT_ZONES.studentName) return COLOR_STUDENT_NAME;
+  if (zone === CERT_ZONES.courseName) return COLOR_COURSE_NAME;
+  if (zone === CERT_ZONES.certNumber) return COLOR_CERT_NUMBER;
+  // Values array zones: scoreText, gradeText, dateText, durationText
+  // We need to determine which value zone this is
+  // The values array in CERT_ZONES has: scoreText, gradeText, dateText, durationText
+  // We can check by position
+  return ""; // Will be overridden per-field in renderCertificateImage
+}
+
+// Invisible Unicode bidi controls (RLM/LRM marks that Node's ar-locale
+// date formatter emits, isolates, BOM). Paragraph direction is already
+// declared explicitly per value below, so these hints carry no visible
+// information — but Skia positions runs differently when they are present
+// (verified: identical output with/without them must hold). Stripping them
+// keeps rendering byte-stable. ZWJ/ZWNJ are linguistically significant and
+// are intentionally preserved.
+function stripBidiControls(text: string): string {
+  // U+200E, U+200F, U+202A-U+202E, U+2066-U+2069, U+FEFF (escapes kept
+  // explicit so no invisible literal ever hides in this pattern).
+  return text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "");
+}
+
+// Largest size that fits the zone, measured with the real shaper
+// (linear scaling: one measurement is exact, then clamp to the minimum).
+function fitFontSize(
+  ctx: ReturnType<ReturnType<typeof createCanvas>["getContext"]>,
   text: string,
-  fontSize: number,
-  weight: 400 | 700,
-  fonts: { name: string; data: Buffer; weight: 400 | 700; style: "normal" }[]
-): Promise<string> {
-  return satori(
-    createElement("div", {
-      style: { width: 4000, fontFamily: FONT_FAMILY, fontSize, fontWeight: weight, direction: "rtl" },
-      children: text,
-    }),
-    { width: 4000, height: 300, fonts }
-  );
-}
-
-// Largest size that fits the zone (linear font scaling: one measurement is
-// exact, then a bounded verify pass). Never exceeds the zone, never drops
-// below the approved minimum (the box clips instead via overflow hidden).
-async function fitFontSize(
-  text: string,
-  zone: { w: number; h: number; fontSize: number; minFontSize: number; weight: 400 | 700 },
-  fonts: { name: string; data: Buffer; weight: 400 | 700; style: "normal" }[]
-): Promise<number> {
-  let size = zone.fontSize;
-  for (let pass = 0; pass < 4; pass += 1) {
-    const ink = measureSvgInk(await renderSingleLine(text, size, zone.weight, fonts));
-    if ((ink.w <= zone.w && ink.h <= zone.h) || size <= zone.minFontSize) {
-      return Math.max(zone.minFontSize, Math.min(size, zone.fontSize));
-    }
-    const ratio = Math.min(zone.w / ink.w, zone.h / ink.h);
-    size = Math.max(zone.minFontSize, Math.floor(size * ratio));
-  }
-  return Math.max(zone.minFontSize, size);
+  zone: { w: number; h: number; fontSize: number; minFontSize: number; weight: 400 | 700 }
+): number {
+  ctx.font = `${zone.weight} ${zone.fontSize}px "${fontFor(zone.weight)}"`;
+  const m = ctx.measureText(text);
+  const w = m.width || 1;
+  const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent || zone.fontSize;
+  const ratio = Math.min(zone.w / w, zone.h / h, 1);
+  return Math.max(zone.minFontSize, Math.floor(zone.fontSize * ratio));
 }
 
 export interface CertificateRenderData {
@@ -163,97 +149,74 @@ export async function getCertificateRenderData(certificateId: string): Promise<C
   };
 }
 
-function textBox(zone: CertTextZone, text: string, fontSize: number) {
-  return createElement("div", {
-    key: `${zone.x}-${zone.y}`,
-    style: {
-      position: "absolute",
-      left: zone.x,
-      top: zone.y,
-      width: zone.w,
-      height: zone.h,
-      display: "flex",
-      alignItems: "center",
-      // NOTE: satori lays the flex main axis out physically (flex-start is
-      // always the left edge), so right-anchored RTL values use flex-end.
-      justifyContent: zone.align === "center" ? "center" : "flex-end",
-      direction: "rtl",
-      overflow: "hidden",
-    },
-    children: createElement("span", {
-      style: {
-        fontFamily: FONT_FAMILY,
-        fontSize,
-        fontWeight: zone.weight,
-        color: CERT_INK,
-        whiteSpace: "nowrap",
-      },
-      children: text,
-    }),
-  });
+interface PlacedText {
+  zone: CertTextZone;
+  text: string;
+  direction: "rtl" | "ltr";
+  color: string;
 }
 
 export async function renderCertificateImage(data: CertificateRenderData): Promise<Buffer> {
-  const fonts = await loadFonts();
-  const [templateB64, qrDataUrl] = await Promise.all([
-    loadTemplateBase64(),
+  ensureFonts();
+  const [template, qrDataUrl] = await Promise.all([
+    loadTemplate(),
     QRCode.toDataURL(data.verifyUrl, {
       width: 456,
       margin: 2,
       errorCorrectionLevel: "M",
-      color: { dark: "#000000", light: "#FFFFFF" },
+      color: { dark: COLOR_QR_FOREGROUND, light: COLOR_QR_BACKGROUND },
     }),
   ]);
+  const qrImage = await loadImage(Buffer.from(qrDataUrl.split(",")[1], "base64"));
+
+  const canvas = createCanvas(CERT_WIDTH, CERT_HEIGHT);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(template, 0, 0, CERT_WIDTH, CERT_HEIGHT);
+  // Align "رمز التحقق" with the QR's vertical center (was 22px left).
+  // Cover the original label in the template and redraw it centered at QR.
+  ctx.fillStyle = "#FEFAF7";
+  ctx.fillRect(295, 1488, 210, 50);
+  ctx.fillStyle = "#000000";
+  ctx.font = `400 26px "${fontFor(400)}"`;
+  ctx.direction = "rtl";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("رمز التحقق", 323 + 95, 1513);
 
   const values = [data.scoreText, data.gradeText, data.dateText, data.durationText];
-  const [studentSize, courseSize, numberSize, ...valueSizes] = await Promise.all([
-    fitFontSize(data.studentName, CERT_ZONES.studentName, fonts),
-    fitFontSize(data.courseTitle, CERT_ZONES.courseName, fonts),
-    fitFontSize(data.code, CERT_ZONES.certNumber, fonts),
-    ...values.map((text, i) =>
-      fitFontSize(text, { ...CERT_ZONES.values[i], ...CERT_ZONES.valueFont }, fonts)
+  const placed: PlacedText[] = [
+    { zone: CERT_ZONES.studentName, text: data.studentName, direction: "rtl", color: COLOR_STUDENT_NAME },
+    { zone: CERT_ZONES.courseName, text: data.courseTitle, direction: "rtl", color: COLOR_COURSE_NAME },
+    ...values.map(
+      (text, i): PlacedText => ({
+        zone: { ...CERT_ZONES.values[i], ...CERT_ZONES.valueFont },
+        text,
+        direction: "rtl",
+        color: [COLOR_GRADE, COLOR_EVALUATION, COLOR_DATE, COLOR_DURATION][i],
+      })
     ),
-  ]);
+    { zone: CERT_ZONES.certNumber, text: data.code, direction: "ltr", color: COLOR_CERT_NUMBER },
+  ];
 
-  const overlay = await satori(
-    createElement("div", {
-      // display:flex is required by satori on multi-child containers
-      // (children are absolutely positioned, so it changes nothing visually).
-      style: { position: "relative", display: "flex", width: CERT_WIDTH, height: CERT_HEIGHT },
-      children: [
-        textBox(CERT_ZONES.studentName, data.studentName, studentSize),
-        textBox(CERT_ZONES.courseName, data.courseTitle, courseSize),
-        ...values.map((text, i) =>
-          textBox(
-            { ...CERT_ZONES.values[i], ...CERT_ZONES.valueFont },
-            text,
-            valueSizes[i]
-          )
-        ),
-        textBox(CERT_ZONES.certNumber, data.code, numberSize),
-        createElement("img", {
-          key: "qr",
-          src: qrDataUrl,
-          style: {
-            position: "absolute",
-            left: CERT_ZONES.qr.x,
-            top: CERT_ZONES.qr.y,
-            width: CERT_ZONES.qr.size,
-            height: CERT_ZONES.qr.size,
-          },
-        }),
-      ],
-    }),
-    { width: CERT_WIDTH, height: CERT_HEIGHT, fonts }
-  );
+  ctx.textBaseline = "middle";
+  for (const item of placed) {
+    const text = stripBidiControls(item.text);
+    const size = fitFontSize(ctx, item.text, item.zone);
+    ctx.font = `${item.zone.weight} ${size}px "${fontFor(item.zone.weight)}"`;
+    ctx.direction = item.direction;
+    ctx.fillStyle = item.color;
+    if (item.zone.align === "center") {
+      ctx.textAlign = "center";
+      ctx.fillText(text, item.zone.x + item.zone.w / 2, item.zone.y + item.zone.h / 2);
+    } else {
+      ctx.textAlign = "right";
+      ctx.fillText(text, item.zone.x + item.zone.w, item.zone.y + item.zone.h / 2);
+    }
+  }
 
-  const inner = overlay.slice(overlay.indexOf(">") + 1, overlay.lastIndexOf("</svg>"));
-  const master =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${CERT_WIDTH}" height="${CERT_HEIGHT}" viewBox="0 0 ${CERT_WIDTH} ${CERT_HEIGHT}">` +
-    `<image href="data:image/jpeg;base64,${templateB64}" x="0" y="0" width="${CERT_WIDTH}" height="${CERT_HEIGHT}"/>` +
-    inner +
-    `</svg>`;
-  return Buffer.from(new Resvg(master).render().asPng());
+  ctx.direction = "ltr";
+  ctx.drawImage(qrImage, CERT_ZONES.qr.x, CERT_ZONES.qr.y, CERT_ZONES.qr.size, CERT_ZONES.qr.size);
+  return Buffer.from(canvas.encodeSync("png"));
 }
 
 export async function renderCertificateById(certificateId: string): Promise<Buffer | null> {

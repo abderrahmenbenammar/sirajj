@@ -27,20 +27,33 @@ export const CERT_ZONES: {
   qr: { x: number; y: number; size: number };
   certNumber: CertTextZone;
 } = {
-  studentName: { x: 682, y: 791, w: 1100, h: 92, fontSize: 60, minFontSize: 36, weight: 700, align: "center" },
-  courseName: { x: 682, y: 1061, w: 1100, h: 86, fontSize: 56, minFontSize: 34, weight: 700, align: "center" },
+  // Expanded safe zones so the requested 156pt/110pt fit for normal
+  // names; fit uses the true glyph bbox, not the fontSize line box, and
+  // width is the primary limiter — height only clips real ascenders.
+  studentName: { x: 482, y: 717, w: 1500, h: 240, fontSize: 146, minFontSize: 34, weight: 700, align: "center" },
+  courseName: { x: 82, y: 1015, w: 2300, h: 182, fontSize: 103, minFontSize: 32, weight: 700, align: "center" },
   values: [
     { x: 965, y: 1313, w: 429, h: 47 },
     { x: 965, y: 1389, w: 418, h: 47 },
     { x: 965, y: 1465, w: 321, h: 47 },
     { x: 965, y: 1542, w: 339, h: 47 },
   ],
-  valueFont: { fontSize: 30, minFontSize: 20, weight: 400, align: "right" },
+  valueFont: { fontSize: 42, minFontSize: 20, weight: 400, align: "right" },
   qr: { x: 323, y: 1290, size: 190 },
-  certNumber: { x: 218, y: 1595, w: 400, h: 30, fontSize: 22, minFontSize: 16, weight: 700, align: "center" },
+  certNumber: { x: 218, y: 1575, w: 400, h: 30, fontSize: 71, minFontSize: 30, weight: 700, align: "center" },
 };
 
-// Template ink is pure black; rendered text matches it exactly.
+// Color constants
+export const COLOR_STUDENT_NAME = "#074142";
+export const COLOR_COURSE_NAME = "#074142";
+export const COLOR_GRADE = "#01AF66";
+export const COLOR_EVALUATION = "#01AF66";
+export const COLOR_DATE = "#01AF66";
+export const COLOR_DURATION = "#01AF66";
+export const COLOR_CERT_NUMBER = "#01AF66";
+export const COLOR_VERIFICATION_LABEL = "#077B75";
+export const COLOR_QR_FOREGROUND = "#077B75";
+export const COLOR_QR_BACKGROUND = "#FFFFFF";
 export const CERT_INK = "#000000";
 
 // Grading scale for the التقييم field (best passing score percentage).

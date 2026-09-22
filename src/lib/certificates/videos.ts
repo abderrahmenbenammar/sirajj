@@ -155,6 +155,91 @@ export interface CourseDuration {
   lessonCount: number;
 }
 
+export type DurationReason =
+  | "no-video"
+  | "cached"
+  | "file-length"
+  | "needs-fetch"
+  | "no-api-key"
+  | "invalid-url"
+  | "file-no-length";
+
+export interface LessonDurationDiagnosis {
+  id: string;
+  titleAr: string;
+  kind: "youtube" | "hosted" | "none";
+  youtubeId: string | null;
+  durationSeconds: number | null;
+  reason: DurationReason;
+}
+
+// Read-only diagnosis of WHY each lesson contributes (or not) to the total.
+// Used by the admin refresh endpoint, the issue-time log, and tests — it
+// never writes and never hits the network.
+export async function diagnoseCourseDuration(courseId: string): Promise<{
+  totalSeconds: number | null;
+  knownCount: number;
+  lessonCount: number;
+  lessons: LessonDurationDiagnosis[];
+}> {
+  const lessons = await prisma.lesson.findMany({
+    where: { courseId },
+    select: { id: true, titleAr: true, videoUrl: true, videoDurationSeconds: true },
+    orderBy: { orderIndex: "asc" },
+  });
+  const hasKey = Boolean(process.env.YOUTUBE_API_KEY ?? "");
+  let total = 0;
+  let known = 0;
+  const out: LessonDurationDiagnosis[] = [];
+  for (const lesson of lessons) {
+    const url = (lesson.videoUrl ?? "").trim();
+    if (!url) {
+      out.push({ id: lesson.id, titleAr: lesson.titleAr, kind: "none", youtubeId: null, durationSeconds: null, reason: "no-video" });
+      continue;
+    }
+    let host = "";
+    try {
+      host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+      host = "";
+    }
+    const isYoutubeHost =
+      host === "youtu.be" ||
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "music.youtube.com" ||
+      host === "youtube-nocookie.com";
+    const ytId = extractYoutubeId(url);
+    if (isYoutubeHost || ytId) {
+      if (!ytId) {
+        out.push({ id: lesson.id, titleAr: lesson.titleAr, kind: "youtube", youtubeId: null, durationSeconds: null, reason: "invalid-url" });
+        continue;
+      }
+      if (typeof lesson.videoDurationSeconds === "number") {
+        total += lesson.videoDurationSeconds;
+        known += 1;
+        const cached = await prisma.youtubeVideoDuration.findUnique({ where: { videoId: ytId }, select: { videoId: true } });
+        out.push({ id: lesson.id, titleAr: lesson.titleAr, kind: "youtube", youtubeId: ytId, durationSeconds: lesson.videoDurationSeconds, reason: cached ? "cached" : "needs-fetch" });
+      } else {
+        out.push({ id: lesson.id, titleAr: lesson.titleAr, kind: "youtube", youtubeId: ytId, durationSeconds: null, reason: hasKey ? "needs-fetch" : "no-api-key" });
+      }
+      continue;
+    }
+    if (/^(https?:)?\/\//i.test(url) || url.endsWith(".mp4")) {
+      if (typeof lesson.videoDurationSeconds === "number") {
+        total += lesson.videoDurationSeconds;
+        known += 1;
+        out.push({ id: lesson.id, titleAr: lesson.titleAr, kind: "hosted", youtubeId: null, durationSeconds: lesson.videoDurationSeconds, reason: "file-length" });
+      } else {
+        out.push({ id: lesson.id, titleAr: lesson.titleAr, kind: "hosted", youtubeId: null, durationSeconds: null, reason: "file-no-length" });
+      }
+      continue;
+    }
+    out.push({ id: lesson.id, titleAr: lesson.titleAr, kind: "hosted", youtubeId: null, durationSeconds: null, reason: "invalid-url" });
+  }
+  return { totalSeconds: known > 0 ? total : null, knownCount: known, lessonCount: lessons.length, lessons: out };
+}
+
 // Live sum over the course's lessons. totalSeconds is null when no lesson
 // has a known duration (renderers fall back to "غير محددة").
 export async function getCourseDuration(courseId: string): Promise<CourseDuration> {
