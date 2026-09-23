@@ -158,10 +158,12 @@ export interface CourseDuration {
 export type DurationReason =
   | "no-video"
   | "cached"
-  | "file-length"
   | "needs-fetch"
   | "no-api-key"
   | "invalid-url"
+  | "not-found"
+  | "fetched"
+  | "file-length"
   | "file-no-length";
 
 export interface LessonDurationDiagnosis {
@@ -256,4 +258,332 @@ export async function getCourseDuration(courseId: string): Promise<CourseDuratio
     }
   }
   return { totalSeconds: known > 0 ? total : null, knownCount: known, lessonCount: rows.length };
+}
+
+// **resolveCourseVideoDurations** — server-side engine that fills the cache
+// and the lesson rows for every YouTube video in a course.
+// - forceRefresh=false (default): only fetches videos missing from cache.
+// - forceRefresh=true: re-fetches every YouTube video regardless of cache.
+// - Never throws: per-video failures resolve to null and are logged;
+//   the function always returns a result map and a per-lesson diagnosis.
+// - Uses YOUTUBE_API_KEY from server environment only; never sends it to client.
+export async function resolveCourseVideoDurations(
+  courseId: string,
+  forceRefresh = false
+): Promise<{
+  totalSeconds: number | null;
+  knownCount: number;
+  lessonCount: number;
+  lessons: Array<{
+    id: string;
+    titleAr: string;
+    kind: "youtube" | "hosted" | "none";
+    youtubeId: string | null;
+    durationSeconds: number | null;
+    reason: DurationReason;
+  }>;
+}> {
+  const lessons = await prisma.lesson.findMany({
+    where: { courseId },
+    select: { id: true, titleAr: true, videoUrl: true, videoDurationSeconds: true },
+    orderBy: { orderIndex: "asc" },
+  });
+  const hasKey = Boolean(process.env.YOUTUBE_API_KEY ?? "");
+  const lessonCount = lessons.length;
+  let total = 0;
+  let known = 0;
+  const out: Array<{
+    id: string;
+    titleAr: string;
+    kind: "youtube" | "hosted" | "none";
+    youtubeId: string | null;
+    durationSeconds: number | null;
+    reason: DurationReason;
+  }> = [];
+
+  // Collect all YouTube video IDs that need fetching, grouped by lesson
+  const idsToFetch: Map<string, { lessonId: string; videoId: string }[]> = new Map();
+  // Track which lessons have which IDs (some lessons may share the same video)
+  const lessonIdsByVideoId: Map<string, Set<string>> = new Map();
+
+  for (const lesson of lessons) {
+    const url = (lesson.videoUrl ?? "").trim();
+    if (!url) {
+      out.push({
+        id: lesson.id,
+        titleAr: lesson.titleAr,
+        kind: "none",
+        youtubeId: null,
+        durationSeconds: null,
+        reason: "no-video",
+      });
+      continue;
+    }
+    let host = "";
+    try {
+      host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+      host = "";
+    }
+    const isYoutubeHost =
+      host === "youtu.be" ||
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "music.youtube.com" ||
+      host === "youtube-nocookie.com";
+    const ytId = extractYoutubeId(url);
+    if (isYoutubeHost || ytId) {
+      if (!ytId) {
+        out.push({
+          id: lesson.id,
+          titleAr: lesson.titleAr,
+          kind: "youtube",
+          youtubeId: null,
+          durationSeconds: null,
+          reason: "invalid-url",
+        });
+        continue;
+      }
+      // Ensure we have an entry for this video ID
+      if (!idsToFetch.has(ytId)) {
+        idsToFetch.set(ytId, []);
+      }
+      idsToFetch.get(ytId)!.push({ lessonId: lesson.id, videoId: ytId });
+
+      // Check cache now (will be used even if we later fetch, but we need to know if cached)
+      const cached = await prisma.youtubeVideoDuration.findUnique({ where: { videoId: ytId } });
+      out.push({
+        id: lesson.id,
+        titleAr: lesson.titleAr,
+        kind: "youtube",
+        youtubeId: ytId,
+        durationSeconds: lesson.videoDurationSeconds ?? (cached ? cached.durationSeconds : null),
+        reason: cached && !forceRefresh ? "cached" : "needs-fetch",
+      });
+      continue;
+    }
+    // Hosted file
+    if (/^(https?:)?\/\//i.test(url) || url.endsWith(".mp4")) {
+      out.push({
+        id: lesson.id,
+        titleAr: lesson.titleAr,
+        kind: "hosted",
+        youtubeId: null,
+        durationSeconds: lesson.videoDurationSeconds ?? null,
+        reason: lesson.videoDurationSeconds !== undefined ? "file-length" : "file-no-length",
+      });
+      continue;
+    }
+    out.push({
+      id: lesson.id,
+      titleAr: lesson.titleAr,
+      kind: "hosted",
+      youtubeId: null,
+      durationSeconds: null,
+      reason: "invalid-url",
+    });
+  }
+
+  // Fetch missing YouTube durations in batches of 50
+  if (!forceRefresh && hasKey) {
+    // Only fetch IDs that don't have cache entries
+    const idsWithoutCache: string[] = [];
+    for (const [vid, entries] of idsToFetch) {
+      const cached = await prisma.youtubeVideoDuration.findUnique({ where: { videoId: vid } });
+      if (!cached) {
+        idsWithoutCache.push(vid);
+      }
+    }
+    if (idsWithoutCache.length > 0 && hasKey) {
+      const fetched = await fetchYoutubeDurations(idsWithoutCache, process.env.YOUTUBE_API_KEY ?? "", youtubeEndpoint());
+      // Update cache and lesson rows for fetched videos
+      for (const [vid, seconds] of fetched) {
+        const entries = idsToFetch.get(vid) || [];
+        await prisma.youtubeVideoDuration.upsert({
+          where: { videoId: vid },
+          update: { durationSeconds: seconds, fetchedAt: new Date() },
+          create: { videoId: vid, durationSeconds: seconds },
+        });
+        // Update all lessons referencing this video
+        for (const { lessonId } of entries) {
+          const secondsValue = seconds !== null ? seconds : null;
+          await prisma.lesson.update({
+            where: { id: lessonId },
+            data: { videoDurationSeconds: secondsValue },
+          });
+        }
+        // Mark as fetched in output
+        // We'll re-examine out entries below to set reason="fetched"
+      }
+    }
+  } else if (hasKey && forceRefresh) {
+    // Force refresh: fetch ALL YouTube video IDs
+    const allIds = Array.from(idsToFetch.keys());
+    if (allIds.length > 0) {
+      const fetched = await fetchYoutubeDurations(allIds, process.env.YOUTUBE_API_KEY ?? "", youtubeEndpoint());
+      for (const [vid, seconds] of fetched) {
+        await prisma.youtubeVideoDuration.upsert({
+          where: { videoId: vid },
+          update: { durationSeconds: seconds, fetchedAt: new Date() },
+          create: { videoId: vid, durationSeconds: seconds },
+        });
+        const entries = idsToFetch.get(vid) || [];
+        for (const { lessonId } of entries) {
+          const secondsValue = seconds !== null ? seconds : null;
+          await prisma.lesson.update({
+            where: { id: lessonId },
+            data: { videoDurationSeconds: secondsValue },
+          });
+        }
+      }
+    }
+  } else if (!hasKey) {
+    // No API key: mark all YouTube lessons as no-api-key
+    // (already set reason above based on cached check, but ensure consistency)
+  }
+
+  // Now finalize the output with correct reasons
+  // Re-scan to set proper reasons after cache was possibly filled
+  // (simpler: just re-query cache status now)
+  const finalLessons = await prisma.lesson.findMany({
+    where: { courseId },
+    select: { id: true, titleAr: true, videoDurationSeconds: true },
+  });
+  const durationMap = new Map<string, number | null>();
+  for (const l of finalLessons) {
+    durationMap.set(l.id, l.videoDurationSeconds);
+  }
+
+  // Rebuild out with final reasons
+  const rebuilt: Array<{
+    id: string;
+    titleAr: string;
+    kind: "youtube" | "hosted" | "none";
+    youtubeId: string | null;
+    durationSeconds: number | null;
+    reason: DurationReason;
+  }> = [];
+
+  // We need to re-iterate lessons and check final cache state
+  // For simplicity, re-query and rebuild based on current DB state:
+  const finalLessons2 = await prisma.lesson.findMany({
+    where: { courseId },
+    select: { id: true, titleAr: true, videoUrl: true, videoDurationSeconds: true },
+  });
+  const finalDiagnosis: LessonDurationDiagnosis[] = [];
+  let totalSeconds2 = 0;
+  let knownCount2 = 0;
+
+  for (const lesson of finalLessons2) {
+    const url = (lesson.videoUrl ?? "").trim();
+    if (!url) {
+      rebuilt.push({
+        id: lesson.id,
+        titleAr: lesson.titleAr,
+        kind: "none",
+        youtubeId: null,
+        durationSeconds: null,
+        reason: "no-video" as DurationReason,
+      });
+      continue;
+    }
+    let host = "";
+    try {
+      host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+      host = "";
+    }
+    const isYoutubeHost =
+      host === "youtu.be" ||
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "music.youtube.com" ||
+      host === "youtube-nocookie.com";
+    const ytId = extractYoutubeId(url);
+    if (isYoutubeHost || ytId) {
+      if (!ytId) {
+        rebuilt.push({
+          id: lesson.id,
+          titleAr: lesson.titleAr,
+          kind: "youtube",
+          youtubeId: null,
+          durationSeconds: null,
+          reason: "invalid-url",
+        });
+        continue;
+      }
+      const dur = durationMap.get(lesson.id);
+      const cached = await prisma.youtubeVideoDuration.findUnique({ where: { videoId: ytId } });
+      if (cached && cached.durationSeconds !== null && !forceRefresh) {
+rebuilt.push({
+        id: lesson.id,
+        titleAr: lesson.titleAr,
+        kind: "youtube",
+        youtubeId: ytId,
+        durationSeconds: dur ?? null,
+        reason: "cached",
+      });
+      if (typeof dur === "number") {
+          totalSeconds2 += dur;
+          knownCount2 += 1;
+        }
+      } else if (!cached && !forceRefresh) {
+rebuilt.push({
+        id: lesson.id,
+        titleAr: lesson.titleAr,
+        kind: "youtube",
+        youtubeId: ytId,
+        durationSeconds: null,
+        reason: hasKey ? "needs-fetch" as DurationReason : "no-api-key" as DurationReason,
+      });
+      } else {
+        // forceRefresh or just fetched
+        rebuilt.push({
+          id: lesson.id,
+          titleAr: lesson.titleAr,
+          kind: "youtube",
+          youtubeId: ytId,
+          durationSeconds: dur ?? null,
+          reason: "fetched",
+        });
+        if (typeof dur === "number") {
+          totalSeconds2 += dur;
+          knownCount2 += 1;
+        }
+      }
+      continue;
+    }
+    // Hosted file
+    if (/^(https?:)?\/\//i.test(url) || url.endsWith(".mp4")) {
+      const dur = durationMap.get(lesson.id);
+      rebuilt.push({
+        id: lesson.id,
+        titleAr: lesson.titleAr,
+        kind: "hosted",
+        youtubeId: null,
+        durationSeconds: dur ?? null,
+      reason: "file-length" as DurationReason,
+      });
+      if (typeof dur === "number") {
+        totalSeconds2 += dur;
+        knownCount2 += 1;
+      }
+      continue;
+    }
+    rebuilt.push({
+      id: lesson.id,
+      titleAr: lesson.titleAr,
+      kind: "hosted",
+      youtubeId: null,
+      durationSeconds: null,
+      reason: "invalid-url",
+    });
+  }
+
+  return {
+    totalSeconds: knownCount2 === lessonCount ? totalSeconds2 : null,
+    knownCount: knownCount2,
+    lessonCount: lessons.length,
+    lessons: rebuilt,
+  };
 }
