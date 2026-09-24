@@ -36,6 +36,9 @@ export interface ApiCourse {
   pathAr: string;
   pathEn: string;
   duration: string;
+  // Manual course duration in seconds (NULL = unspecified). The single
+  // source of course length shown to students.
+  durationSeconds: number | null;
   lessons: number;
   curriculum: ApiCurriculumItem[];
   examLessonIds?: string[];

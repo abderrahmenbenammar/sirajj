@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { isCoursePath } from "@/lib/course-paths";
 import { normalizeLibraryItemIds, libraryItemsExist } from "@/lib/course-references";
-import { getCourseDuration } from "@/lib/certificates/videos";
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -22,15 +21,23 @@ export async function GET() {
     }),
     prisma.instructor.findMany({ orderBy: { nameAr: "asc" } }),
   ]);
-  // Computed video totals (summed lesson lengths); the admin UI shows these
-  // instead of any manual duration field.
-  const durations = await Promise.all(courses.map((course) => getCourseDuration(course.id)));
-  const withDurations = courses.map((course, i) => ({ ...course, computedDurationSeconds: durations[i].totalSeconds }));
+  // Mfeature_video_duration_cancelled: computedDurationSeconds set to null since YouTube duration feature is cancelled
+  const withDurations = courses.map((course) => ({ ...course, computedDurationSeconds: null }));
   return NextResponse.json({ courses: withDurations, instructors });
 }
 
 function asText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+// Manual course duration in seconds. NULL/empty means "unspecified"; 0 is
+// normalized to NULL (a zero-length course is meaningless). Anything else
+// (negative, fractional, wrong type) is INVALID and must be rejected.
+function asDurationSeconds(value: unknown): number | null | "INVALID" {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) return "INVALID";
+  if (value === 0) return null;
+  return value;
 }
 
 export async function POST(request: Request) {
@@ -58,6 +65,10 @@ export async function POST(request: Request) {
   if (!(await libraryItemsExist(prisma, libraryItemIds))) {
     return NextResponse.json({ error: "أحد عناصر المكتبة المختارة غير موجود" }, { status: 400 });
   }
+  const durationSeconds = asDurationSeconds(body.durationSeconds);
+  if (durationSeconds === "INVALID") {
+    return NextResponse.json({ error: "مدة الدورة غير صحيحة" }, { status: 400 });
+  }
   const course = await prisma.$transaction(async (tx) => {
     const created = await tx.course.create({
       data: {
@@ -71,6 +82,7 @@ export async function POST(request: Request) {
         instructorNameEn: asText(body.instructorNameEn),
         path,
         instructorId,
+        durationSeconds,
         coverImageUrl: asText(body.coverImageUrl) ?? asText(body.image),
         ...(libraryItemIds.length > 0
           ? {

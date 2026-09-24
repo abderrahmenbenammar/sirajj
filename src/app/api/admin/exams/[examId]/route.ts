@@ -54,6 +54,15 @@ export async function PATCH(request: Request, { params }: Context) {
       if (!lesson || lesson.courseId !== existing.courseId) {
         return NextResponse.json({ error: "الفيديو المختار لا يتبع دورة هذا الاختبار" }, { status: 400 });
       }
+      // One exam per lesson: keeping the exam's own lesson is always allowed,
+      // but moving it to a lesson that already has a different exam is not.
+      const taken = await prisma.exam.findFirst({
+        where: { lessonId: requested, id: { not: examId } },
+        select: { id: true },
+      });
+      if (taken) {
+        return NextResponse.json({ error: "هذا الدرس لديه اختبار بالفعل." }, { status: 409 });
+      }
       lessonId = requested;
     }
   }
@@ -69,7 +78,12 @@ export async function PATCH(request: Request, { params }: Context) {
       },
     });
     return NextResponse.json(exam);
-  } catch {
+  } catch (error) {
+    // Race safety: concurrent moves to the same lesson hit the DB unique
+    // constraint; report it as a conflict, not "not found".
+    if (typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002") {
+      return NextResponse.json({ error: "هذا الدرس لديه اختبار بالفعل." }, { status: 409 });
+    }
     return NextResponse.json({ error: "الاختبار غير موجود" }, { status: 404 });
   }
 }

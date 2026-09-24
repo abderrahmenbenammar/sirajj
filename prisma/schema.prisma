@@ -91,8 +91,12 @@ model Course {
   instructorId       String?     @map("instructor_id") @db.Uuid
   instructor         Instructor? @relation(fields: [instructorId], references: [id], onDelete: SetNull)
   path               CoursePath  @default(BEGINNER) @map("path")
-  coverImageUrl      String?     @map("cover_image_url")
-  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  coverImageUrl      String?   @map("cover_image_url")
+  // Manual course duration in seconds, set by the admin (NULL = unspecified).
+  // This is the authoritative course length and is independent of lesson
+  // video lengths (it may be an estimate). Replaces YouTube-based totals.
+  durationSeconds    Int?      @map("duration_seconds")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   lessons            Lesson[]
@@ -209,6 +213,10 @@ model Exam {
 
   @@index([courseId], map: "idx_exams_course_id")
   @@index([lessonId], map: "idx_exams_lesson_id")
+  // One exam per lesson: a lesson can be linked to at most one exam.
+  // NULL lessonIds are unaffected (PostgreSQL allows multiple NULLs in a
+  // unique index), so course-level exams without a lesson still work.
+  @@unique([lessonId], map: "exams_lesson_id_key")
   @@map("exams")
 }
 

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeFinalScore } from "@/lib/certificates/score";
 import { gradeFor, formatScore, formatDurationDetailed } from "@/lib/certificates/layout";
-import { getCourseDuration } from "@/lib/certificates/videos";
 
 type Context = { params: Promise<{ code: string }> };
 
@@ -19,7 +18,7 @@ export async function GET(_request: Request, { params }: Context) {
   const certificate = await prisma.certificate.findUnique({
     where: { certificateCode: normalized },
     include: {
-      course: { select: { titleAr: true, titleEn: true } },
+      course: { select: { titleAr: true, titleEn: true, durationSeconds: true } },
       student: { select: { fullName: true } },
     },
   });
@@ -28,17 +27,12 @@ export async function GET(_request: Request, { params }: Context) {
   }
 
   // Same single computation as the page and the image: stored snapshots
-  // first, live grade/duration across all course exams as fallback.
+  // first, live grade as fallback. Duration falls back to the course's
+  // manual duration; video lengths are never consulted here.
   const stored = certificate.finalScorePercentage === null ? null : Number(certificate.finalScorePercentage);
-  const needLive = stored === null || certificate.durationSeconds === null || certificate.durationSeconds === undefined;
-  const [final, duration] = await Promise.all([
-    stored === null ? computeFinalScore(certificate.studentId, certificate.courseId) : null,
-    needLive && (certificate.durationSeconds === null || certificate.durationSeconds === undefined)
-      ? getCourseDuration(certificate.courseId)
-      : null,
-  ]);
+  const final = stored === null ? await computeFinalScore(certificate.studentId, certificate.courseId) : null;
   const score = stored ?? final?.percentage ?? 0;
-  const totalSeconds = certificate.durationSeconds ?? duration?.totalSeconds ?? null;
+  const totalSeconds = certificate.durationSeconds ?? certificate.course.durationSeconds ?? null;
   return NextResponse.json({
     valid: true,
     certificateCode: certificate.certificateCode,

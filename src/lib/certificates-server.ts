@@ -1,9 +1,7 @@
 import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { resolveCourseVideoDurations } from "@/lib/certificates/videos";
 import { computeFinalScore } from "@/lib/certificates/score";
-import { diagnoseCourseDuration, getCourseDuration } from "@/lib/certificates/videos";
 
 // Shared server-side certificate logic. Identity always comes from the caller
 // (session); nothing here trusts client-supplied user/course ownership.
@@ -89,30 +87,17 @@ export async function ensureCertificate(studentId: string, courseId: string) {
       let durationSecs: number | null = null;
       try {
         finalScore = (await computeFinalScore(studentId, courseId)).percentage;
-        // **Resolve course video durations using the new engine: this fetches
-        // missing YouTube durations from the Data API, caches them, and updates
-        // lesson rows so the snapshot captures the real total at issue time.**
-        const durationInfo = await resolveCourseVideoDurations(courseId, false);
-        durationSecs = durationInfo.totalSeconds;
+        // The manual course duration is the authoritative length: snapshot it
+        // as-is (NULL = unspecified). Video lengths never feed issuance.
+        const courseRow = await prisma.course.findUnique({
+          where: { id: courseId },
+          select: { durationSeconds: true },
+        });
+        durationSecs = courseRow?.durationSeconds ?? null;
       } catch (error) {
-        console.error("[certificates/snapshot] duration resolve failed at issue", studentId, courseId, error);
-        // Keep durationSecs null so the certificate is created with NULL,
-        // and readers fall back to live computation later.
-      }
-      // A null duration is never silent: log exactly which lessons lack a
-      // usable length and why, so "غير محددة" is always traceable.
-      if (durationSecs === null) {
-        try {
-          const diagnosis = await diagnoseCourseDuration(courseId);
-          console.warn(
-            "[certificates/snapshot] duration unknown at issue",
-            studentId,
-            courseId,
-            diagnosis.lessons.map((l) => `${l.titleAr.slice(0, 24)}:${l.reason}`).join(" | ")
-          );
-        } catch (diagError) {
-          console.warn("[certificates/snapshot] could not generate duration diagnosis", diagError);
-        }
+        console.error("[certificates/snapshot] snapshot failed at issue", studentId, courseId, error);
+        // Keep both null so the certificate is created with NULLs, and
+        // readers fall back to live computation later.
       }
       const certificate = await prisma.certificate.create({
         data: {

@@ -31,7 +31,7 @@ export async function PATCH(request: Request, { params }: Context) {
   const body = await request.json();
 
   // Accredited patchable fields — the exact Course columns the admin may edit.
-  const updates: Record<string, string | null> = {};
+  const updates: Record<string, string | number | null> = {};
 
   // Titles: an empty value leaves the existing title untouched (matching the
   // pre-existing partial-update behavior); only non-empty values are written.
@@ -61,6 +61,19 @@ export async function PATCH(request: Request, { params }: Context) {
       if (!exists) return NextResponse.json({ error: "المدرّس غير موجود" }, { status: 400 });
     }
     updates.instructorId = instructorId;
+  }
+  // Manual course duration (seconds). Absent = untouched; null/empty = clear
+  // to unspecified; a number must be a non-negative integer (0 normalizes to
+  // NULL). Anything else is rejected so no invalid value is ever stored.
+  if ("durationSeconds" in body) {
+    const raw = (body as Record<string, unknown>).durationSeconds;
+    if (raw === null || raw === undefined || raw === "") {
+      updates.durationSeconds = null;
+    } else if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0) {
+      return NextResponse.json({ error: "مدة الدورة غير صحيحة" }, { status: 400 });
+    } else {
+      updates.durationSeconds = raw === 0 ? null : raw;
+    }
   }
 
   // References: a full-set replacement when provided (absent = untouched).

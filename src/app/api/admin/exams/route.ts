@@ -110,6 +110,11 @@ export async function POST(request: Request) {
     if (!lesson || lesson.courseId !== courseId) {
       return NextResponse.json({ error: "الفيديو المختار لا يتبع هذه الدورة" }, { status: 400 });
     }
+    // One exam per lesson: reject creating a second exam for the same lesson.
+    const taken = await prisma.exam.findFirst({ where: { lessonId }, select: { id: true } });
+    if (taken) {
+      return NextResponse.json({ error: "هذا الدرس لديه اختبار بالفعل." }, { status: 409 });
+    }
   }
   const passing = body.passingScorePercentage ?? 60;
   const max = body.maxAttempts ?? 3;
@@ -127,37 +132,47 @@ export async function POST(request: Request) {
     if (questionsError) return NextResponse.json({ error: questionsError }, { status: 400 });
   }
   const questions = (hasQuestions ? body.questions : []) as QuestionInput[];
-  const exam = await prisma.$transaction(async (tx) => {
-    const created = await tx.exam.create({
-      data: {
-        courseId,
-        lessonId,
-        titleAr,
-        titleEn: asText(body.titleEn) ?? titleAr,
-        passingScorePercentage: passing,
-        maxAttempts: max,
-      },
-    });
-    for (const [index, raw] of questions.entries()) {
-      const question = await tx.examQuestion.create({
+  let exam;
+  try {
+    exam = await prisma.$transaction(async (tx) => {
+      const created = await tx.exam.create({
         data: {
-          examId: created.id,
-          questionTextAr: asText(raw.questionTextAr) as string,
-          questionTextEn: asText(raw.questionTextEn) as string,
-          points: asPositiveInt(raw.points) as number,
-          orderIndex: index,
+          courseId,
+          lessonId,
+          titleAr,
+          titleEn: asText(body.titleEn) ?? titleAr,
+          passingScorePercentage: passing,
+          maxAttempts: max,
         },
       });
-      await tx.examQuestionOption.createMany({
-        data: (raw.options as { optionTextAr?: unknown; optionTextEn?: unknown; isCorrect?: unknown }[]).map((option) => ({
-          questionId: question.id,
-          optionTextAr: asText(option.optionTextAr) as string,
-          optionTextEn: asText(option.optionTextEn) as string,
-          isCorrect: option.isCorrect === true,
-        })),
-      });
+      for (const [index, raw] of questions.entries()) {
+        const question = await tx.examQuestion.create({
+          data: {
+            examId: created.id,
+            questionTextAr: asText(raw.questionTextAr) as string,
+            questionTextEn: asText(raw.questionTextEn) as string,
+            points: asPositiveInt(raw.points) as number,
+            orderIndex: index,
+          },
+        });
+        await tx.examQuestionOption.createMany({
+          data: (raw.options as { optionTextAr?: unknown; optionTextEn?: unknown; isCorrect?: unknown }[]).map((option) => ({
+            questionId: question.id,
+            optionTextAr: asText(option.optionTextAr) as string,
+            optionTextEn: asText(option.optionTextEn) as string,
+            isCorrect: option.isCorrect === true,
+          })),
+        });
+      }
+      return created;
+    });
+  } catch (error) {
+    // Race safety: two concurrent creates for the same lesson hit the DB
+    // unique constraint; report it as a conflict, not a server error.
+    if (typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002") {
+      return NextResponse.json({ error: "هذا الدرس لديه اختبار بالفعل." }, { status: 409 });
     }
-    return created;
-  });
+    throw error;
+  }
   return NextResponse.json(exam, { status: 201 });
 }

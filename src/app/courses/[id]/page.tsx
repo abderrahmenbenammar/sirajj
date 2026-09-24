@@ -11,6 +11,7 @@ import { fetchCourseCertificate, issueCertificate, type CourseCertificateState }
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock } from "lucide-react";
 import { libraryTypeLabel } from "@/lib/library-types";
+import { formatDurationDetailed } from "@/lib/certificates/layout";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -132,8 +133,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               </p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                 {instructorName && <span className="flex items-center gap-1.5"><Users size={15} /> {instructorName}</span>}
-                <span className="flex items-center gap-1.5"><Clock size={15} /> {course.duration}</span>
-                <span className="flex items-center gap-1.5"><BookOpen size={15} /> {course.lessons} {t("درس", "lessons")}</span>
+                <span className="flex items-center gap-1.5"><BookOpen size={15} /> {course.lessons} {t("درس", "lessons")}
+                  {course.durationSeconds != null && (
+                    <span className="inline-flex items-center gap-1.5"><span>•</span><Clock size={15} /><span>{formatDurationDetailed(course.durationSeconds)}</span></span>
+                  )}
+                </span>
               </div>
             </div>
 
@@ -297,10 +301,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   <span className="text-gray-500 dark:text-gray-400">{t("المسار", "Path")}</span>
                   <span className="font-medium text-gray-900 dark:text-white">{t(course.pathAr, course.pathEn)}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">{t("المدة", "Duration")}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{course.duration}</span>
-                </div>
+                {course.durationSeconds != null && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">{t("المدة", "Duration")}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{formatDurationDetailed(course.durationSeconds)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500 dark:text-gray-400">{t("عدد الدروس", "Lessons")}</span>
                   <span className="font-medium text-gray-900 dark:text-white">{course.lessons}</span>

@@ -61,6 +61,9 @@ export async function GET(_request: Request, { params }: Context) {
     pathAr: COURSE_PATH_LABELS[course.path].ar,
     pathEn: COURSE_PATH_LABELS[course.path].en,
     duration: `${course.lessons.length} درس`,
+    // Manual course duration (seconds, NULL = unspecified). The single
+    // source of course length; never computed from lesson videos here.
+    durationSeconds: course.durationSeconds,
     lessons: course.lessons.length,
     curriculum: course.lessons.map((lesson) => {
       const locked = gate.lockedLessonIds.has(lesson.id);

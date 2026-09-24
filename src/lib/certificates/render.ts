@@ -25,7 +25,6 @@ import {
   COLOR_QR_BACKGROUND,
 } from "./layout";
 import { computeFinalScore } from "./score";
-import { getCourseDuration } from "./videos";
 
 // Deterministic certificate image generation on the immutable template.
 // Text runs through Skia (real Arabic shaping + Unicode bidi), proven
@@ -117,15 +116,15 @@ export async function getCertificateRenderData(certificateId: string): Promise<C
   const certificate = await prisma.certificate.findUnique({
     where: { id: certificateId },
     include: {
-      course: { select: { id: true, titleAr: true } },
+      course: { select: { id: true, titleAr: true, durationSeconds: true } },
       student: { select: { fullName: true } },
     },
   });
   if (!certificate) return null;
-  const [duration, progress, final] = await Promise.all([
-    certificate.durationSeconds === null || certificate.durationSeconds === undefined
-      ? getCourseDuration(certificate.courseId)
-      : null,
+  // Stored snapshots win (history never shifts under edits); the course's
+  // manual duration is the fallback for rows issued before it existed.
+  // Video lengths are never consulted here.
+  const [progress, final] = await Promise.all([
     prisma.studentCourseProgress.findUnique({
       where: { studentId_courseId: { studentId: certificate.studentId, courseId: certificate.courseId } },
       select: { completedAt: true },
@@ -136,7 +135,7 @@ export async function getCertificateRenderData(certificateId: string): Promise<C
   // computation is only a fallback for rows issued before it existed.
   const stored = certificate.finalScorePercentage === null ? null : Number(certificate.finalScorePercentage);
   const bestScore = stored ?? final.percentage ?? 0;
-  const totalSeconds = certificate.durationSeconds ?? duration?.totalSeconds ?? null;
+  const totalSeconds = certificate.durationSeconds ?? certificate.course.durationSeconds ?? null;
   return {
     studentName: certificate.student.fullName,
     courseTitle: certificate.course.titleAr,
