@@ -4,17 +4,17 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, BookOpen, Route } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { useEffect, useState } from "react";
-import { fetchCourses, type ApiCourse } from "@/lib/courses-api";
+import { searchCourses, type CourseCardData } from "@/lib/courses-api";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 
 const pathColors = ["emerald", "blue", "amber"] as const;
 
 export default function PathsPage() {
   const { t, lang } = useLang();
-  const [courses, setCourses] = useState<ApiCourse[]>([]);
+  const [courses, setCourses] = useState<CourseCardData[]>([]);
 
   useEffect(() => {
-    fetchCourses().then(setCourses);
+    searchCourses({}).then(({ items }) => setCourses(items));
   }, []);
 
   // The three paths are fixed (BEGINNER / INTERMEDIATE / ADVANCED); every

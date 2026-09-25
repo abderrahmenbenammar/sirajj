@@ -163,15 +163,15 @@ export default function AdminLibraryPage() {
           <LibraryBig size={18} />
           {t("إضافة عنصر للمكتبة", "Add library item")}
         </h2>
-        <select value={libraryForm.type} onChange={(e) => setLibraryForm({ ...libraryForm, type: e.target.value })} className="admin-input">
+        <select aria-label={t("نوع العنصر", "Item type")} value={libraryForm.type} onChange={(e) => setLibraryForm({ ...libraryForm, type: e.target.value })} className="admin-input">
           <option value="book">كتاب</option>
           <option value="article">مقال</option>
           <option value="research">بحث</option>
           <option value="lecture">محاضرة</option>
         </select>
-        <input required placeholder={t("العنوان", "Title")} value={libraryForm.title} onChange={(e) => setLibraryForm({ ...libraryForm, title: e.target.value })} className="admin-input" />
-        <input placeholder={t("المؤلف أو المحاضر", "Author or speaker")} value={libraryForm.author} onChange={(e) => setLibraryForm({ ...libraryForm, author: e.target.value })} className="admin-input" />
-        <input placeholder={t("التصنيف", "Category")} value={libraryForm.category} onChange={(e) => setLibraryForm({ ...libraryForm, category: e.target.value })} className="admin-input" />
+        <input required placeholder={t("العنوان", "Title")} aria-label={t("العنوان", "Title")} value={libraryForm.title} onChange={(e) => setLibraryForm({ ...libraryForm, title: e.target.value })} className="admin-input" />
+        <input placeholder={t("المؤلف أو المحاضر", "Author or speaker")} aria-label={t("المؤلف أو المحاضر", "Author or speaker")} value={libraryForm.author} onChange={(e) => setLibraryForm({ ...libraryForm, author: e.target.value })} className="admin-input" />
+        <input placeholder={t("التصنيف", "Category")} aria-label={t("التصنيف", "Category")} value={libraryForm.category} onChange={(e) => setLibraryForm({ ...libraryForm, category: e.target.value })} className="admin-input" />
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-900 dark:text-white">{t("رفع صورة الغلاف", "Upload cover image")}</p>
           {libraryCoverPreview ? (
@@ -197,9 +197,9 @@ export default function AdminLibraryPage() {
             </label>
           )}
         </div>
-        <input placeholder={t("رابط الملف أو المحتوى", "Content or media URL")} value={libraryForm.mediaUrl} onChange={(e) => setLibraryForm({ ...libraryForm, mediaUrl: e.target.value })} className="admin-input" />
-        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,text/plain" onChange={(e) => setLibraryFile(e.target.files?.[0] ?? null)} className="admin-input" />
-        <textarea placeholder={t("الوصف أو المحتوى", "Description or content")} value={libraryForm.content} onChange={(e) => setLibraryForm({ ...libraryForm, content: e.target.value })} className="admin-input min-h-24" />
+        <input placeholder={t("رابط الملف أو المحتوى", "Content or media URL")} aria-label={t("رابط الملف أو المحتوى", "Content or media URL")} value={libraryForm.mediaUrl} onChange={(e) => setLibraryForm({ ...libraryForm, mediaUrl: e.target.value })} className="admin-input" />
+        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf,text/plain" aria-label={t("اختر ملف العنصر", "Choose the item file")} onChange={(e) => setLibraryFile(e.target.files?.[0] ?? null)} className="admin-input" />
+        <textarea placeholder={t("الوصف أو المحتوى", "Description or content")} aria-label={t("الوصف أو المحتوى", "Description or content")} value={libraryForm.content} onChange={(e) => setLibraryForm({ ...libraryForm, content: e.target.value })} className="admin-input min-h-24" />
         <button className="admin-button sm:w-auto sm:px-8">
           <LibraryBig size={16} />
           {t("حفظ عنصر المكتبة", "Save library item")}
@@ -223,9 +223,9 @@ export default function AdminLibraryPage() {
               <div key={item.id} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                 {editingLibraryId === item.id ? (
                   <div className="space-y-2">
-                    <input value={libraryDraft.titleAr} onChange={(e) => setLibraryDraft({ ...libraryDraft, titleAr: e.target.value })} className="admin-input" />
-                    <input value={libraryDraft.authorName} onChange={(e) => setLibraryDraft({ ...libraryDraft, authorName: e.target.value })} placeholder={t("المؤلف", "Author")} className="admin-input" />
-                    <select value={libraryDraft.type} onChange={(e) => setLibraryDraft({ ...libraryDraft, type: e.target.value })} className="admin-input">
+                    <input aria-label={t("العنوان", "Title")} value={libraryDraft.titleAr} onChange={(e) => setLibraryDraft({ ...libraryDraft, titleAr: e.target.value })} className="admin-input" />
+                    <input value={libraryDraft.authorName} onChange={(e) => setLibraryDraft({ ...libraryDraft, authorName: e.target.value })} placeholder={t("المؤلف", "Author")} aria-label={t("المؤلف", "Author")} className="admin-input" />
+                    <select aria-label={t("نوع العنصر", "Item type")} value={libraryDraft.type} onChange={(e) => setLibraryDraft({ ...libraryDraft, type: e.target.value })} className="admin-input">
                       <option value="book">كتاب</option>
                       <option value="article">مقال</option>
                       <option value="research">بحث</option>

@@ -33,7 +33,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `حجم الملف أكبر من الحد المسموح (${Math.round(rule.maxSize / 1024 / 1024)}MB)` }, { status: 413 });
   }
 
-  const extension = (file.name.split(".").pop() || "").toLowerCase() || (file.type === "image/png" ? "png" : "bin");
+  // Extension is derived from the validated content type, never from the
+  // client filename, so a deceptive name (e.g. ".html"/".svg") cannot
+  // influence the stored object.
+  const EXTENSION_BY_MIME: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/quicktime": "mov",
+    "application/pdf": "pdf",
+    "text/plain": "txt",
+  };
+  const extension = EXTENSION_BY_MIME[file.type] ?? "bin";
   const filename = `${randomUUID()}.${extension}`;
   const filePath = filename;
 

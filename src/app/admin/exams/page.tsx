@@ -278,7 +278,7 @@ export default function AdminExamsPage() {
                 {t("بيانات الاختبار", "Exam details")}
               </h3>
               <div className="grid sm:grid-cols-2 gap-3">
-                <select required value={examForm.courseId} onChange={(e) => setExamForm({ ...examForm, courseId: e.target.value, lessonId: "" })} className="admin-input">
+                <select required aria-label={t("اختر الدورة", "Select course")} value={examForm.courseId} onChange={(e) => setExamForm({ ...examForm, courseId: e.target.value, lessonId: "" })} className="admin-input">
                   <option value="">{t("اختر الدورة", "Select course")}</option>
                   {courses.map((course) => (
                     <option key={course.id} value={course.id}>
@@ -286,7 +286,7 @@ export default function AdminExamsPage() {
                     </option>
                   ))}
                 </select>
-                <select value={examForm.lessonId} disabled={!examForm.courseId} onChange={(e) => setExamForm({ ...examForm, lessonId: e.target.value })} className="admin-input disabled:opacity-60">
+                <select aria-label={t("اختر الدرس", "Select lesson")} value={examForm.lessonId} disabled={!examForm.courseId} onChange={(e) => setExamForm({ ...examForm, lessonId: e.target.value })} className="admin-input disabled:opacity-60">
                   <option value="">{t("بدون فيديو مرتبط", "No linked video")}</option>
                   {availableBuilderLessons.map((lesson) => (
                     <option key={lesson.id} value={lesson.id}>
@@ -346,8 +346,8 @@ export default function AdminExamsPage() {
 
           <div className="mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
             <div className="flex flex-col sm:flex-row gap-2 mb-4">
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("بحث...", "Search...")} className="admin-input sm:flex-1" />
-              <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="admin-input sm:w-56">
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("بحث...", "Search...")} aria-label={t("بحث...", "Search...")} className="admin-input sm:flex-1" />
+              <select aria-label={t("تصفية حسب الدورة", "Filter by course")} value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="admin-input sm:w-56">
                 <option value="ALL">{t("كل الدورات", "All courses")}</option>
                 {courses.map((course) => (
                   <option key={course.id} value={course.id}>
@@ -409,9 +409,9 @@ export default function AdminExamsPage() {
                     <div key={question.id} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                       {editingQuestionId === question.id ? (
                         <div className="space-y-2">
-                          <input value={questionDraft.questionTextAr} onChange={(e) => setQuestionDraft({ ...questionDraft, questionTextAr: e.target.value })} className="admin-input" />
-                          <input value={questionDraft.questionTextEn} onChange={(e) => setQuestionDraft({ ...questionDraft, questionTextEn: e.target.value })} className="admin-input" />
-                          <input type="number" min="1" value={questionDraft.points} onChange={(e) => setQuestionDraft({ ...questionDraft, points: e.target.value })} className="admin-input" />
+                          <input aria-label={t("نص السؤال بالعربية", "Question text in Arabic")} value={questionDraft.questionTextAr} onChange={(e) => setQuestionDraft({ ...questionDraft, questionTextAr: e.target.value })} className="admin-input" />
+                          <input aria-label={t("نص السؤال بالإنجليزية", "Question text in English")} value={questionDraft.questionTextEn} onChange={(e) => setQuestionDraft({ ...questionDraft, questionTextEn: e.target.value })} className="admin-input" />
+                          <input aria-label={t("الدرجة", "Mark")} type="number" min="1" value={questionDraft.points} onChange={(e) => setQuestionDraft({ ...questionDraft, points: e.target.value })} className="admin-input" />
                           <div className="flex gap-1">
                             <button type="button" onClick={() => void saveQuestionEdit(question.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                               {t("حفظ", "Save")}
@@ -446,7 +446,7 @@ export default function AdminExamsPage() {
                           <div key={option.id} className="flex items-center gap-2 text-xs">
                             {editingOptionId === option.id ? (
                               <>
-                                <input value={optionDraft} onChange={(e) => setOptionDraft(e.target.value)} className="admin-input flex-1 py-1" />
+                                <input aria-label={t("نص الخيار", "Option text")} value={optionDraft} onChange={(e) => setOptionDraft(e.target.value)} className="admin-input flex-1 py-1" />
                                 <button type="button" onClick={() => void saveOptionEdit(option.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                                   {t("حفظ", "Save")}
                                 </button>

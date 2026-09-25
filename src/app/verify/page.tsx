@@ -43,6 +43,7 @@ function VerifyForm() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="SIRAJ-2026-XXXXXXXX"
+            aria-label={t("رقم الشهادة", "Certificate code")}
             dir="ltr"
             className="flex-1 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
           />
@@ -53,7 +54,7 @@ function VerifyForm() {
             {t("تحقق", "Verify")}
           </button>
         </form>
-        {error && <p className="text-sm text-red-600 dark:text-red-400 text-center mb-4">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400 text-center mb-4">{error}</p>}
         {result && (
           result.valid ? (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 p-6 text-center">

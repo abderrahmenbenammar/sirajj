@@ -3,21 +3,21 @@
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { fetchLibrary } from "@/lib/library-api";
-import { fetchCourses, type ApiCourse } from "@/lib/courses-api";
+import { searchCourses, type CourseCardData } from "@/lib/courses-api";
 import { useEffect, useState } from "react";
 import CourseCard from "@/components/courses/CourseCard";
 import { ArrowLeft, ArrowRight, BookOpen, FileText, Search, Mic, Sparkles, GraduationCap, Globe } from "lucide-react";
 
 export default function HomePage() {
   const { t, lang } = useLang();
-  const [featuredCourses, setFeaturedCourses] = useState<ApiCourse[]>([]);
+  const [featuredCourses, setFeaturedCourses] = useState<CourseCardData[]>([]);
   const [totalCourses, setTotalCourses] = useState(0);
   const [libraryCounts, setLibraryCounts] = useState({ book: 0, article: 0, research: 0, lecture: 0 });
 
   useEffect(() => {
-    fetchCourses().then((data) => {
-      setTotalCourses(data.length);
-      setFeaturedCourses(data.slice(0, 4));
+    searchCourses({ take: 4 }).then(({ items, total }) => {
+      setTotalCourses(total);
+      setFeaturedCourses(items);
     });
   }, []);
 

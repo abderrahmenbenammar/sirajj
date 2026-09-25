@@ -138,8 +138,11 @@ export default function LibraryPage() {
           </div>
         ) : (
           <div className="text-center py-20">
-            <p className="text-gray-500 dark:text-gray-400 text-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
               {t("لم يتم العثور على نتائج", "No results found")}
+            </p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              {t("جرّب كلمة أخرى أو تصفح الدورات ذات الصلة.", "Try another word or browse related courses.")}
             </p>
           </div>
         )}

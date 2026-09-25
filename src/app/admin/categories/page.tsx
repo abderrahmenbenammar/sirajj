@@ -82,9 +82,9 @@ export default function AdminCategoriesPage() {
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
         <form onSubmit={(e) => void submitCategory(e)} className="admin-category-form flex flex-col sm:flex-row flex-wrap gap-2 mb-4">
-          <input required placeholder={t("الاسم بالعربية", "Arabic name")} value={categoryForm.nameAr} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })} className="admin-input flex-1 min-w-0" />
-          <input required placeholder={t("الاسم بالإنجليزية", "English name")} value={categoryForm.nameEn} onChange={(e) => setCategoryForm({ ...categoryForm, nameEn: e.target.value })} className="admin-input flex-1 min-w-0" />
-          <input placeholder="slug (optional)" value={categoryForm.slug} onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })} className="admin-input flex-1 min-w-0" dir="ltr" />
+          <input required placeholder={t("الاسم بالعربية", "Arabic name")} aria-label={t("الاسم بالعربية", "Arabic name")} value={categoryForm.nameAr} onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })} className="admin-input flex-1 min-w-0" />
+          <input required placeholder={t("الاسم بالإنجليزية", "English name")} aria-label={t("الاسم بالإنجليزية", "English name")} value={categoryForm.nameEn} onChange={(e) => setCategoryForm({ ...categoryForm, nameEn: e.target.value })} className="admin-input flex-1 min-w-0" />
+          <input placeholder="slug (optional)" aria-label="slug (optional)" value={categoryForm.slug} onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })} className="admin-input flex-1 min-w-0" dir="ltr" />
           <button className="admin-button shrink-0">{t("إضافة", "Add")}</button>
         </form>
         {loading ? (
@@ -102,8 +102,8 @@ export default function AdminCategoriesPage() {
               <div key={category.id} className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm">
                 {editingCategoryId === category.id ? (
                   <>
-                    <input value={categoryDraft.nameAr} onChange={(e) => setCategoryDraft({ ...categoryDraft, nameAr: e.target.value })} className="admin-input flex-1" />
-                    <input value={categoryDraft.nameEn} onChange={(e) => setCategoryDraft({ ...categoryDraft, nameEn: e.target.value })} className="admin-input flex-1" />
+                    <input aria-label={t("الاسم بالعربية", "Arabic name")} value={categoryDraft.nameAr} onChange={(e) => setCategoryDraft({ ...categoryDraft, nameAr: e.target.value })} className="admin-input flex-1" />
+                    <input aria-label={t("الاسم بالإنجليزية", "English name")} value={categoryDraft.nameEn} onChange={(e) => setCategoryDraft({ ...categoryDraft, nameEn: e.target.value })} className="admin-input flex-1" />
                     <button type="button" onClick={() => void saveCategoryEdit(category.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                       {t("حفظ", "Save")}
                     </button>

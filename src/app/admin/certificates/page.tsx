@@ -49,7 +49,7 @@ export default function AdminCertificatesPage() {
           <input
             value={certSearch}
             onChange={(e) => setCertSearch(e.target.value)}
-            placeholder={t("بحث برقم الشهادة أو الاسم...", "Search by code or name...")}
+            placeholder={t("بحث برقم الشهادة أو الاسم...", "Search by code or name...")} aria-label={t("بحث برقم الشهادة أو الاسم...", "Search by code or name...")}
             className="admin-input flex-1"
           />
           <button type="submit" className="admin-button w-auto px-6">

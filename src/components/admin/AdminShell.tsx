@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -92,6 +92,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     try {
@@ -189,6 +190,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <button
           type="button"
           onClick={toggleCollapsed}
+          aria-expanded={!collapsed}
           className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
           aria-label={t("طي القائمة", "Collapse menu")}
         >
@@ -212,7 +214,19 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label={t("قائمة الإدارة", "Admin menu")}>
+        <div
+          className="fixed inset-0 z-40 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("قائمة الإدارة", "Admin menu")}
+          id="admin-mobile-drawer"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setMobileOpen(false);
+              menuButtonRef.current?.focus();
+            }
+          }}
+        >
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
           <aside className="absolute inset-y-0 start-0 w-72 max-w-[85vw] bg-white dark:bg-gray-900 border-e border-gray-200 dark:border-gray-800 shadow-xl">
             <div className="flex justify-end p-2">
@@ -236,7 +250,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-3 min-w-0">
               <button
                 type="button"
+                ref={menuButtonRef}
                 onClick={() => setMobileOpen(true)}
+                aria-expanded={mobileOpen}
+                aria-controls="admin-mobile-drawer"
                 className="lg:hidden p-2 -ms-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                 aria-label={t("فتح القائمة", "Open menu")}
               >

@@ -9,7 +9,7 @@ const EMAIL_RE = /^\S+@\S+\.\S+$/;
 export async function POST(request: Request) {
   const body = await request.json();
   const raw = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  if (!raw || !EMAIL_RE.test(raw)) {
+  if (!raw || raw.length > 254 || !EMAIL_RE.test(raw)) {
     return NextResponse.json({ error: "البريد الإلكتروني غير صالح" }, { status: 400 });
   }
 

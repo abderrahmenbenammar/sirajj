@@ -136,10 +136,10 @@ export default function AdminCoursesPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("بحث عن دورة...", "Search courses...")}
+          placeholder={t("بحث عن دورة...", "Search courses...")} aria-label={t("بحث عن دورة...", "Search courses...")}
           className="admin-input sm:flex-1"
         />
-        <select value={pathFilter} onChange={(e) => setPathFilter(e.target.value)} className="admin-input sm:w-52">
+        <select aria-label={t("تصفية حسب المسار", "Filter by path")} value={pathFilter} onChange={(e) => setPathFilter(e.target.value)} className="admin-input sm:w-52">
           <option value="ALL">{t("كل المسارات", "All paths")}</option>
           {COURSE_PATHS.map((key) => (
             <option key={key} value={key}>
@@ -227,13 +227,13 @@ export default function AdminCoursesPage() {
           {t("إضافة دورة", "Add course")}
         </h2>
         <form onSubmit={(e) => void submitCourse(e)} className="grid sm:grid-cols-2 gap-3">
-          <input required placeholder={t("العنوان بالعربية", "Arabic title")} value={courseForm.titleAr} onChange={(e) => setCourseForm({ ...courseForm, titleAr: e.target.value })} className="admin-input" />
-          <input placeholder={t("العنوان بالإنجليزية", "English title")} value={courseForm.titleEn} onChange={(e) => setCourseForm({ ...courseForm, titleEn: e.target.value })} className="admin-input" />
-          <textarea placeholder={t("الوصف بالعربية", "Arabic description")} value={courseForm.shortDescriptionAr} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionAr: e.target.value })} className="admin-input min-h-20" />
-          <textarea placeholder={t("الوصف بالإنجليزية", "English description")} value={courseForm.shortDescriptionEn} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionEn: e.target.value })} className="admin-input min-h-20" />
+          <input required placeholder={t("العنوان بالعربية", "Arabic title")} aria-label={t("العنوان بالعربية", "Arabic title")} value={courseForm.titleAr} onChange={(e) => setCourseForm({ ...courseForm, titleAr: e.target.value })} className="admin-input" />
+          <input placeholder={t("العنوان بالإنجليزية", "English title")} aria-label={t("العنوان بالإنجليزية", "English title")} value={courseForm.titleEn} onChange={(e) => setCourseForm({ ...courseForm, titleEn: e.target.value })} className="admin-input" />
+          <textarea placeholder={t("الوصف بالعربية", "Arabic description")} aria-label={t("الوصف بالعربية", "Arabic description")} value={courseForm.shortDescriptionAr} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionAr: e.target.value })} className="admin-input min-h-20" />
+          <textarea placeholder={t("الوصف بالإنجليزية", "English description")} aria-label={t("الوصف بالإنجليزية", "English description")} value={courseForm.shortDescriptionEn} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionEn: e.target.value })} className="admin-input min-h-20" />
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
-            <select required value={courseForm.path} onChange={(e) => setCourseForm({ ...courseForm, path: e.target.value })} className="admin-input">
+            <label htmlFor="add-course-path" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
+            <select id="add-course-path" required value={courseForm.path} onChange={(e) => setCourseForm({ ...courseForm, path: e.target.value })} className="admin-input">
               {COURSE_PATHS.map((key) => (
                 <option key={key} value={key}>
                   {t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)}
@@ -244,8 +244,8 @@ export default function AdminCoursesPage() {
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المعلم", "Instructor")}</label>
             <div className="grid grid-cols-2 gap-2">
-              <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={courseForm.instructorNameAr} onChange={(e) => setCourseForm({ ...courseForm, instructorNameAr: e.target.value })} className="admin-input" />
-              <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={courseForm.instructorNameEn} onChange={(e) => setCourseForm({ ...courseForm, instructorNameEn: e.target.value })} className="admin-input" />
+              <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} aria-label={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={courseForm.instructorNameAr} onChange={(e) => setCourseForm({ ...courseForm, instructorNameAr: e.target.value })} className="admin-input" />
+              <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} aria-label={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={courseForm.instructorNameEn} onChange={(e) => setCourseForm({ ...courseForm, instructorNameEn: e.target.value })} className="admin-input" />
             </div>
           </div>
           <div className="sm:col-span-2 rounded-xl border border-gray-200 dark:border-gray-800 p-3 space-y-2">
@@ -263,9 +263,9 @@ export default function AdminCoursesPage() {
               t={t}
             />
           </div>
-          <input placeholder={t("مسار الصورة", "Image path")} value={courseForm.coverImageUrl} onChange={(e) => setCourseForm({ ...courseForm, coverImageUrl: e.target.value })} className="admin-input" />
+          <input placeholder={t("مسار الصورة", "Image path")} aria-label={t("مسار الصورة", "Image path")} value={courseForm.coverImageUrl} onChange={(e) => setCourseForm({ ...courseForm, coverImageUrl: e.target.value })} className="admin-input" />
           <SirajTooltip label={t("اختر صورة الغلاف للدورة", "Choose the course cover image")} side="top" className="w-full">
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
+            <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={t("اختر صورة الغلاف للدورة", "Choose the course cover image")} onChange={(e) => setCourseImage(e.target.files?.[0] ?? null)} className="admin-input" />
           </SirajTooltip>
           <div className="sm:col-span-2">
             <button className="admin-button sm:w-auto sm:px-8">

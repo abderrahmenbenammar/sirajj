@@ -35,6 +35,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Optimized delivery for course/library covers (Supabase remote + local
+  // uploads). Same images, same layout — only responsive sizing + lazy load.
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "*.supabase.in" },
+    ],
+  },
   // Native canvas rasterizer for certificate images: must stay external so
   // the bundler does not try to inline its platform binary.
   serverExternalPackages: ["@napi-rs/canvas"],

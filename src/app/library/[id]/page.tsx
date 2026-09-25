@@ -1,103 +1,120 @@
-"use client";
+import type { Metadata } from "next";
+import { cache } from "react";
+import { prisma } from "@/lib/prisma";
+import { absoluteUrl, siteUrl, truncateText } from "@/lib/seo";
+import LibraryDetailClient from "./LibraryDetailClient";
 
-import { use } from "react";
-import Link from "next/link";
-import { useLang } from "@/lib/lang-context";
-import { fetchLibraryItem, type ApiLibraryItem } from "@/lib/library-api";
-import { useEffect, useState } from "react";
-import { BookOpen, FileText, Search, Mic, User, Calendar, ExternalLink } from "lucide-react";
-import SirajLoading from "@/components/ui/SirajLoading";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const TYPE_META: Record<string, { label: string; labelEn: string; icon: React.ReactNode; badge: string }> = {
-  book: { label: "كتاب", labelEn: "Book", icon: <BookOpen size={14} />, badge: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" },
-  article: { label: "مقال", labelEn: "Article", icon: <FileText size={14} />, badge: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400" },
-  research: { label: "بحث علمي", labelEn: "Research", icon: <Search size={14} />, badge: "bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400" },
-  lecture: { label: "محاضرة", labelEn: "Lecture", icon: <Mic size={14} />, badge: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400" },
+// Schema.org type per library content kind (only kinds we actually store).
+const SCHEMA_TYPE: Record<string, string> = {
+  book: "Book",
+  article: "Article",
+  research: "ScholarlyArticle",
+  lecture: "CreativeWork",
 };
 
-export default function LibraryDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const { t } = useLang();
-  const [item, setItem] = useState<ApiLibraryItem | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [missing, setMissing] = useState(false);
+// Minimal SEO read: only the fields metadata/JSON-LD need (the client UI
+// fetches its own data as before).
+const getItemSEO = cache(async (id: string) => {
+  if (!UUID_RE.test(id)) return null;
+  return prisma.libraryItem.findUnique({
+    where: { id },
+    select: {
+      type: true,
+      titleAr: true,
+      titleEn: true,
+      authorName: true,
+      descriptionAr: true,
+      descriptionEn: true,
+      coverImageUrl: true,
+      publishedAt: true,
+      createdAt: true,
+    },
+  });
+});
 
-  useEffect(() => {
-    fetchLibraryItem(id)
-      .then((data) => {
-        if (!data) setMissing(true);
-        else setItem(data);
-      })
-      .catch(() => setMissing(true))
-      .finally(() => setLoading(false));
-  }, [id]);
+type SeoItem = NonNullable<Awaited<ReturnType<typeof getItemSEO>>>;
 
-  if (loading) {
-    return <SirajLoading />;
-  }
+function itemTitle(item: SeoItem): string {
+  return item.titleAr || item.titleEn;
+}
 
-  if (missing || !item) {
-    return (
-      <div className="py-20 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          {t("العنصر غير موجود", "Item not found")}
-        </h1>
-        <Link href="/library" className="text-emerald-700 dark:text-emerald-400 hover:underline">
-          {t("العودة للمكتبة", "Back to library")}
-        </Link>
-      </div>
-    );
-  }
+function itemDescription(item: SeoItem): string {
+  return truncateText(
+    item.descriptionAr || item.descriptionEn || `${itemTitle(item)} في مكتبة سراج`
+  );
+}
 
-  const meta = TYPE_META[item.type] ?? TYPE_META.book;
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const item = await getItemSEO(id);
+  if (!item) return {};
+  const title = itemTitle(item);
+  const description = itemDescription(item);
+  const url = `/library/${id}`;
+  const image = absoluteUrl(item.coverImageUrl) ?? `${siteUrl()}/siraj-logo.png`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${title} | سراج`,
+      description,
+      url,
+      type: "website",
+      images: [{ url: image, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | سراج`,
+      description,
+      images: [image],
+    },
+  };
+}
 
+export default async function LibraryItemPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const item = await getItemSEO(id);
+  const base = siteUrl();
+  const title = item ? itemTitle(item) : null;
+  const image = item ? absoluteUrl(item.coverImageUrl) : undefined;
+  const published = item ? (item.publishedAt ?? item.createdAt) : null;
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "الرئيسية", item: `${base}/` },
+          { "@type": "ListItem", position: 2, name: "المكتبة", item: `${base}/library` },
+          ...(title ? [{ "@type": "ListItem", position: 3, name: title, item: `${base}/library/${id}` }] : []),
+        ],
+      },
+      ...(title && item
+        ? [
+            {
+              "@type": SCHEMA_TYPE[item.type] ?? "CreativeWork",
+              name: title,
+              ...(item.descriptionAr || item.descriptionEn ? { description: itemDescription(item) } : {}),
+              url: `${base}/library/${id}`,
+              inLanguage: ["ar", "en"],
+              publisher: { "@type": "Organization", name: "سراج", url: base },
+              ...(item.authorName ? { author: { "@type": "Person", name: item.authorName } } : {}),
+              ...(image ? { image } : {}),
+              ...(published ? { datePublished: published.toISOString() } : {}),
+            },
+          ]
+        : []),
+    ],
+  };
   return (
-    <div className="py-12 sm:py-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-8">
-          <Link href="/library" className="hover:text-emerald-600 dark:hover:text-emerald-400">{t("المكتبة", "Library")}</Link>
-          <span>/</span>
-          <span className="text-gray-900 dark:text-white">{t(item.titleAr, item.titleEn)}</span>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden">
-          <div className="p-8 sm:p-10">
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 mb-4 ${meta.badge}`}>
-              {meta.icon} {t(meta.label, meta.labelEn)}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>
-              {t(item.titleAr, item.titleEn)}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-6">
-              {item.authorName && (
-                <span className="flex items-center gap-1.5"><User size={14} /> {item.authorName}</span>
-              )}
-              {(item.categoryAr || item.categoryEn) && (
-                <span className="px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-lg">
-                  {t(item.categoryAr ?? "", item.categoryEn ?? "")}
-                </span>
-              )}
-              {item.publishedAt && (
-                <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(item.publishedAt).toLocaleDateString("ar")}</span>
-              )}
-            </div>
-            {(item.descriptionAr || item.descriptionEn) && (
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-8">
-                {t(item.descriptionAr ?? "", item.descriptionEn ?? "")}
-              </p>
-            )}
-            <a
-              href={item.contentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors"
-            >
-              <ExternalLink size={16} />
-              {t("فتح المحتوى", "Open content")}
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
+    <>
+      {/* JSON.stringify output escapes "<" so a "</script>" sequence inside
+          database text (e.g. an item title) can never break out of this tag. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <LibraryDetailClient id={id} />
+    </>
   );
 }

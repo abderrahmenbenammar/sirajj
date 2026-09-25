@@ -26,18 +26,21 @@ export interface ApiCategory {
   slug: string;
 }
 
-export async function fetchLibrary(params: {
-  type?: string;
-  q?: string;
-  categoryId?: string;
-  take?: number;
-}): Promise<{ items: ApiLibraryItem[]; total: number }> {
+export async function fetchLibrary(
+  params: {
+    type?: string;
+    q?: string;
+    categoryId?: string;
+    take?: number;
+  },
+  signal?: AbortSignal
+): Promise<{ items: ApiLibraryItem[]; total: number }> {
   const search = new URLSearchParams();
   if (params.type) search.set("type", params.type);
   if (params.q) search.set("q", params.q);
   if (params.categoryId) search.set("categoryId", params.categoryId);
   if (params.take !== undefined) search.set("take", String(params.take));
-  const response = await fetch(`/api/library?${search.toString()}`);
+  const response = await fetch(`/api/library?${search.toString()}`, signal ? { signal } : undefined);
   if (!response.ok) throw new Error(`library-${response.status}`);
   const data: unknown = await response.json();
   if (typeof data !== "object" || data === null) return { items: [], total: 0 };

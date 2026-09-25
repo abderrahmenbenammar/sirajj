@@ -49,6 +49,51 @@ html {
 
 body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  overflow-x: clip;
+}
+
+/* ---------------------------------------------------------------------------
+ * Keyboard focus visibility (SIRAJ)
+ * ---------------------------------------------------------------------------
+ * A clear emerald focus ring for keyboard users, in brand colors. Elements
+ * that already define their own Tailwind focus ring keep it; this only
+ * guarantees that no interactive element is left without ANY visible focus
+ * indicator (plain :focus outlines are never removed without replacement).
+ */
+:is(a, button, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--color-emerald-600);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+.dark :is(a, button, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+  outline-color: var(--color-emerald-400);
+}
+
+/* Stronger ring for admin fields (their :focus only shifts border color). */
+.admin-input:focus-visible {
+  outline: none;
+  border-color: rgb(16 185 129);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+
+/* ---------------------------------------------------------------------------
+ * Reduced motion (SIRAJ)
+ * ---------------------------------------------------------------------------
+ * Honors the OS "reduce motion" preference: smooth scrolling and decorative
+ * transitions/animations collapse to instant, without touching layout.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------------------------------------------------------------------------

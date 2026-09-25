@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   const { token, password } = await request.json();
-  if (typeof token !== "string" || typeof password !== "string" || password.length < 8) {
+  if (typeof token !== "string" || typeof password !== "string" || password.length < 8 || password.length > 128) {
     return NextResponse.json({ error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }, { status: 400 });
   }
 

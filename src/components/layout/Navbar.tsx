@@ -2,48 +2,80 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, X, Search, Sun, Moon, User, LogOut, ShieldCheck } from "lucide-react";
 import SirajTooltip from "@/components/ui/SirajTooltip";
+import { searchCourses } from "@/lib/courses-api";
 
 export default function Navbar() {
   const { lang, toggleLang, t } = useLang();
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [apiCourses, setApiCourses] = useState<{ id: string; title: string; titleEn: string }[]>([]);
-  const [apiLibrary, setApiLibrary] = useState<{ id: string; titleAr: string; titleEn: string; type: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [courseSug, setCourseSug] = useState<{ items: { id: string; title: string; titleEn: string }[]; total: number }>({ items: [], total: 0 });
+  const [libSug, setLibSug] = useState<{ items: { id: string; titleAr: string; titleEn: string }[]; total: number }>({ items: [], total: 0 });
 
-  // Real data for search suggestions (PostgreSQL via public APIs).
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+  };
+
+  // Unified server-side suggestions: debounced (300ms), stale requests
+  // aborted, real totals for honest counts.
   useEffect(() => {
-    if (!searchOpen) return;
-    if (apiCourses.length === 0) {
-      fetch("/api/courses")
-        .then((response) => (response.ok ? response.json() : []))
-        .then((data: unknown) => {
-          if (Array.isArray(data)) setApiCourses(data as { id: string; title: string; titleEn: string }[]);
-        })
-        .catch(() => undefined);
+    const q = searchQuery.trim();
+    if (!searchOpen || q.length < 2) {
+      setCourseSug({ items: [], total: 0 });
+      setLibSug({ items: [], total: 0 });
+      setSearching(false);
+      return;
     }
-    fetch("/api/library?take=5")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: unknown) => {
-        const items =
-          typeof data === "object" && data !== null && Array.isArray((data as { items?: unknown }).items)
-            ? ((data as { items: unknown }).items as { id: string; titleAr: string; titleEn: string; type: string }[])
-            : [];
-        setApiLibrary(items);
-      })
-      .catch(() => undefined);
-  }, [searchOpen, apiCourses.length]);
+    setSearching(true);
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const [courseSug, libraryRes] = await Promise.all([
+            searchCourses({ q, take: 6, signal: controller.signal }),
+            fetch(`/api/library?q=${encodeURIComponent(q)}&take=6`, { signal: controller.signal }),
+          ]);
+          if (controller.signal.aborted) return;
+          const libraryData: unknown = libraryRes.ok ? await libraryRes.json().catch(() => null) : null;
+          const courseItems = courseSug.items;
+          const courseTotal = courseSug.total;
+          const libItems =
+            typeof libraryData === "object" && libraryData !== null && Array.isArray((libraryData as { items?: unknown }).items)
+              ? ((libraryData as { items: unknown }).items as { id: string; titleAr: string; titleEn: string }[])
+              : [];
+          const libTotal =
+            typeof libraryData === "object" && libraryData !== null && typeof (libraryData as { total?: unknown }).total === "number"
+              ? ((libraryData as { total: number }).total)
+              : libItems.length;
+          setCourseSug({ items: courseItems.slice(0, 5), total: courseTotal });
+          setLibSug({ items: libItems.slice(0, 5), total: libTotal });
+        } catch {
+          // Aborted or failed: keep previous suggestions, never crash.
+        } finally {
+          if (!controller.signal.aborted) setSearching(false);
+        }
+      })();
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchOpen, searchQuery]);
 
   const navLinks = [
     { href: "/", label: t("الرئيسية", "Home") },
@@ -54,17 +86,11 @@ export default function Navbar() {
     { href: "/contact", label: t("اتصل بنا", "Contact") },
   ];
 
-  const courseResults = searchQuery.length > 1 ? apiCourses
-    .filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.titleEn.toLowerCase().includes(searchQuery.toLowerCase()))
-    .slice(0, 5)
-    .map((c) => ({ type: t("دورة", "Course"), title: t(c.title, c.titleEn), href: `/courses/${c.id}` })) : [];
-
-  const libraryResults = searchQuery.length > 1 ? apiLibrary
-    .filter((item) => item.titleAr.toLowerCase().includes(searchQuery.toLowerCase()) || item.titleEn.toLowerCase().includes(searchQuery.toLowerCase()))
-    .slice(0, 5)
-    .map((item) => ({ type: t("مكتبة", "Library"), title: t(item.titleAr, item.titleEn), href: `/library/${item.id}` })) : [];
-
-  const searchResults = [...courseResults, ...libraryResults].filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  const trimmedQuery = searchQuery.trim();
+  const queryActive = trimmedQuery.length > 1;
+  const courseResults = courseSug.items.map((c) => ({ type: t("دورة", "Course"), title: t(c.title, c.titleEn), href: `/courses/${c.id}` }));
+  const libraryResults = libSug.items.map((item) => ({ type: t("مكتبة", "Library"), title: t(item.titleAr, item.titleEn), href: `/library/${item.id}` }));
+  const hasResults = courseResults.length > 0 || libraryResults.length > 0;
 
   return (
     <>
@@ -149,10 +175,21 @@ export default function Navbar() {
 
               {/* Auth */}
               {isAuthenticated ? (
-                <div className="relative">
+                <div
+                  className="relative"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape" && userMenuOpen) {
+                      setUserMenuOpen(false);
+                      userMenuButtonRef.current?.focus();
+                    }
+                  }}
+                >
                   <SirajTooltip label={t("قائمة الحساب", "Account menu")} side="bottom">
                     <button
+                      ref={userMenuButtonRef}
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
+                      aria-expanded={userMenuOpen}
+                      aria-controls="navbar-user-menu"
                       className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                       <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
@@ -164,7 +201,7 @@ export default function Navbar() {
                     </button>
                   </SirajTooltip>
                   {userMenuOpen && (
-                    <div className="absolute top-full mt-2 end-0 w-52 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 py-2 z-50">
+                    <div id="navbar-user-menu" role="menu" className="absolute top-full mt-2 end-0 w-52 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 py-2 z-50">
                       {user?.role === "ADMIN" && (
                         <Link href="/admin" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" onClick={() => setUserMenuOpen(false)}>
                           <ShieldCheck size={15} />
@@ -207,6 +244,8 @@ export default function Navbar() {
               <SirajTooltip label={t("فتح/إغلاق القائمة", "Open or close the menu")} side="bottom">
                 <button
                   onClick={() => setMobileOpen(!mobileOpen)}
+                  aria-expanded={mobileOpen}
+                  aria-controls="navbar-mobile-menu"
                   className="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   aria-label={t("القائمة", "Menu")}
                 >
@@ -219,7 +258,13 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+          <div
+            id="navbar-mobile-menu"
+            className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setMobileOpen(false);
+            }}
+          >
             <div className="px-4 py-3 space-y-1">
               {navLinks.map((link) => (
                 <Link
@@ -259,8 +304,17 @@ export default function Navbar() {
                 <input
                   autoFocus
                   type="text"
+                  aria-label={t("ابحث عن دورات، كتب، مقالات...", "Search courses, books, articles...")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") closeSearch();
+                    if (e.key === "Enter" && searchQuery.trim().length > 1) {
+                      const q = searchQuery.trim();
+                      closeSearch();
+                      router.push(`/search?q=${encodeURIComponent(q)}`);
+                    }
+                  }}
                   placeholder={t("ابحث عن دورات، كتب، مقالات...", "Search courses, books, articles...")}
                   className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 outline-none text-sm"
                 />
@@ -270,26 +324,77 @@ export default function Navbar() {
                   </button>
                 </SirajTooltip>
               </div>
-              {searchResults.length > 0 && (
-                <div className="max-h-80 overflow-y-auto py-2">
-                  {searchResults.map((result, i) => (
-                    <Link
-                      key={i}
-                      href={result.href}
-                      onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded">
-                        {result.type}
-                      </span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{result.title}</span>
-                    </Link>
+              {queryActive && searching && (
+                <div className="px-5 py-6 space-y-2" aria-hidden="true">
+                  {[90, 70, 80].map((w, i) => (
+                    <div key={i} className="h-4 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" style={{ width: `${w}%` }} />
                   ))}
                 </div>
               )}
-              {searchQuery.length > 1 && searchResults.length === 0 && (
-                <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                  {t("لم يتم العثور على نتائج", "No results found")}
+              {queryActive && !searching && hasResults && (
+                <div className="max-h-80 overflow-y-auto py-2">
+                  {courseResults.length > 0 && (
+                    <div>
+                      <p className="px-5 pt-1 pb-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500">
+                        {t("الدورات", "Courses")} ({courseSug.total})
+                      </p>
+                      {courseResults.map((result) => (
+                        <Link
+                          key={result.href}
+                          href={result.href}
+                          onClick={closeSearch}
+                          className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded shrink-0">
+                            {result.type}
+                          </span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{result.title}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  {libraryResults.length > 0 && (
+                    <div>
+                      <p className="px-5 pt-1 pb-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500">
+                        {t("المكتبة", "Library")} ({libSug.total})
+                      </p>
+                      {libraryResults.map((result) => (
+                        <Link
+                          key={result.href}
+                          href={result.href}
+                          onClick={closeSearch}
+                          className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded shrink-0">
+                            {result.type}
+                          </span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{result.title}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  <Link
+                    href={`/search?q=${encodeURIComponent(trimmedQuery)}`}
+                    onClick={closeSearch}
+                    className="flex items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                  >
+                    {t("عرض جميع النتائج", "View all results")}
+                    <span aria-hidden="true" className="rtl:rotate-180">→</span>
+                  </Link>
+                </div>
+              )}
+              {queryActive && !searching && !hasResults && (
+                <div className="px-5 py-6 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    {t("لم يتم العثور على نتائج", "No results found")}
+                  </p>
+                  <Link
+                    href={`/search?q=${encodeURIComponent(trimmedQuery)}`}
+                    onClick={closeSearch}
+                    className="text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+                  >
+                    {t("عرض جميع النتائج", "View all results")}
+                  </Link>
                 </div>
               )}
             </div>

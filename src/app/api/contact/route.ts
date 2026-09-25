@@ -19,8 +19,13 @@ export async function POST(request: Request) {
   if (!name || !subject || !message) {
     return NextResponse.json({ error: "الاسم والموضوع والرسالة حقول مطلوبة" }, { status: 400 });
   }
-  if (!email || !EMAIL_RE.test(email)) {
+  if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "البريد الإلكتروني غير صالح" }, { status: 400 });
+  }
+  // Stored verbatim and shown in the admin panel: cap lengths so one
+  // request cannot stuff unbounded text into the database.
+  if (name.length > 100 || subject.length > 200 || message.length > 5000) {
+    return NextResponse.json({ error: "النص أطول من الحد المسموح" }, { status: 400 });
   }
 
   await prisma.contactMessage.create({

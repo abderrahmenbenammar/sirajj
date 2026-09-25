@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_LIST_CACHE_HEADERS } from "@/lib/http-cache";
 
 const LIBRARY_TYPES = ["book", "article", "research", "lecture"] as const;
 
@@ -77,5 +78,5 @@ export async function GET(request: Request) {
       publishedAt: item.publishedAt,
       createdAt: item.createdAt,
     })),
-  });
+  }, { headers: PUBLIC_LIST_CACHE_HEADERS });
 }

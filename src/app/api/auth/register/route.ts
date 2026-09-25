@@ -5,8 +5,19 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   const { name, email, password } = await request.json();
   const normalizedEmail = String(email ?? "").trim().toLowerCase();
+  const trimmedName = typeof name === "string" ? name.trim() : "";
 
-  if (!name || !/^\S+@\S+\.\S+$/.test(normalizedEmail) || typeof password !== "string" || password.length < 8) {
+  // Bounds: names are stored verbatim (pass length limits), passwords feed
+  // bcrypt (cap CPU cost), emails match the citext column realistically.
+  if (
+    trimmedName.length < 2 ||
+    trimmedName.length > 100 ||
+    normalizedEmail.length > 254 ||
+    !/^\S+@\S+\.\S+$/.test(normalizedEmail) ||
+    typeof password !== "string" ||
+    password.length < 8 ||
+    password.length > 128
+  ) {
     return NextResponse.json({ error: "البيانات غير صحيحة" }, { status: 400 });
   }
 
@@ -16,7 +27,7 @@ export async function POST(request: Request) {
   // v2 schema has no email-verification storage: accounts are usable right away.
   await prisma.user.create({
     data: {
-      fullName: String(name).trim(),
+      fullName: trimmedName,
       email: normalizedEmail,
       passwordHash: await bcrypt.hash(password, 12),
       authProvider: "email",

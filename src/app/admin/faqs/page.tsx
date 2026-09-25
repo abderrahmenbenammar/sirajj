@@ -78,11 +78,11 @@ export default function AdminFaqsPage() {
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
         <form onSubmit={(e) => void submitFaq(e)} className="grid sm:grid-cols-2 gap-2 mb-4">
-          <input required placeholder={t("السؤال بالعربية", "Arabic question")} value={faqForm.questionAr} onChange={(e) => setFaqForm({ ...faqForm, questionAr: e.target.value })} className="admin-input" />
-          <input required placeholder={t("السؤال بالإنجليزية", "English question")} value={faqForm.questionEn} onChange={(e) => setFaqForm({ ...faqForm, questionEn: e.target.value })} className="admin-input" />
-          <textarea required placeholder={t("الإجابة بالعربية", "Arabic answer")} value={faqForm.answerAr} onChange={(e) => setFaqForm({ ...faqForm, answerAr: e.target.value })} className="admin-input" />
-          <textarea required placeholder={t("الإجابة بالإنجليزية", "English answer")} value={faqForm.answerEn} onChange={(e) => setFaqForm({ ...faqForm, answerEn: e.target.value })} className="admin-input" />
-          <input type="number" min="0" placeholder="order" value={faqForm.orderIndex} onChange={(e) => setFaqForm({ ...faqForm, orderIndex: e.target.value })} className="admin-input" />
+          <input required placeholder={t("السؤال بالعربية", "Arabic question")} aria-label={t("السؤال بالعربية", "Arabic question")} value={faqForm.questionAr} onChange={(e) => setFaqForm({ ...faqForm, questionAr: e.target.value })} className="admin-input" />
+          <input required placeholder={t("السؤال بالإنجليزية", "English question")} aria-label={t("السؤال بالإنجليزية", "English question")} value={faqForm.questionEn} onChange={(e) => setFaqForm({ ...faqForm, questionEn: e.target.value })} className="admin-input" />
+          <textarea required placeholder={t("الإجابة بالعربية", "Arabic answer")} aria-label={t("الإجابة بالعربية", "Arabic answer")} value={faqForm.answerAr} onChange={(e) => setFaqForm({ ...faqForm, answerAr: e.target.value })} className="admin-input" />
+          <textarea required placeholder={t("الإجابة بالإنجليزية", "English answer")} aria-label={t("الإجابة بالإنجليزية", "English answer")} value={faqForm.answerEn} onChange={(e) => setFaqForm({ ...faqForm, answerEn: e.target.value })} className="admin-input" />
+          <input type="number" min="0" placeholder="order" aria-label="order" value={faqForm.orderIndex} onChange={(e) => setFaqForm({ ...faqForm, orderIndex: e.target.value })} className="admin-input" />
           <button className="admin-button">{t("إضافة سؤال", "Add question")}</button>
         </form>
         {loading ? (
@@ -100,9 +100,9 @@ export default function AdminFaqsPage() {
               <div key={faq.id} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm">
                 {editingFaqId === faq.id ? (
                   <div className="space-y-2">
-                    <input value={faqDraft.questionAr} onChange={(e) => setFaqDraft({ ...faqDraft, questionAr: e.target.value })} className="admin-input" />
-                    <textarea value={faqDraft.answerAr} onChange={(e) => setFaqDraft({ ...faqDraft, answerAr: e.target.value })} className="admin-input" />
-                    <input type="number" min="0" value={faqDraft.orderIndex} onChange={(e) => setFaqDraft({ ...faqDraft, orderIndex: e.target.value })} className="admin-input" />
+                    <input aria-label={t("السؤال بالعربية", "Arabic question")} value={faqDraft.questionAr} onChange={(e) => setFaqDraft({ ...faqDraft, questionAr: e.target.value })} className="admin-input" />
+                    <textarea aria-label={t("الإجابة بالعربية", "Arabic answer")} value={faqDraft.answerAr} onChange={(e) => setFaqDraft({ ...faqDraft, answerAr: e.target.value })} className="admin-input" />
+                    <input aria-label={t("الترتيب", "Order")} type="number" min="0" value={faqDraft.orderIndex} onChange={(e) => setFaqDraft({ ...faqDraft, orderIndex: e.target.value })} className="admin-input" />
                     <div className="flex gap-1">
                       <button type="button" onClick={() => void saveFaqEdit(faq.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                         {t("حفظ", "Save")}

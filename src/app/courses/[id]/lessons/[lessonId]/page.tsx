@@ -381,10 +381,28 @@ export default function LessonPage({
           <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col items-start gap-3">
             {isAuthenticated ? (
               completed ? (
-                <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-medium rounded-xl border border-emerald-200 dark:border-emerald-800/50">
-                  <CheckCircle size={16} />
-                  {t("مكتمل", "Completed")}
-                </span>
+                <>
+                  <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-medium rounded-xl border border-emerald-200 dark:border-emerald-800/50">
+                    <CheckCircle size={16} />
+                    {t("مكتمل", "Completed")}
+                  </span>
+                  {nextLesson && nextHref ? (
+                    <Link
+                      href={nextHref}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+                    >
+                      {t("الانتقال إلى الدرس التالي:", "Continue to the next lesson:")}{" "}
+                      <span className="min-w-0 max-w-[60vw] truncate">{t(nextLesson.title, nextLesson.titleEn)}</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/courses/${id}`}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+                    >
+                      {t("هذا آخر دروس الدورة — العودة إلى صفحة الدورة", "This is the last lesson — back to the course page")}
+                    </Link>
+                  )}
+                </>
               ) : (
                 <button
                   type="button"
@@ -455,20 +473,20 @@ export default function LessonPage({
           {prevLesson ? (
             <Link
               href={`/courses/${id}/lessons/${prevLesson.id}`}
-              className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
+              className="min-w-0 flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
             >
-              {lang === "ar" ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-              {t(prevLesson.title, prevLesson.titleEn)}
+              {lang === "ar" ? <ChevronRight size={16} className="shrink-0" /> : <ChevronLeft size={16} className="shrink-0" />}
+              <span className="min-w-0 truncate">{t(prevLesson.title, prevLesson.titleEn)}</span>
             </Link>
           ) : <div />}
           {nextLesson ? (
             examPassed ? (
               <Link
                 href={`/courses/${id}/lessons/${nextLesson.id}`}
-                className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+                className="min-w-0 flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
               >
-                {t(nextLesson.title, nextLesson.titleEn)}
-                {lang === "ar" ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                <span className="min-w-0 truncate">{t(nextLesson.title, nextLesson.titleEn)}</span>
+                {lang === "ar" ? <ChevronLeft size={16} className="shrink-0" /> : <ChevronRight size={16} className="shrink-0" />}
               </Link>
             ) : (
               <a
@@ -504,9 +522,9 @@ export default function LessonPage({
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400"
                 }`}
               >
-                <span className="w-6 text-center text-xs font-medium">{i + 1}</span>
+                <span className="w-6 text-center text-xs font-medium shrink-0">{i + 1}</span>
                 {getTypeIcon(item.type)}
-                <span className="flex-1">{t(item.title, item.titleEn)}</span>
+                <span className="flex-1 min-w-0 truncate">{t(item.title, item.titleEn)}</span>
                 {item.hasExam && (
                   <span className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
                     {t("اختبار مطلوب", "Exam required")}

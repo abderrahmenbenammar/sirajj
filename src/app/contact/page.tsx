@@ -106,7 +106,7 @@ export default function ContactPage() {
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
-                      placeholder={t("اسمك الكامل", "Your full name")}
+                      placeholder={t("اسمك الكامل", "Your full name")} aria-label={t("اسمك الكامل", "Your full name")}
                     />
                   </div>
                   <div>
@@ -117,7 +117,7 @@ export default function ContactPage() {
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
-                      placeholder={t("بريدك الإلكتروني", "Your email address")}
+                      placeholder={t("بريدك الإلكتروني", "Your email address")} aria-label={t("بريدك الإلكتروني", "Your email address")}
                     />
                   </div>
                 </div>
@@ -129,7 +129,7 @@ export default function ContactPage() {
                     value={form.subject}
                     onChange={(e) => setForm({ ...form, subject: e.target.value })}
                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
-                    placeholder={t("موضوع الرسالة", "Message subject")}
+                    placeholder={t("موضوع الرسالة", "Message subject")} aria-label={t("موضوع الرسالة", "Message subject")}
                   />
                 </div>
                 <div>
@@ -140,7 +140,7 @@ export default function ContactPage() {
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors resize-none"
-                    placeholder={t("اكتب رسالتك هنا...", "Write your message here...")}
+                    placeholder={t("اكتب رسالتك هنا...", "Write your message here...")} aria-label={t("اكتب رسالتك هنا...", "Write your message here...")}
                   />
                 </div>
                 <button

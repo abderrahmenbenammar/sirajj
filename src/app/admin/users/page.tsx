@@ -95,7 +95,7 @@ export default function AdminUsersPage() {
               <input
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                placeholder={t("بحث بالبريد أو الاسم...", "Search by email or name...")}
+                placeholder={t("بحث بالبريد أو الاسم...", "Search by email or name...")} aria-label={t("بحث بالبريد أو الاسم...", "Search by email or name...")}
                 className="admin-input flex-1"
               />
               <button type="submit" className="admin-button w-auto px-6">
