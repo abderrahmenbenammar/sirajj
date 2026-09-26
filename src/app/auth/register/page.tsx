@@ -3,14 +3,21 @@
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 
 export default function RegisterPage() {
   const { t } = useLang();
   const { register } = useAuth();
+  const { status } = useSession();
   const router = useRouter();
+  // Already signed in: there is nothing to do here (prevents a logged-in
+  // student from sitting on auth pages after any redirect).
+  useEffect(() => {
+    if (status === "authenticated") router.replace("/dashboard");
+  }, [status, router]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

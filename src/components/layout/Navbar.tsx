@@ -111,7 +111,7 @@ export default function Navbar() {
                 alt=""
                 width={2048}
                 height={2048}
-                className="h-10 sm:h-12 min-[1200px]:h-14 aspect-[1284/742] w-auto object-cover object-center shrink-0"
+                className="hidden min-[360px]:block h-10 sm:h-12 min-[1200px]:h-14 aspect-[1284/742] w-auto object-cover object-center shrink-0"
               />
               <img
                 src="/siraj-logo.png"

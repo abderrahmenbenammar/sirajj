@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
+import { useAuth } from "@/lib/auth-context";
 import { fetchLibrary } from "@/lib/library-api";
 import { searchCourses, type CourseCardData } from "@/lib/courses-api";
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import { ArrowLeft, ArrowRight, BookOpen, FileText, Search, Mic, Sparkles, Gradu
 
 export default function HomePage() {
   const { t, lang } = useLang();
+  const { isAuthenticated, isAuthLoading } = useAuth();
   const [featuredCourses, setFeaturedCourses] = useState<CourseCardData[]>([]);
   const [totalCourses, setTotalCourses] = useState(0);
   const [libraryCounts, setLibraryCounts] = useState({ book: 0, article: 0, research: 0, lecture: 0 });
@@ -214,21 +216,44 @@ export default function HomePage() {
                   "Join thousands of students specializing in Islamic sciences and get full access to our courses and library."
                 )}
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/auth/register"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-emerald-700 font-semibold rounded-xl hover:bg-emerald-50 transition-all duration-200 shadow-lg hover:-translate-y-0.5"
-                >
-                  {t("سجل مجاناً", "Register Free")}
-                  {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
-                </Link>
-                <Link
-                  href="/about"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-500/20 text-white font-semibold rounded-xl hover:bg-emerald-500/30 border border-emerald-400/30 transition-all duration-200"
-                >
-                  {t("تعرف علينا أكثر", "Learn More About Us")}
-                </Link>
-              </div>
+              {isAuthLoading ? (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4" aria-hidden="true">
+                  <div className="h-[52px] w-48 rounded-xl bg-white/20 animate-pulse" />
+                  <div className="h-[52px] w-48 rounded-xl bg-white/10 animate-pulse" />
+                </div>
+              ) : isAuthenticated ? (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-emerald-700 font-semibold rounded-xl hover:bg-emerald-50 transition-all duration-200 shadow-lg hover:-translate-y-0.5"
+                  >
+                    {t("متابعة التعلم", "Continue learning")}
+                    {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
+                  </Link>
+                  <Link
+                    href="/about"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-500/20 text-white font-semibold rounded-xl hover:bg-emerald-500/30 border border-emerald-400/30 transition-all duration-200"
+                  >
+                    {t("تعرف علينا أكثر", "Learn More About Us")}
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link
+                    href="/auth/register"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-emerald-700 font-semibold rounded-xl hover:bg-emerald-50 transition-all duration-200 shadow-lg hover:-translate-y-0.5"
+                  >
+                    {t("سجل مجاناً", "Register Free")}
+                    {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
+                  </Link>
+                  <Link
+                    href="/about"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-500/20 text-white font-semibold rounded-xl hover:bg-emerald-500/30 border border-emerald-400/30 transition-all duration-200"
+                  >
+                    {t("تعرف علينا أكثر", "Learn More About Us")}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
