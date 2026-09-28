@@ -114,13 +114,16 @@ export default function AdminCourseEditorPage() {
   }, [course]);
 
   const uploadFile = async (file: File, kind: "image" | "video" | "document") => {
+    if (file.size > 4 * 1024 * 1024) { throw new Error("حجم الملف يجب أن لا يتجاوز 4 ميغابايت لتجنب قيود الخادم."); }
     const formData = new FormData();
     formData.append("file", file);
     formData.append("kind", kind);
+    // NOTE: no manual Content-Type header — the browser must set
+    // multipart/form-data with its own boundary.
     const response = await fetch("/api/admin/upload", { method: "POST", body: formData });
     if (!response.ok) {
       const result = await response.json().catch(() => null);
-      throw new Error(result?.error ?? "upload failed");
+      throw new Error(result?.error ?? `فشل الرفع (HTTP ${response.status})`);
     }
     return (await response.json()).url as string;
   };
