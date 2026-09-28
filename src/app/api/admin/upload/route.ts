@@ -1,15 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getSupabaseAdmin, STORAGE_BUCKETS, getStorageBucketUrl } from "@/lib/supabase-storage";
+import { getSupabaseAdmin, getStorageBucketUrl } from "@/lib/supabase-storage";
+import { UPLOAD_RULES, isUploadKind } from "@/lib/upload-rules";
 
 export const runtime = "nodejs";
-
-const rules = {
-  image: { types: new Set(["image/jpeg", "image/png", "image/webp"]), maxSize: 10 * 1024 * 1024, bucket: STORAGE_BUCKETS.images },
-  video: { types: new Set(["video/mp4", "video/webm", "video/quicktime"]), maxSize: 250 * 1024 * 1024, bucket: STORAGE_BUCKETS.videos },
-  document: { types: new Set(["application/pdf", "text/plain"]), maxSize: 25 * 1024 * 1024, bucket: STORAGE_BUCKETS.documents },
-} as const;
 
 export async function POST(request: Request) {
   const guard = await requireAdmin();
@@ -19,7 +14,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file");
     const kind = formData.get("kind");
-    const rule = typeof kind === "string" && kind in rules ? rules[kind as keyof typeof rules] : null;
+    const rule = isUploadKind(kind) ? UPLOAD_RULES[kind] : null;
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "لم يتم اختيار ملف" }, { status: 400 });

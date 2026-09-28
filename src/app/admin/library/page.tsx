@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ImagePlus, LibraryBig } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { uploadFileDirect } from "@/lib/admin-upload";
 import PageHeader from "@/components/admin/PageHeader";
 import { ListSkeleton } from "@/components/admin/AdminSkeleton";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
@@ -41,27 +42,12 @@ export default function AdminLibraryPage() {
     void loadLibrary();
   }, [loadLibrary]);
 
-  const uploadFile = async (file: File, kind: "image" | "video" | "document") => {
-    if (file.size > 4 * 1024 * 1024) { throw new Error("حجم الملف يجب أن لا يتجاوز 4 ميغابايت لتجنب قيود الخادم."); }
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("kind", kind);
-    // NOTE: no manual Content-Type header — the browser must set
-    // multipart/form-data with its own boundary.
-    const response = await fetch("/api/admin/upload", { method: "POST", body: formData });
-    if (!response.ok) {
-      const result = await response.json().catch(() => null);
-      throw new Error(result?.error ?? `فشل الرفع (HTTP ${response.status})`);
-    }
-    return (await response.json()).url as string;
-  };
-
   const submitLibrary = async (event: FormEvent) => {
     event.preventDefault();
     try {
       const fileKind = libraryFile?.type.startsWith("image/") ? "image" : libraryFile?.type.startsWith("video/") ? "video" : "document";
-      const mediaUrl = libraryFile ? await uploadFile(libraryFile, fileKind) : libraryForm.mediaUrl;
-      const coverImageUrl = libraryCoverFile ? await uploadFile(libraryCoverFile, "image") : null;
+      const mediaUrl = libraryFile ? await uploadFileDirect(libraryFile, fileKind) : libraryForm.mediaUrl;
+      const coverImageUrl = libraryCoverFile ? await uploadFileDirect(libraryCoverFile, "image") : null;
       if (libraryCoverFile) notify(t("تم رفع الغلاف بنجاح", "Cover uploaded successfully"), "success");
       const response = await fetch("/api/admin/library", {
         method: "POST",
@@ -97,7 +83,7 @@ export default function AdminLibraryPage() {
     try {
       let coverImageUrl: string | null | undefined;
       if (editCover.file) {
-        coverImageUrl = await uploadFile(editCover.file, "image");
+        coverImageUrl = await uploadFileDirect(editCover.file, "image");
         notify(t("تم رفع الغلاف بنجاح", "Cover uploaded successfully"), "success");
       } else if (editCover.removeCover) {
         coverImageUrl = "";

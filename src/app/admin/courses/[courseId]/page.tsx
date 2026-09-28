@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { ArrowRight, BookPlus, Film, GraduationCap, ImagePlus, ListPlus, Trash2, Users } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { uploadFileDirect } from "@/lib/admin-upload";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 import { formatDurationDetailed } from "@/lib/certificates/layout";
 import { parseDurationFields, splitDuration } from "@/components/admin/format";
@@ -113,21 +114,6 @@ export default function AdminCourseEditorPage() {
     }
   }, [course]);
 
-  const uploadFile = async (file: File, kind: "image" | "video" | "document") => {
-    if (file.size > 4 * 1024 * 1024) { throw new Error("حجم الملف يجب أن لا يتجاوز 4 ميغابايت لتجنب قيود الخادم."); }
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("kind", kind);
-    // NOTE: no manual Content-Type header — the browser must set
-    // multipart/form-data with its own boundary.
-    const response = await fetch("/api/admin/upload", { method: "POST", body: formData });
-    if (!response.ok) {
-      const result = await response.json().catch(() => null);
-      throw new Error(result?.error ?? `فشل الرفع (HTTP ${response.status})`);
-    }
-    return (await response.json()).url as string;
-  };
-
   // Capture the uploaded file's own length from its metadata (never typed by
   // hand): sent with the lesson payload so hosted videos get a real duration.
   const handleLessonVideo = (file: File | null) => {
@@ -160,7 +146,7 @@ export default function AdminCourseEditorPage() {
       return;
     }
     try {
-      const coverImageUrl = editCourseImage ? await uploadFile(editCourseImage, "image") : editForm.coverImageUrl;
+      const coverImageUrl = editCourseImage ? await uploadFileDirect(editCourseImage, "image") : editForm.coverImageUrl;
       const payload = {
         titleAr: editForm.titleAr,
         titleEn: editForm.titleEn,
@@ -193,7 +179,7 @@ export default function AdminCourseEditorPage() {
     event.preventDefault();
     if (!course) return;
     try {
-      const videoUrl = lessonVideo ? await uploadFile(lessonVideo, "video") : lessonForm.videoUrl;
+      const videoUrl = lessonVideo ? await uploadFileDirect(lessonVideo, "video") : lessonForm.videoUrl;
       const response = await fetch("/api/admin/lessons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
