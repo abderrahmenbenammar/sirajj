@@ -61,7 +61,7 @@ export default function AdminCourseEditorPage() {
   const [lessonForm, setLessonForm] = useState({ titleAr: "", titleEn: "", videoUrl: "" });
   const [lessonVideo, setLessonVideo] = useState<File | null>(null);
   const [lessonVideoSeconds, setLessonVideoSeconds] = useState<number | null>(null);
-  const [refreshingDuration, setRefreshingDuration] = useState(false);
+  const [calculatingDuration, setCalculatingDuration] = useState(false);
   const initializedFor = useRef("");
 
   const loadAll = useCallback(async () => {
@@ -212,17 +212,19 @@ export default function AdminCourseEditorPage() {
     }
   };
 
-  // Recompute a course's video total (missing YouTube lengths refetched;
-  // force also refreshes cached ones). Public pages never trigger this.
-  const refreshCourseDuration = async (id: string, force: boolean) => {
-    setRefreshingDuration(true);
+  // Sum the lessons' stored video lengths and save the total to
+  // Course.durationSeconds (unknown/NULL lesson lengths count as 0).
+  // Cards, course pages, and certificates read that field, so saving it
+  // here is enough — no other UI needs to change.
+  const calculateCourseDuration = async (id: string) => {
+    setCalculatingDuration(true);
     try {
-      const response = await fetch(`/api/admin/courses/${id}/refresh-duration${force ? "?force=1" : ""}`, { method: "POST" });
+      const response = await fetch(`/api/admin/courses/${id}/calculate-duration`, { method: "POST" });
       const result = await response.json().catch(() => null);
-      notify(response.ok ? t("تم تحديث مدة الدورة", "Course duration refreshed") : (result?.error ?? t("تعذر تحديث المدة", "Could not refresh duration")), response.ok ? "success" : "error");
+      notify(response.ok ? t("تم حساب وحفظ مدة الدورة بنجاح", "Course duration calculated and saved") : (result?.error ?? t("تعذر حساب المدة", "Could not calculate duration")), response.ok ? "success" : "error");
       if (response.ok) await loadAll();
     } finally {
-      setRefreshingDuration(false);
+      setCalculatingDuration(false);
     }
   };
 
@@ -317,16 +319,11 @@ export default function AdminCourseEditorPage() {
           </h2>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="text-gray-600 dark:text-gray-300">
-              {t("المدة المحسوبة من الفيديوهات", "Computed video duration")}: <strong>{formatDurationDetailed(course.computedDurationSeconds ?? null)}</strong>
+              {t("المدة الحالية", "Current duration")}: <strong>{formatDurationDetailed(course.durationSeconds ?? null)}</strong>
             </span>
-            <button type="button" disabled={refreshingDuration} onClick={() => void refreshCourseDuration(course.id, false)} className="text-xs px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 disabled:opacity-40">
-              {t("إعادة حساب المدة", "Recompute duration")}
+            <button type="button" disabled={calculatingDuration} onClick={() => void calculateCourseDuration(course.id)} className="text-xs px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 disabled:opacity-40">
+              {calculatingDuration ? t("جارٍ الحساب…", "Calculating…") : t("حساب مدة الدورة", "Calculate course duration")}
             </button>
-            <SirajTooltip label={t("إعادة جلب مدد فيديوهات YouTube من جديد", "Refetch YouTube video lengths")} side="top">
-              <button type="button" disabled={refreshingDuration} onClick={() => void refreshCourseDuration(course.id, true)} className="text-xs px-2.5 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40">
-                {t("تحديث قسري", "Force refresh")}
-              </button>
-            </SirajTooltip>
           </div>
           <DurationEditor
             hours={durationHours}
