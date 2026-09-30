@@ -1,5 +1,4 @@
 /* Siraj PWA Service Worker — App Router compatible, no external deps. */
-/* eslint-disable no-restricted-globals */
 
 const CACHE_VERSION = "siraj-v1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;

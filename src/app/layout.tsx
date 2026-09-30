@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Naskh_Arabic, Inter } from "next/font/google";
 import Providers from "@/components/layout/Providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import PwaInstallPrompt from "@/components/pwa/PwaInstallPrompt";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import "./globals.css";
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-[var(--font-noto-naskh),var(--font-inter),sans-serif]">
         <ServiceWorkerRegister />
+        <PwaInstallPrompt />
         <Providers>
           <Navbar />
           <main className="flex-1 pt-16 lg:pt-18">{children}</main>
