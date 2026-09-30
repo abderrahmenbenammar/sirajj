@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Naskh_Arabic, Inter } from "next/font/google";
 import Providers from "@/components/layout/Providers";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import "./globals.css";
@@ -18,6 +19,13 @@ const inter = Inter({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#059669",
+};
+
 export const metadata: Metadata = {
   title: {
     default: "سراج | أكاديمية التعليم الإسلامي",
@@ -26,6 +34,28 @@ export const metadata: Metadata = {
   description:
     "أكاديمية تعليمية إسلامية حديثة تجعل العلم الشرعي في متناول الجميع. دورات، كتب، أبحاث، ومحاضرات.",
   keywords: ["Islamic learning", "education", "courses", "Quran", "Hadith", "Fiqh", "Aqeedah"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "سراج",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -35,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${notoNaskhArabic.variable} ${inter.variable}`}
     >
       <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-[var(--font-noto-naskh),var(--font-inter),sans-serif]">
+        <ServiceWorkerRegister />
         <Providers>
           <Navbar />
           <main className="flex-1 pt-16 lg:pt-18">{children}</main>
