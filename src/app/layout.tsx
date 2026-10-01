@@ -70,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PwaInstallPrompt />
         <Providers>
           <Navbar />
-          <main className="flex-1 pt-16 lg:pt-18">{children}</main>
+          <main className="flex-1 pt-[calc(4rem_+_env(safe-area-inset-top))] lg:pt-[calc(4.5rem_+_env(safe-area-inset-top))]">{children}</main>
           <Footer />
         </Providers>
       </body>

@@ -151,3 +151,22 @@ html:not(.dark) .border-gray-200\/60:not(.theme-dark-surface *) {
   background: rgb(31 41 55);
   color: white;
 }
+
+/* ---------------------------------------------------------------------------
+ * Safe-area support (SIRAJ) — Capacitor native shells + standalone PWA
+ * ---------------------------------------------------------------------------
+ * env(safe-area-inset-top) resolves to 0px in regular desktop browsers, so
+ * these utilities are no-ops on web and never leave a blank gap above the
+ * header. Requires viewport-fit=cover (already set in src/app/layout.tsx)
+ * to be non-zero on notched phones. Applies padding — not margin — so the
+ * header's own background/blur covers the status-bar strip.
+ */
+
+@utility safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
