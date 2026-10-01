@@ -66,11 +66,16 @@ export async function GET(_request: Request, { params }: Context) {
 
   let resumeSeconds = 0;
   if (studentId) {
-    const progress = await prisma.studentLessonProgress.findUnique({
-      where: { studentId_lessonId: { studentId, lessonId } },
-      select: { resumeSeconds: true },
-    });
-    resumeSeconds = progress?.resumeSeconds ?? 0;
+    try {
+      const progress = await prisma.studentLessonProgress.findUnique({
+        where: { studentId_lessonId: { studentId, lessonId } },
+        select: { resumeSeconds: true },
+      });
+      resumeSeconds = progress?.resumeSeconds ?? 0;
+    } catch (error) {
+      console.error("[lesson-resume] failed to load resumeSeconds", lessonId, error);
+      resumeSeconds = 0;
+    }
   }
 
   return NextResponse.json({
