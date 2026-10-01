@@ -8,6 +8,7 @@ import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import type { ExamDetail } from "@/lib/exams-api";
 import ExamRunner from "@/components/exams/ExamRunner";
 import LessonVideoPlayer from "@/components/lesson/LessonVideoPlayer";
+import LessonQA from "@/components/lesson/LessonQA";
 import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle, Lock, ClipboardList } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
@@ -33,7 +34,7 @@ export default function LessonPage({
 }) {
   const { id, lessonId } = use(params);
   const { t, lang } = useLang();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [course, setCourse] = useState<ApiCourse | null | undefined>(undefined);
   const [lessonData, setLessonData] = useState<GatedLesson | null>(null);
   const [exams, setExams] = useState<ExamDetail[]>([]);
@@ -317,6 +318,13 @@ export default function LessonPage({
             </>
           );
         })()}
+
+        {/* Lesson Q&A: questions under the lesson video */}
+        <LessonQA
+          key={lessonId}
+          lessonId={lessonId}
+          currentUser={user ? { id: user.id, name: user.name, role: user.role ?? "STUDENT" } : null}
+        />
 
         {/* Lesson Info */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6 sm:p-8 mb-6">

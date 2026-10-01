@@ -35,6 +35,7 @@ model User {
   courseProgress    StudentCourseProgress[]
   lessonCompletions LessonCompletion[]
   lessonProgresses  StudentLessonProgress[]
+  lessonQuestions   LessonQuestion[]
   sessions          UserSession[]
   resetTokens       PasswordResetToken[]
 
@@ -128,6 +129,7 @@ model Lesson {
 
   completions LessonCompletion[]
   progress     StudentLessonProgress[]
+  questions    LessonQuestion[]
   exams        Exam[]
 
   @@unique([courseId, orderIndex], map: "lessons_course_id_order_index_key")
@@ -390,6 +392,27 @@ model StudentLessonProgress {
   @@index([studentId], map: "idx_student_lesson_progress_student")
   @@index([lessonId], map: "idx_student_lesson_progress_lesson")
   @@map("student_lesson_progress")
+}
+
+// Lesson Q&A: students ask questions under a lesson video; replies are a
+// self-relation (parentId) keeping threads at two levels (question → replies).
+model LessonQuestion {
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content   String
+  lessonId  String          @map("lesson_id") @db.Uuid
+  lesson    Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  userId    String          @map("user_id") @db.Uuid
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?         @map("parent_id") @db.Uuid
+  parent    LessonQuestion? @relation("LessonQuestionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   LessonQuestion[] @relation("LessonQuestionReplies")
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([lessonId], map: "idx_lesson_questions_lesson")
+  @@index([parentId], map: "idx_lesson_questions_parent")
+  @@index([userId], map: "idx_lesson_questions_user")
+  @@map("lesson_questions")
 }
 
 model ContactMessage {
