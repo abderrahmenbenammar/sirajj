@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Pencil, Send, Trash2 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 
 interface QAUser {
@@ -37,6 +37,9 @@ interface LessonQAProps {
 
 const MAX_CONTENT_LENGTH = 2000;
 
+const textareaClass =
+  "w-full resize-y rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500";
+
 function formatRelativeDate(iso: string, locale: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -46,8 +49,56 @@ function formatRelativeDate(iso: string, locale: string): string {
   if (absolute < 60) return rtf.format(diffSeconds, "second");
   if (absolute < 60 * 60) return rtf.format(Math.round(diffSeconds / 60), "minute");
   if (absolute < 24 * 60 * 60) return rtf.format(Math.round(diffSeconds / 3600), "hour");
-  if (absolute < 7 * 24 * 60 * 60) return rtf.format(Math.round(diffSeconds / 86400), "day");
+  if (absolute < 7 * 24 * 60 * 60) return rtf.format(Math.round(diffSeconds / (24 * 60 * 60)), "day");
   return date.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" });
+}
+
+// Top-level (module scope, not nested in the parent) so React keeps the
+// textarea mounted while typing — a nested definition would remount it and
+// steal focus on every keystroke.
+interface EditFormProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  error: string;
+  rows: number;
+}
+
+function EditForm({ value, onChange, onSave, onCancel, saving, error, rows }: EditFormProps) {
+  const { t } = useLang();
+  return (
+    <div className="mt-1">
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={rows}
+        maxLength={MAX_CONTENT_LENGTH}
+        autoFocus
+        className={textareaClass}
+      />
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving || value.trim().length === 0}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+        >
+          {saving ? t("جارٍ الحفظ...", "Saving...") : t("حفظ", "Save")}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+        >
+          {t("إلغاء", "Cancel")}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  );
 }
 
 export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
@@ -64,6 +115,14 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
   const [replyDraft, setReplyDraft] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [replyError, setReplyError] = useState("");
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -87,8 +146,14 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
     if (response.status === 401) {
       return t("انتهت الجلسة، يرجى تسجيل الدخول من جديد", "Session expired, please sign in again");
     }
+    if (response.status === 403) {
+      return t("لا تملك صلاحية لهذا الإجراء", "You are not allowed to perform this action");
+    }
     return t(fallbackAr, fallbackEn);
   };
+
+  const canManage = (user: QAUser): boolean =>
+    currentUser !== null && (currentUser.id === user.id || currentUser.role === "ADMIN");
 
   const submitQuestion = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -161,9 +226,101 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
     setReplyError("");
   };
 
+  const startEdit = (item: { id: string; content: string }) => {
+    setEditingId(item.id);
+    setEditDraft(item.content);
+    setEditError("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditDraft("");
+    setEditError("");
+  };
+
+  // replyId === null -> editing the question itself, otherwise a reply of
+  // that question. The target row is always (questionId, replyId ?? questionId).
+  const saveEdit = async (questionId: string, replyId: string | null) => {
+    const content = editDraft.trim();
+    if (!content || isSaving) return;
+    const targetId = replyId ?? questionId;
+    setIsSaving(true);
+    setEditError("");
+    try {
+      const response = await fetch(`/api/lessons/${lessonId}/questions/${targetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!response.ok) {
+        setEditError(postError(response, "تعذر حفظ التعديل، حاول مجددًا", "Could not save the edit, try again"));
+        return;
+      }
+      if (replyId === null) {
+        setQuestions((prev) =>
+          prev.map((question) => (question.id === questionId ? { ...question, content } : question)),
+        );
+      } else {
+        setQuestions((prev) =>
+          prev.map((question) =>
+            question.id === questionId
+              ? {
+                  ...question,
+                  replies: question.replies.map((reply) =>
+                    reply.id === replyId ? { ...reply, content } : reply,
+                  ),
+                }
+              : question,
+          ),
+        );
+      }
+      cancelEdit();
+    } catch {
+      setEditError(t("تعذر حفظ التعديل، حاول مجددًا", "Could not save the edit, try again"));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteItem = async (questionId: string, replyId: string | null) => {
+    if (
+      !window.confirm(t("هل أنت متأكد من الحذف؟", "Are you sure you want to delete this?"))
+    ) {
+      return;
+    }
+    const targetId = replyId ?? questionId;
+    setIsDeleting(targetId);
+    setDeleteError("");
+    try {
+      const response = await fetch(`/api/lessons/${lessonId}/questions/${targetId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        setDeleteError(postError(response, "تعذر حذف العنصر، حاول مجددًا", "Could not delete the item, try again"));
+        return;
+      }
+      if (replyId === null) {
+        // Removing the question also removes its replies from the UI.
+        setQuestions((prev) => prev.filter((question) => question.id !== questionId));
+        if (replyingTo === questionId) closeReply();
+      } else {
+        setQuestions((prev) =>
+          prev.map((question) =>
+            question.id === questionId
+              ? { ...question, replies: question.replies.filter((reply) => reply.id !== replyId) }
+              : question,
+          ),
+        );
+      }
+      if (editingId === targetId) cancelEdit();
+    } catch {
+      setDeleteError(t("تعذر حذف العنصر، حاول مجددًا", "Could not delete the item, try again"));
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   const locale = lang === "ar" ? "ar" : "en";
-  const textareaClass =
-    "w-full resize-y rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500";
 
   const authorBadge = (role: string) =>
     role === "ADMIN" ? (
@@ -171,6 +328,35 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
         {t("مشرف", "Admin")}
       </span>
     ) : null;
+
+  const actionButtons = (user: QAUser, questionId: string, replyId: string | null, content: string) => {
+    if (!canManage(user)) return null;
+    const targetId = replyId ?? questionId;
+    return (
+      <span className="ms-auto inline-flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => startEdit({ id: targetId, content })}
+          disabled={isDeleting !== null || isSaving}
+          aria-label={t("تعديل", "Edit")}
+          title={t("تعديل", "Edit")}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors disabled:opacity-50"
+        >
+          <Pencil size={13} />
+        </button>
+        <button
+          type="button"
+          onClick={() => deleteItem(questionId, replyId)}
+          disabled={isDeleting !== null || isSaving}
+          aria-label={t("حذف", "Delete")}
+          title={t("حذف", "Delete")}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-50"
+        >
+          <Trash2 size={13} />
+        </button>
+      </span>
+    );
+  };
 
   return (
     <section
@@ -260,6 +446,9 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
 
       {status === "ready" && questions.length > 0 && (
         <div className="space-y-6">
+          {deleteError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+          )}
           {questions.map((question) => (
             <article
               key={question.id}
@@ -273,10 +462,24 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                 <span className="text-xs text-gray-400">
                   {formatRelativeDate(question.createdAt, locale)}
                 </span>
+                {actionButtons(question.user, question.id, null, question.content)}
               </div>
-              <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line leading-relaxed">
-                {question.content}
-              </p>
+
+              {editingId === question.id ? (
+                <EditForm
+                  value={editDraft}
+                  onChange={setEditDraft}
+                  onSave={() => saveEdit(question.id, null)}
+                  onCancel={cancelEdit}
+                  saving={isSaving}
+                  error={editError}
+                  rows={3}
+                />
+              ) : (
+                <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line leading-relaxed">
+                  {question.content}
+                </p>
+              )}
 
               <div className="mt-3">
                 <button
@@ -305,10 +508,24 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                         <span className="text-xs text-gray-400">
                           {formatRelativeDate(reply.createdAt, locale)}
                         </span>
+                        {actionButtons(reply.user, question.id, reply.id, reply.content)}
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
-                        {reply.content}
-                      </p>
+
+                      {editingId === reply.id ? (
+                        <EditForm
+                          value={editDraft}
+                          onChange={setEditDraft}
+                          onSave={() => saveEdit(question.id, reply.id)}
+                          onCancel={cancelEdit}
+                          saving={isSaving}
+                          error={editError}
+                          rows={2}
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                          {reply.content}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
