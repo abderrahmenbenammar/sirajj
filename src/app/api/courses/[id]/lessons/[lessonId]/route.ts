@@ -64,6 +64,15 @@ export async function GET(_request: Request, { params }: Context) {
   const linkedExams = gate.examsByLesson.get(lessonId) ?? [];
   const exams = await Promise.all(linkedExams.map((exam) => buildExamDetail(exam.id, studentId)));
 
+  let resumeSeconds = 0;
+  if (studentId) {
+    const progress = await prisma.studentLessonProgress.findUnique({
+      where: { studentId_lessonId: { studentId, lessonId } },
+      select: { resumeSeconds: true },
+    });
+    resumeSeconds = progress?.resumeSeconds ?? 0;
+  }
+
   return NextResponse.json({
     course,
     lesson: {
@@ -73,6 +82,9 @@ export async function GET(_request: Request, { params }: Context) {
       orderIndex: lesson.orderIndex,
       videoUrl: lesson.videoUrl,
     },
+    // Smart Video Resume: last saved playback position (0 when logged out
+    // or never watched), used by the client player to restore the timestamp.
+    resumeSeconds,
     // examPassed means "this lesson's own gate is satisfied", so the next
     // lesson is reachable (when the exam list is empty it is trivially true).
     examPassed: gate.clearedLessonIds.has(lessonId),

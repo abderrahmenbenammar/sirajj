@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import type { ExamDetail } from "@/lib/exams-api";
 import ExamRunner from "@/components/exams/ExamRunner";
+import LessonVideoPlayer from "@/components/lesson/LessonVideoPlayer";
 import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle, Lock, ClipboardList } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
@@ -42,6 +43,7 @@ export default function LessonPage({
   const [completed, setCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completeError, setCompleteError] = useState("");
+  const [resumeSeconds, setResumeSeconds] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -72,9 +74,10 @@ export default function LessonPage({
           setGateStatus("error");
           return;
         }
-        const body: { lesson: GatedLesson; exams?: ExamDetail[]; examPassed?: boolean } = await response.json();
+        const body: { lesson: GatedLesson; exams?: ExamDetail[]; examPassed?: boolean; resumeSeconds?: number } = await response.json();
         if (!active) return;
         setLessonData(body.lesson);
+        setResumeSeconds(typeof body.resumeSeconds === "number" && body.resumeSeconds > 0 ? body.resumeSeconds : 0);
         setExams(Array.isArray(body.exams) ? body.exams : []);
         setExamPassed(body.examPassed !== false);
         setGateStatus("ok");
@@ -266,12 +269,13 @@ export default function LessonPage({
             <>
               <div className="aspect-video bg-gray-900 dark:bg-gray-950 rounded-2xl overflow-hidden mb-8 border border-gray-800">
                 {isMp4 ? (
-                  <video
-                    src={videoUrl}
+                  <LessonVideoPlayer
+                    key={lessonId}
+                    lessonId={lessonId}
+                    videoUrl={videoUrl}
                     title={t(lesson.title, lesson.titleEn)}
-                    className="w-full h-full"
-                    controls
-                    preload="metadata"
+                    initialResumeSeconds={resumeSeconds}
+                    enabled={isAuthenticated}
                   />
                 ) : embedUrl ? (
                   <iframe

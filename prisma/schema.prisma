@@ -34,6 +34,7 @@ model User {
   certificates      Certificate[]
   courseProgress    StudentCourseProgress[]
   lessonCompletions LessonCompletion[]
+  lessonProgresses  StudentLessonProgress[]
   sessions          UserSession[]
   resetTokens       PasswordResetToken[]
 
@@ -126,6 +127,7 @@ model Lesson {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   completions LessonCompletion[]
+  progress     StudentLessonProgress[]
   exams        Exam[]
 
   @@unique([courseId, orderIndex], map: "lessons_course_id_order_index_key")
@@ -368,6 +370,26 @@ model LessonCompletion {
   @@index([studentId], map: "idx_lesson_completions_student")
   @@index([lessonId], map: "idx_lesson_completions_lesson")
   @@map("lesson_completions")
+}
+
+// Smart Video Resume (الاستئناف الذكي): last playback position per student per
+// lesson. Deliberately separate from LessonCompletion — a row there means
+// "lesson completed" (progress %, certificates), while this row may exist for
+// a partially watched lesson and must never imply completion.
+model StudentLessonProgress {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId     String   @map("student_id") @db.Uuid
+  student       User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lessonId      String   @map("lesson_id") @db.Uuid
+  lesson        Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  resumeSeconds Int      @default(0) @map("resume_seconds")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([studentId, lessonId], map: "student_lesson_progress_student_id_lesson_id_key")
+  @@index([studentId], map: "idx_student_lesson_progress_student")
+  @@index([lessonId], map: "idx_student_lesson_progress_lesson")
+  @@map("student_lesson_progress")
 }
 
 model ContactMessage {
