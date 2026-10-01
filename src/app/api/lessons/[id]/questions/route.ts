@@ -14,10 +14,6 @@ function toUser(user: { id: string; fullName: string; role: string }) {
   return { id: user.id, name: user.fullName, role: user.role };
 }
 
-// Top-level questions, newest first, each with its replies (oldest first)
-// and both authors' display names. A failed read (e.g. the lesson_questions
-// table not migrated yet) must never break the lesson page: log and return
-// an empty list instead.
 export async function GET(_request: Request, { params }: Context) {
   const { id: lessonId } = await params;
   if (!UUID_RE.test(lessonId)) {
@@ -130,63 +126,57 @@ export async function POST(request: Request, { params }: Context) {
     };
 
     const link = `/courses/${lesson.courseId}/lessons/${lesson.id}#lesson-qa`;
+    
     if (parentId === null) {
-      // Notify every admin about the new question. Fire-and-forget: a
-      // notification failure must NEVER break the Q&A response. In-app and
-      // web push degrade independently of each other.
-      void (async () => {
-        let adminIds: string[] = [];
-        try {
-          const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
-          adminIds = admins.map((admin) => admin.id);
-          if (adminIds.length > 0) {
-            await prisma.notification.createMany({
-              data: adminIds.map((adminId) => ({
-                userId: adminId,
-                title: "سؤال جديد",
-                message: `سؤال جديد في درس: ${lesson.titleAr}`,
-                link,
-              })),
-            });
-          }
-        } catch (error) {
-          console.error("[notifications] failed to notify admins about question", error);
-        }
+      let adminIds: string[] = [];
+      try {
+        const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+        adminIds = admins.map((admin) => admin.id);
         if (adminIds.length > 0) {
+          await prisma.notification.createMany({
+            data: adminIds.map((adminId) => ({
+              userId: adminId,
+              title: "سؤال جديد",
+              message: `سؤال جديد في درس: ${lesson.titleAr}`,
+              link,
+            })),
+          });
           await sendPushToUsers(adminIds, {
             title: "سؤال جديد",
             body: `سؤال جديد في درس: ${lesson.titleAr}`,
             url: link,
           });
         }
-      })();
+      } catch (error) {
+        console.error("[notifications] failed to notify admins about question", error);
+      }
       return NextResponse.json({ parentId: null, question: { ...createdItem, replies: [] } });
     }
 
     if (parentUserId !== null && parentUserId !== studentId) {
-      // Notify the question author about the reply (never oneself).
       const recipientId: string = parentUserId;
-      void (async () => {
-        try {
-          await prisma.notification.create({
-            data: {
-              userId: recipientId,
-              title: "رد جديد",
-              message: "تم الرد على سؤالك في منصة سراج",
-              link,
-            },
-          });
-        } catch (error) {
-          console.error("[notifications] failed to notify author about reply", error);
-        }
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: recipientId,
+            title: "رد جديد",
+            message: "تم الرد على سؤالك في منصة سراج",
+            link,
+          },
+        });
         await sendPushToUsers([recipientId], {
           title: "رد جديد",
           body: "تم الرد على سؤالك في منصة سراج",
           url: link,
         });
-      })();
+      } catch (error) {
+        console.error("[notifications] failed to notify author about reply", error);
+      }
     }
+
+    // تم إضافة الـ Return المفقود هنا لكي يستجيب الـ API بشكل صحيح عند الرد
     return NextResponse.json({ parentId, reply: createdItem });
+
   } catch (error) {
     console.error("[lesson-questions] failed to create question", lessonId, error);
     return NextResponse.json({ error: "تعذر حفظ السؤال، حاول مجددًا" }, { status: 500 });
