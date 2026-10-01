@@ -73,7 +73,8 @@ self.addEventListener("push", (event) => {
       body: payload.body || "",
       icon: payload.icon || "/siraj-logo.png",
       badge: payload.badge || "/icons/icon-192x192.png",
-      vibrate: [200, 100, 200],
+      // نمط اهتزاز مميز (نبضات متسارعة ومتتالية تشبه التطبيقات الكبرى)
+      vibrate: [300, 100, 300, 100, 400],
       requireInteraction: true,
       silent: false,
       lang: payload.lang || "ar",
