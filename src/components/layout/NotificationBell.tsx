@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { usePushSubscription } from "@/lib/push-subscription";
 
 interface NotificationItem {
   id: string;
@@ -16,6 +17,7 @@ interface NotificationItem {
 export default function NotificationBell() {
   const { t, lang } = useLang();
   const router = useRouter();
+  const push = usePushSubscription();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -177,6 +179,40 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+
+          {/* تفعيل الإشعارات الفورية (Web Push) */}
+          {push.status !== "unsupported" && push.status !== "loading" && (
+            <div className="border-t border-gray-100 px-4 py-3 dark:border-gray-800">
+              {push.status === "subscribed" ? (
+                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <CheckCheck size={14} />
+                  {t("الإشعارات الفورية مفعلة", "Push notifications enabled")}
+                </p>
+              ) : push.status === "denied" ? (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  {t(
+                    "تم رفض إذن الإشعارات — فعّله من إعدادات المتصفح",
+                    "Notification permission was blocked — enable it in your browser settings",
+                  )}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void push.enable()}
+                  disabled={push.registering}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 disabled:opacity-50"
+                >
+                  <Bell size={14} />
+                  {push.registering
+                    ? t("جارٍ التفعيل...", "Enabling...")
+                    : t("تفعيل الإشعارات الفورية", "Enable push notifications")}
+                </button>
+              )}
+              {push.error && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{push.error}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

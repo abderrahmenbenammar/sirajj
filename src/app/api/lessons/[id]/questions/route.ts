@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -131,21 +132,32 @@ export async function POST(request: Request, { params }: Context) {
     const link = `/courses/${lesson.courseId}/lessons/${lesson.id}#lesson-qa`;
     if (parentId === null) {
       // Notify every admin about the new question. Fire-and-forget: a
-      // notification failure must NEVER break the Q&A response.
+      // notification failure must NEVER break the Q&A response. In-app and
+      // web push degrade independently of each other.
       void (async () => {
+        let adminIds: string[] = [];
         try {
           const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
-          if (admins.length === 0) return;
-          await prisma.notification.createMany({
-            data: admins.map((admin) => ({
-              userId: admin.id,
-              title: "سؤال جديد",
-              message: `سؤال جديد في درس: ${lesson.titleAr}`,
-              link,
-            })),
-          });
+          adminIds = admins.map((admin) => admin.id);
+          if (adminIds.length > 0) {
+            await prisma.notification.createMany({
+              data: adminIds.map((adminId) => ({
+                userId: adminId,
+                title: "سؤال جديد",
+                message: `سؤال جديد في درس: ${lesson.titleAr}`,
+                link,
+              })),
+            });
+          }
         } catch (error) {
           console.error("[notifications] failed to notify admins about question", error);
+        }
+        if (adminIds.length > 0) {
+          await sendPushToUsers(adminIds, {
+            title: "سؤال جديد",
+            body: `سؤال جديد في درس: ${lesson.titleAr}`,
+            url: link,
+          });
         }
       })();
       return NextResponse.json({ parentId: null, question: { ...createdItem, replies: [] } });
@@ -167,6 +179,11 @@ export async function POST(request: Request, { params }: Context) {
         } catch (error) {
           console.error("[notifications] failed to notify author about reply", error);
         }
+        await sendPushToUsers([recipientId], {
+          title: "رد جديد",
+          body: "تم الرد على سؤالك في منصة سراج",
+          url: link,
+        });
       })();
     }
     return NextResponse.json({ parentId, reply: createdItem });

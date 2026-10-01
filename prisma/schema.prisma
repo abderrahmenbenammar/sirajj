@@ -37,6 +37,7 @@ model User {
   lessonProgresses  StudentLessonProgress[]
   lessonQuestions   LessonQuestion[]
   notifications     Notification[]
+  pushSubscriptions PushSubscription[]
   sessions          UserSession[]
   resetTokens       PasswordResetToken[]
 
@@ -430,6 +431,20 @@ model Notification {
   @@index([userId, createdAt(sort: Desc)], map: "idx_notifications_user_created")
   @@index([userId, read], map: "idx_notifications_user_read")
   @@map("notifications")
+}
+
+// Browser Web Push subscriptions (one row per endpoint/device).
+model PushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId], map: "push_subscriptions_user_id")
+  @@map("push_subscriptions")
 }
 
 model ContactMessage {

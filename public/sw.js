@@ -56,6 +56,51 @@ function isStaticAsset(url) {
   );
 }
 
+/* --- Web Push ------------------------------------------------------ */
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { body: event.data.text() };
+    }
+  }
+  const title = payload.title || "سراج";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || "",
+      icon: "/siraj-logo.png",
+      badge: "/icons/icon-192x192.png",
+      lang: "ar",
+      dir: "rtl",
+      data: { url: payload.url || "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    (async () => {
+      const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const exact = allClients.find((client) => client.url === targetUrl);
+      if (exact && "focus" in exact) {
+        return exact.focus();
+      }
+      const existing = allClients[0];
+      if (existing && "focus" in existing) {
+        await existing.focus();
+        if ("navigate" in existing) return existing.navigate(targetUrl);
+        return;
+      }
+      return self.clients.openWindow(targetUrl);
+    })(),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
