@@ -71,9 +71,12 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: payload.body || "",
-      icon: "/siraj-logo.png",
-      badge: "/icons/icon-192x192.png",
-      lang: "ar",
+      icon: payload.icon || "/siraj-logo.png",
+      badge: payload.badge || "/icons/icon-192x192.png",
+      vibrate: [200, 100, 200],
+      requireInteraction: true,
+      silent: false,
+      lang: payload.lang || "ar",
       dir: "rtl",
       data: { url: payload.url || "/" },
     }),

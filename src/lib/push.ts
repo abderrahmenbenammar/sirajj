@@ -27,8 +27,8 @@ function ensureVapid(): boolean {
 // the push infrastructure is misconfigured or a push service is down.
 // Stale subscriptions (404/410 from the push service) are deleted.
 export async function sendPushToUsers(userIds: string[], payload: PushPayload): Promise<void> {
-  if (userIds.length === 0 || !ensureVapid()) return;
   try {
+    if (userIds.length === 0 || !ensureVapid()) return;
     const subscriptions = await prisma.pushSubscription.findMany({
       where: { userId: { in: userIds } },
       select: { id: true, endpoint: true, p256dh: true, auth: true },
