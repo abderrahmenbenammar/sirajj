@@ -27,6 +27,7 @@ model User {
   preferredLanguage String   @default("ar") @map("preferred_language")
   themePreference   String   @default("light") @map("theme_preference")
   profileVisibility String   @default("public") @map("profile_visibility")
+  notificationSoundEnabled Boolean @default(true) @map("notification_sound_enabled")
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 

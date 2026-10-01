@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Bell, CheckCheck } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { usePushSubscription } from "@/lib/push-subscription";
+import { playNotificationSound } from "@/lib/notification-sound";
 
 interface NotificationItem {
   id: string;
@@ -23,17 +24,25 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fetchRef = useRef<(() => Promise<void>) | null>(null);
+  const seenIdsRef = useRef<Set<string> | null>(null);
 
-  // جلب الإشعارات عند التحميل + تحديث كل دقيقة
+  // جلب الإشعارات عند التحميل + تحديث كل دقيقة. النغمة تُشغَّل فقط عند
+  // وصول إشعار جديد عبر دورة التحديث (لا عند التحميل الأول أو فتح القائمة).
   useEffect(() => {
     let active = true;
-    const fetchNotifications = async () => {
+    const fetchNotifications = async (playSoundOnNew: boolean) => {
       try {
         const res = await fetch("/api/notifications", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           if (active && Array.isArray(data.notifications)) {
-            setNotifications(data.notifications);
+            const incoming: NotificationItem[] = data.notifications;
+            const previous = seenIdsRef.current;
+            seenIdsRef.current = new Set(incoming.map((n) => n.id));
+            if (playSoundOnNew && previous && incoming.some((n) => !previous.has(n.id))) {
+              void playNotificationSound();
+            }
+            setNotifications(incoming);
           }
         }
       } catch {
@@ -43,9 +52,9 @@ export default function NotificationBell() {
       }
     };
 
-    fetchRef.current = fetchNotifications;
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000);
+    fetchRef.current = () => fetchNotifications(false);
+    void fetchNotifications(false);
+    const interval = setInterval(() => void fetchNotifications(true), 60000);
     return () => {
       active = false;
       clearInterval(interval);

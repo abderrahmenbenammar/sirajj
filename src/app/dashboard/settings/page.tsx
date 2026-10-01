@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
-import { User, Globe, Moon, Shield, LogOut, ChevronLeft } from "lucide-react";
-import { useState } from "react";
+import { User, Globe, Moon, Shield, LogOut, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import SirajLoading from "@/components/ui/SirajLoading";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
+import { playNotificationSound, setNotificationSoundPreference } from "@/lib/notification-sound";
 
 export default function SettingsPage() {
   const { t, lang, toggleLang } = useLang();
@@ -22,6 +23,34 @@ export default function SettingsPage() {
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
+
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundLoaded, setSoundLoaded] = useState(false);
+  const [soundSaving, setSoundSaving] = useState(false);
+  const [soundError, setSoundError] = useState("");
+
+  // جلب تفضيل الصوت مباشرة من الخادم (الجلسات JWT تتقادم بعد التحديث)
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/update-profile", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { notificationSoundEnabled?: unknown } | null) => {
+        if (active && typeof data?.notificationSoundEnabled === "boolean") {
+          setSoundEnabled(data.notificationSoundEnabled);
+          setNotificationSoundPreference(data.notificationSoundEnabled);
+        }
+      })
+      .catch(() => {
+        if (active) setSoundError(t("تعذر جلب الإعداد", "Failed to load the setting"));
+      })
+      .finally(() => {
+        if (active) setSoundLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (isAuthLoading) {
     return <SirajLoading />;
@@ -40,6 +69,32 @@ export default function SettingsPage() {
     setName(user.name);
     setNameLoaded(true);
   }
+
+  const handleToggleSound = async () => {
+    if (!soundLoaded || soundSaving) return;
+    const next = !soundEnabled;
+    setSoundSaving(true);
+    setSoundError("");
+    try {
+      const res = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationSoundEnabled: next }),
+      });
+      const data: { error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "failed");
+      setSoundEnabled(next);
+      setNotificationSoundPreference(next);
+      notify(t("تم الحفظ بنجاح", "Saved successfully"), "success");
+      // معاينة فورية عند التفعيل (ضمن نقرة المستخدم — مسموح بالتشغيل)
+      if (next) void playNotificationSound();
+    } catch (e) {
+      setSoundError(e instanceof Error && e.message !== "failed" ? e.message : t("تعذر حفظ الإعداد", "Could not save the setting"));
+      notify(t("تعذر حفظ الإعداد", "Could not save the setting"), "error");
+    } finally {
+      setSoundSaving(false);
+    }
+  };
 
   const handleSaveName = async () => {
     setNameSaving(true);
@@ -148,6 +203,48 @@ export default function SettingsPage() {
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${theme === "dark" ? "start-6.5 translate-x-0" : "start-0.5"}`} />
           </button>
+        </div>
+      ),
+    },
+    {
+      icon: <Volume2 size={18} />,
+      title: t("التنبيهات", "Notifications"),
+      content: (
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              {t("نغمة التنبيهات المخصصة", "Custom notification sound")}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {t("تشغيل نغمة عند وصول إشعارات جديدة", "Play a sound when new notifications arrive")}
+            </p>
+            {soundError && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{soundError}</p>
+            )}
+          </div>
+          {!soundLoaded ? (
+            <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+              {t("جارٍ التحميل...", "Loading...")}
+            </span>
+          ) : (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={soundEnabled}
+              aria-label={t("نغمة التنبيهات المخصصة", "Custom notification sound")}
+              onClick={() => void handleToggleSound()}
+              disabled={soundSaving}
+              className={`relative w-12 h-6 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-60 ${
+                soundEnabled ? "bg-emerald-600" : "bg-gray-300 dark:bg-gray-600"
+              }`}
+            >
+              <div
+                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                  soundEnabled ? "start-6.5 translate-x-0" : "start-0.5"
+                }`}
+              />
+            </button>
+          )}
         </div>
       ),
     },
