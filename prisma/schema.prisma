@@ -36,6 +36,7 @@ model User {
   lessonCompletions LessonCompletion[]
   lessonProgresses  StudentLessonProgress[]
   lessonQuestions   LessonQuestion[]
+  notifications     Notification[]
   sessions          UserSession[]
   resetTokens       PasswordResetToken[]
 
@@ -413,6 +414,22 @@ model LessonQuestion {
   @@index([parentId], map: "idx_lesson_questions_parent")
   @@index([userId], map: "idx_lesson_questions_user")
   @@map("lesson_questions")
+}
+
+// In-app notifications (bell in the navbar): Q&A activity alerts per user.
+model Notification {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_notifications_user_created")
+  @@index([userId, read], map: "idx_notifications_user_read")
+  @@map("notifications")
 }
 
 model ContactMessage {

@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
 import { Menu, X, Search, Sun, Moon, User, LogOut, ShieldCheck } from "lucide-react";
 import SirajTooltip from "@/components/ui/SirajTooltip";
+import NotificationBell from "@/components/layout/NotificationBell";
 
 export default function Navbar() {
   const { lang, toggleLang, t } = useLang();
@@ -146,6 +147,13 @@ export default function Navbar() {
                   {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
                 </button>
               </SirajTooltip>
+
+              {/* Notifications */}
+              {isAuthenticated && (
+                <SirajTooltip label={t("الإشعارات", "Notifications")} side="bottom">
+                  <NotificationBell />
+                </SirajTooltip>
+              )}
 
               {/* Auth */}
               {isAuthenticated ? (

@@ -72,7 +72,10 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   try {
-    const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { id: true } });
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { id: true, courseId: true, titleAr: true },
+    });
     if (!lesson) {
       return NextResponse.json({ error: "الدرس غير موجود" }, { status: 404 });
     }
@@ -92,13 +95,14 @@ export async function POST(request: Request, { params }: Context) {
     }
 
     let parentId: string | null = null;
+    let parentUserId: string | null = null;
     if (rawParentId !== undefined && rawParentId !== null) {
       if (typeof rawParentId !== "string" || !UUID_RE.test(rawParentId)) {
         return NextResponse.json({ error: "رد غير صالح" }, { status: 400 });
       }
       const parent = await prisma.lessonQuestion.findUnique({
         where: { id: rawParentId },
-        select: { id: true, lessonId: true, parentId: true },
+        select: { id: true, lessonId: true, parentId: true, userId: true },
       });
       if (!parent) {
         return NextResponse.json({ error: "السؤال غير موجود" }, { status: 404 });
@@ -110,6 +114,7 @@ export async function POST(request: Request, { params }: Context) {
         return NextResponse.json({ error: "لا يمكن الرد على رد" }, { status: 400 });
       }
       parentId = parent.id;
+      parentUserId = parent.userId;
     }
 
     const created = await prisma.lessonQuestion.create({
@@ -123,8 +128,46 @@ export async function POST(request: Request, { params }: Context) {
       user: toUser(created.user),
     };
 
+    const link = `/courses/${lesson.courseId}/lessons/${lesson.id}#lesson-qa`;
     if (parentId === null) {
+      // Notify every admin about the new question. Fire-and-forget: a
+      // notification failure must NEVER break the Q&A response.
+      void (async () => {
+        try {
+          const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+          if (admins.length === 0) return;
+          await prisma.notification.createMany({
+            data: admins.map((admin) => ({
+              userId: admin.id,
+              title: "سؤال جديد",
+              message: `سؤال جديد في درس: ${lesson.titleAr}`,
+              link,
+            })),
+          });
+        } catch (error) {
+          console.error("[notifications] failed to notify admins about question", error);
+        }
+      })();
       return NextResponse.json({ parentId: null, question: { ...createdItem, replies: [] } });
+    }
+
+    if (parentUserId !== null && parentUserId !== studentId) {
+      // Notify the question author about the reply (never oneself).
+      const recipientId: string = parentUserId;
+      void (async () => {
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: recipientId,
+              title: "رد جديد",
+              message: "تم الرد على سؤالك في منصة سراج",
+              link,
+            },
+          });
+        } catch (error) {
+          console.error("[notifications] failed to notify author about reply", error);
+        }
+      })();
     }
     return NextResponse.json({ parentId, reply: createdItem });
   } catch (error) {
