@@ -4,6 +4,9 @@ import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import { normalizeArabicText } from "@/lib/text-normalization";
 
+// AI grading can take longer than the default serverless budget (10s).
+export const maxDuration = 30;
+
 const PASS_THRESHOLD = 85;
 const MAX_TEXT_LENGTH = 2000;
 
@@ -83,12 +86,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const { object } = await generateObject({
-      model: google("gemini-1.5-flash"),
-      schema: zodSchema(gradeResultSchema),
-      system: SYSTEM_PROMPT,
-      prompt: `النص الصحيح:\n${cleanCorrect}\n\nإجابة الطالب:\n${cleanStudent}\n\nقيّم حفظ الطالب وأعد النتيجة.`,
-    });
+    let object: GradeMatnResult;
+    try {
+      const generated = await generateObject({
+        model: google("gemini-3.8-flash"),
+        schema: zodSchema(gradeResultSchema),
+        system: SYSTEM_PROMPT,
+        prompt: `النص الصحيح:\n${cleanCorrect}\n\nإجابة الطالب:\n${cleanStudent}\n\nقيّم حفظ الطالب وأعد النتيجة.`,
+      });
+      object = generated.object;
+    } catch (error) {
+      // Model call failed (quota, network, invalid response...) -> graceful JSON
+      // fallback with an explicit status instead of an unhandled exception.
+      console.error("Grade Matn Error:", error);
+      return NextResponse.json(
+        { error: "تعذر الاتصال بخدمة التصحيح الذكية، حاول مجددًا" },
+        { status: 502 },
+      );
+    }
 
     // Single source of truth for the pass/fail rule (score >= 85).
     const score = Math.min(100, Math.max(0, Math.round(object.score)));
@@ -99,7 +114,7 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[grade-matn] grading failed", error);
+    console.error("Grade Matn Error:", error);
     return NextResponse.json(
       { error: "تعذر التصحيح حاليًا، حاول مجددًا" },
       { status: 500 },
