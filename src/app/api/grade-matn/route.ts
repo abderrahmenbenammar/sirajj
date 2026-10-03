@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       const perfect: GradeMatnResult = {
         isPassed: true,
         score: 100,
-        feedback: "ممتاز! حفظ متقن وتطابق تام مع النص، بارك الله فيك.",
+        feedback: "ممتاز بارك الله فيك",
       };
       return NextResponse.json(perfect);
     }
