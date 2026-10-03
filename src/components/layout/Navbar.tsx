@@ -7,7 +7,7 @@ import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
-import { Menu, X, Search, Sun, Moon, User, LogOut, ShieldCheck } from "lucide-react";
+import { Menu, X, Search, Sun, Moon, User, LogOut, ShieldCheck, Brain } from "lucide-react";
 import SirajTooltip from "@/components/ui/SirajTooltip";
 import NotificationBell from "@/components/layout/NotificationBell";
 
@@ -46,11 +46,12 @@ export default function Navbar() {
       .catch(() => undefined);
   }, [searchOpen, apiCourses.length]);
 
-  const navLinks = [
+  const navLinks: { href: string; label: string; matchPrefix?: boolean }[] = [
     { href: "/", label: t("الرئيسية", "Home") },
     { href: "/courses", label: t("الدورات", "Courses") },
     { href: "/paths", label: t("المسارات", "Paths") },
     { href: "/library", label: t("المكتبة", "Library") },
+    { href: "/dashboard/mutoon", label: t("الحفظ والتسميع", "Memorization"), matchPrefix: true },
     { href: "/about", label: t("عن سراج", "About") },
     { href: "/contact", label: t("اتصل بنا", "Contact") },
   ];
@@ -99,19 +100,22 @@ export default function Navbar() {
 
             {/* Desktop Nav */}
             <div className="hidden lg:flex items-center gap-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    pathname === link.href
-                      ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const isActive = link.matchPrefix ? pathname.startsWith(link.href) : pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Right Actions */}
@@ -183,6 +187,10 @@ export default function Navbar() {
                         <User size={15} />
                         {t("لوحة التحكم", "Dashboard")}
                       </Link>
+                      <Link href="/dashboard/mutoon" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setUserMenuOpen(false)}>
+                        <Brain size={15} />
+                        {t("الحفظ والتسميع", "Memorization")}
+                      </Link>
                       <Link href="/dashboard/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setUserMenuOpen(false)}>
                         <User size={15} />
                         {t("الملف الشخصي", "Profile")}
@@ -229,20 +237,23 @@ export default function Navbar() {
         {mobileOpen && (
           <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
             <div className="px-4 py-3 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === link.href
-                      ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const isActive = link.matchPrefix ? pathname.startsWith(link.href) : pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
               {!isAuthenticated && (
                 <Link
                   href="/auth/login"
