@@ -86,19 +86,47 @@ export async function POST(request: Request) {
       );
     }
 
-    let object: GradeMatnResult;
-    try {
-      const generated = await generateObject({
-        model: google("gemini-3.8-flash"),
-        schema: zodSchema(gradeResultSchema),
-        system: SYSTEM_PROMPT,
-        prompt: `النص الصحيح:\n${cleanCorrect}\n\nإجابة الطالب:\n${cleanStudent}\n\nقيّم حفظ الطالب وأعد النتيجة.`,
-      });
-      object = generated.object;
-    } catch (error) {
-      // Model call failed (quota, network, invalid response...) -> graceful JSON
-      // fallback with an explicit status instead of an unhandled exception.
-      console.error("Grade Matn Error:", error);
+    // Model failover chain: primary first, then fallbacks on any failure
+    // (retired model, quota, transient network errors).
+    // NOTE: gemini-2.0-flash and gemini-1.5-flash are 404-retired by Google,
+    // so the fallback is gemini-3.5-flash-lite (Google's supported replacement).
+    const DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+    const override = (process.env.GRADE_MATN_MODEL_CHAIN ?? "")
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean);
+    const modelChain = override.length > 0 ? override : DEFAULT_MODELS;
+
+    // Hard budget under maxDuration=30 so exhausted attempts still return our
+    // JSON instead of a platform-level timeout.
+    const deadline = Date.now() + 24_000;
+    let object: GradeMatnResult | null = null;
+
+    for (const modelName of modelChain) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 500) break;
+      try {
+        const generated = await generateObject({
+          model: google(modelName),
+          schema: zodSchema(gradeResultSchema),
+          system: SYSTEM_PROMPT,
+          prompt: `النص الصحيح:\n${cleanCorrect}\n\nإجابة الطالب:\n${cleanStudent}\n\nقيّم حفظ الطالب وأعد النتيجة.`,
+          // SDK retries transient failures (429/5xx/network) with backoff;
+          // permanent errors (404 dead model, 400) are not retried and fall
+          // through to the next model instantly.
+          maxRetries: modelName === modelChain[0] ? 3 : 1,
+          abortSignal: AbortSignal.timeout(remaining),
+        });
+        object = generated.object;
+        break;
+      } catch (error) {
+        // Log the failed attempt (with which model) and fail over.
+        console.error("Grade Matn Error:", modelName, error);
+      }
+    }
+
+    if (!object) {
+      // Every model in the chain failed -> graceful JSON instead of a crash.
       return NextResponse.json(
         { error: "تعذر الاتصال بخدمة التصحيح الذكية، حاول مجددًا" },
         { status: 502 },
