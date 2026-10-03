@@ -148,6 +148,17 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
           <p className="mt-2 text-sm leading-7 text-gray-700 dark:text-gray-300">
             {result.feedback}
           </p>
+
+          {result.score < 100 && (
+            <div className="mt-3 rounded-xl border border-emerald-200/70 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900/80">
+              <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                {t("النص الصحيح للمراجعة:", "Reference correct answer:")}
+              </p>
+              <p className="mt-1.5 text-sm font-medium leading-8 text-gray-900 dark:text-gray-100">
+                {correctAnswer}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
