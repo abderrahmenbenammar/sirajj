@@ -87,6 +87,18 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const suppressChangeRef = useRef(false);
   const recognitionRef = useRef<DictationRecognition | null>(null);
   const startingRef = useRef(false);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  /** Stop and forget the active microphone stream (idempotent). */
+  const releaseStream = () => {
+    const stream = streamRef.current;
+    streamRef.current = null;
+    if (stream) {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+    }
+  };
 
   useEffect(() => {
     // Check the microphone permission once on mount and keep it live
@@ -114,6 +126,7 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
       cancelled = true;
       if (status) status.onchange = null;
       recognitionRef.current?.abort();
+      releaseStream();
     };
   }, []);
 
@@ -130,12 +143,17 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     const recognition = recognitionRef.current;
     recognitionRef.current = null;
     if (recognition) {
+      // Deliberate teardown: drop error handlers first so stopping the tracks
+      // below cannot surface a spurious "audio-capture" message; onend stays.
+      recognition.onerror = null;
+      recognition.onresult = null;
       try {
         recognition.stop();
       } catch {
         // Recognition already ended.
       }
     }
+    releaseStream();
   };
 
   /**
@@ -157,9 +175,10 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     );
   };
 
-  // Two-step permission-first pattern: desktop PWAs and restricted Chromium
-  // contexts reject recognition.start() with "not-allowed" unless the microphone
-  // permission was just granted through an active getUserMedia call.
+  // Permission-first pattern: acquire the mic through getUserMedia first, then
+  // keep that MediaStream ACTIVE while SpeechRecognition starts — Chromium sees
+  // a live audio stream (active audio context + user gesture just exercised)
+  // instead of throwing NotAllowedError.
   const startDictation = async () => {
     const Ctor = getDictationCtor();
     if (!Ctor || recognitionRef.current || startingRef.current) return;
@@ -174,16 +193,16 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     }
     startingRef.current = true;
     setError(null);
+    releaseStream(); // drop any stale stream from an interrupted session
 
     try {
-      // Step 1: request the microphone immediately (native permission prompt).
+      // Step 1: request the microphone (native permission prompt) and KEEP it.
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-      // Step 2: release the stream on the spot, then initialize SpeechRecognition
-      // with no awaits and no background listeners between stop() and start().
-      for (const track of stream.getTracks()) {
-        track.stop();
-      }
+      // Step 2: initialize SpeechRecognition while the stream is still running —
+      // tracks are NOT stopped here; releaseStream() handles that when the
+      // session ends (stopDictation / onend / unmount).
 
       // Keep whatever the student already typed and append dictation after it.
       dictationBaseRef.current = textRef.current;
@@ -208,12 +227,15 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
         pushDictationText(appendSpoken(dictationBaseRef.current, appendSpoken(finals, interim)));
       };
       recognition.onerror = (event) => {
+        // The mic stream is deliberately NOT touched here: transient errors
+        // leave recognition running, and fatal ones end it — onend releases
+        // streamRef only when recognition stops completely.
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
           // Temporary inline guidance only — no permanent state lock, so the
           // next click retries from Step 1.
           void micDeniedGuidance().then((message) => setError(message));
         } else if (event.error === "audio-capture") {
-          setError(t("لم يتم العثور على ميكروفون", "No microphone found"));
+          setError(t("انقطعت جلسة الميكروفون — أعد المحاولة", "Microphone stream lost — try again"));
         } else if (event.error === "network") {
           setError(
             t("تعذر الاتصال بخدمة التعرّف على الصوت", "Speech service unavailable — check your connection"),
@@ -223,16 +245,18 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
       };
       recognition.onend = () => {
         recognitionRef.current = null;
+        releaseStream(); // recognition stopped completely -> let go of the mic
         setIsListening(false);
       };
 
       recognitionRef.current = recognition;
-      recognition.start(); // same synchronous block as track.stop() above
+      recognition.start(); // stream is still live (streamRef holds it)
       setIsListening(true);
     } catch (error) {
       // Friendly inline guidance only — no permanent UI lock; the next click
       // retries from Step 1. Branch on the real failure cause so a missing/busy
       // microphone is never mislabeled as a permission denial.
+      releaseStream(); // start failed -> never leak a captured microphone
       recognitionRef.current = null;
       setIsListening(false);
       const name = error instanceof Error ? error.name : "";
