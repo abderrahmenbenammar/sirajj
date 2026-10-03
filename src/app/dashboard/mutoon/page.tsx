@@ -1,16 +1,10 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, HelpCircle } from "lucide-react";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function MutoonPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/login");
-  if (session.user.role === "ADMIN") redirect("/admin");
-
   const mutoon = await prisma.matn.findMany({
     orderBy: { createdAt: "desc" },
     select: {

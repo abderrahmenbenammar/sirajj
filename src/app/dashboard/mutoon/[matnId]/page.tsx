@@ -1,7 +1,6 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import MatnQuizTaker from "@/components/matn/MatnQuizTaker";
 
@@ -12,10 +11,6 @@ export default async function MatnDetailPage({
 }: {
   params: Promise<{ matnId: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/auth/login");
-  if (session.user.role === "ADMIN") redirect("/admin");
-
   const { matnId } = await params;
   const matn = await prisma.matn.findUnique({
     where: { id: matnId },
