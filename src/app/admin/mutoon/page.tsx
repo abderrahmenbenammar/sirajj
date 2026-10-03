@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, HelpCircle, Plus } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import PageHeader from "@/components/admin/PageHeader";
-import NewMatnQuizForm from "@/components/admin/NewMatnQuizForm";
+import AdminMatnCard from "@/components/admin/AdminMatnCard";
 import type { AdminMatn } from "@/components/admin/types";
 
 // Admin-only list; must render at request time, never at build time.
@@ -61,43 +61,7 @@ export default async function AdminMutoonPage() {
       ) : (
         <div className="space-y-4">
           {mutoon.map((matn) => (
-            <section
-              key={matn.id}
-              className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h2 className="text-base font-bold text-gray-900 dark:text-white">{matn.title}</h2>
-                  {matn.description && (
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{matn.description}</p>
-                  )}
-                </div>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                  <HelpCircle size={13} />
-                  {matn.quizCount} {matn.quizCount === 1 ? "سؤال" : "أسئلة"}
-                </span>
-              </div>
-
-              {matn.quizzes.length > 0 && (
-                <ul className="mt-3 space-y-2">
-                  {matn.quizzes.map((quiz, index) => (
-                    <li
-                      key={quiz.id}
-                      className="rounded-xl bg-gray-50 p-3 text-sm dark:bg-gray-800"
-                    >
-                      <p className="font-bold text-gray-900 dark:text-white">
-                        <span className="ms-1 text-gray-400">{index + 1}.</span> {quiz.question}
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-xs leading-6 text-gray-600 dark:text-gray-300">
-                        {quiz.correctAnswer}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <NewMatnQuizForm matnId={matn.id} />
-            </section>
+            <AdminMatnCard key={matn.id} matn={matn} />
           ))}
         </div>
       )}

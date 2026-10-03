@@ -18,6 +18,20 @@ const matnQuizSchema = z.object({
   correctAnswer: z.string().trim().min(1, "النص الصحيح مطلوب").max(4000, "النص الصحيح طويل جدًا"),
 });
 
+// Updates reuse the same field rules, minus the parent id (it comes as an argument).
+const matnQuizUpdateSchema = matnQuizSchema.omit({ matnId: true });
+const idSchema = z.string().trim().min(1, "المعرّف مطلوب");
+
+/** Prisma P2025: update/delete targeted a record that no longer exists. */
+function isPrismaNotFound(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2025"
+  );
+}
+
 async function adminOrError(): Promise<string | null> {
   // Fresh DB role check on every mutation (same rule as the admin API routes).
   const { response } = await requireAdmin();
@@ -88,5 +102,135 @@ export async function createMatnQuiz(input: {
   } catch (error) {
     console.error("[matn-actions] createMatnQuiz failed", error);
     return { ok: false, error: "تعذر إنشاء السؤال، حاول مجددًا" };
+  }
+}
+
+export async function updateMatn(
+  id: string,
+  data: { title: string; description?: string },
+): Promise<MatnActionResult> {
+  const forbidden = await adminOrError();
+  if (forbidden) return { ok: false, error: forbidden };
+
+  const parsedId = idSchema.safeParse(id);
+  if (!parsedId.success) return { ok: false, error: validationError(parsedId.error) };
+
+  const parsed = matnSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+
+  try {
+    const existing = await prisma.matn.findUnique({
+      where: { id: parsedId.data },
+      select: { id: true },
+    });
+    if (!existing) return { ok: false, error: "المتن غير موجود" };
+
+    await prisma.matn.update({
+      where: { id: existing.id },
+      data: {
+        title: parsed.data.title,
+        description: parsed.data.description?.length ? parsed.data.description : null,
+      },
+      select: { id: true },
+    });
+    revalidatePath("/admin/mutoon");
+    revalidatePath("/dashboard/mutoon");
+    revalidatePath(`/dashboard/mutoon/${existing.id}`);
+    return { ok: true, id: existing.id };
+  } catch (error) {
+    if (isPrismaNotFound(error)) return { ok: false, error: "المتن غير موجود" };
+    console.error("[matn-actions] updateMatn failed", error);
+    return { ok: false, error: "تعذر تحديث المتن، حاول مجددًا" };
+  }
+}
+
+export async function deleteMatn(id: string): Promise<MatnActionResult> {
+  const forbidden = await adminOrError();
+  if (forbidden) return { ok: false, error: forbidden };
+
+  const parsedId = idSchema.safeParse(id);
+  if (!parsedId.success) return { ok: false, error: validationError(parsedId.error) };
+
+  try {
+    const existing = await prisma.matn.findUnique({
+      where: { id: parsedId.data },
+      select: { id: true },
+    });
+    if (!existing) return { ok: false, error: "المتن غير موجود" };
+
+    // Quizzes follow via the DB-level ON DELETE CASCADE (matn_quizzes.matn_id).
+    await prisma.matn.delete({ where: { id: existing.id } });
+    revalidatePath("/admin/mutoon");
+    revalidatePath("/dashboard/mutoon");
+    return { ok: true, id: existing.id };
+  } catch (error) {
+    if (isPrismaNotFound(error)) return { ok: false, error: "المتن غير موجود" };
+    console.error("[matn-actions] deleteMatn failed", error);
+    return { ok: false, error: "تعذر حذف المتن، حاول مجددًا" };
+  }
+}
+
+export async function updateMatnQuiz(
+  id: string,
+  data: { question: string; correctAnswer: string },
+): Promise<MatnActionResult> {
+  const forbidden = await adminOrError();
+  if (forbidden) return { ok: false, error: forbidden };
+
+  const parsedId = idSchema.safeParse(id);
+  if (!parsedId.success) return { ok: false, error: validationError(parsedId.error) };
+
+  const parsed = matnQuizUpdateSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+
+  try {
+    const existing = await prisma.matnQuiz.findUnique({
+      where: { id: parsedId.data },
+      select: { id: true, matnId: true },
+    });
+    if (!existing) return { ok: false, error: "السؤال غير موجود" };
+
+    await prisma.matnQuiz.update({
+      where: { id: existing.id },
+      data: {
+        question: parsed.data.question,
+        correctAnswer: parsed.data.correctAnswer,
+      },
+      select: { id: true },
+    });
+    revalidatePath("/admin/mutoon");
+    revalidatePath("/dashboard/mutoon");
+    revalidatePath(`/dashboard/mutoon/${existing.matnId}`);
+    return { ok: true, id: existing.id };
+  } catch (error) {
+    if (isPrismaNotFound(error)) return { ok: false, error: "السؤال غير موجود" };
+    console.error("[matn-actions] updateMatnQuiz failed", error);
+    return { ok: false, error: "تعذر تحديث السؤال، حاول مجددًا" };
+  }
+}
+
+export async function deleteMatnQuiz(id: string): Promise<MatnActionResult> {
+  const forbidden = await adminOrError();
+  if (forbidden) return { ok: false, error: forbidden };
+
+  const parsedId = idSchema.safeParse(id);
+  if (!parsedId.success) return { ok: false, error: validationError(parsedId.error) };
+
+  try {
+    const existing = await prisma.matnQuiz.findUnique({
+      where: { id: parsedId.data },
+      select: { id: true, matnId: true },
+    });
+    if (!existing) return { ok: false, error: "السؤال غير موجود" };
+
+    await prisma.matnQuiz.delete({ where: { id: existing.id } });
+    revalidatePath("/admin/mutoon");
+    revalidatePath("/dashboard/mutoon");
+    revalidatePath(`/dashboard/mutoon/${existing.matnId}`);
+    return { ok: true, id: existing.id };
+  } catch (error) {
+    if (isPrismaNotFound(error)) return { ok: false, error: "السؤال غير موجود" };
+    console.error("[matn-actions] deleteMatnQuiz failed", error);
+    return { ok: false, error: "تعذر حذف السؤال، حاول مجددًا" };
   }
 }
