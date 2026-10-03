@@ -74,6 +74,7 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const finalTranscriptRef = useRef("");
   const suppressChangeRef = useRef(false);
   const recognitionRef = useRef<DictationRecognition | null>(null);
+  const startingRef = useRef(false);
 
   useEffect(() => {
     // Check the microphone permission once on mount and keep it live
@@ -125,65 +126,94 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     }
   };
 
-  // Synchronous on purpose: recognition.start() must run inside the click's
-  // user-gesture handler — awaiting getUserMedia first breaks that chain and
-  // Chrome/Edge (especially in the PWA) reject with "not-allowed".
-  const startDictation = () => {
+  // Two-step permission-first pattern: desktop PWAs and restricted Chromium
+  // contexts reject recognition.start() with "not-allowed" unless the microphone
+  // permission was just granted through an active getUserMedia call.
+  const startDictation = async () => {
     const Ctor = getDictationCtor();
-    if (!Ctor || recognitionRef.current) return;
+    if (!Ctor || recognitionRef.current || startingRef.current) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(
+        t(
+          "المتصفح لا يدعم الوصول إلى الميكروفون (يلزم اتصال آمن)",
+          "This browser cannot access the microphone (a secure connection is required)",
+        ),
+      );
+      return;
+    }
+    startingRef.current = true;
     setError(null);
 
-    // Keep whatever the student already typed and append dictation after it.
-    dictationBaseRef.current = textRef.current;
-    finalTranscriptRef.current = "";
-
-    const recognition = new Ctor();
-    recognition.lang = "ar-SA";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.onresult = (event) => {
-      let finals = "";
-      let interim = "";
-      for (let i = 0; i < event.results.length; i++) {
-        const item = event.results[i];
-        if (item.isFinal) {
-          finals = appendSpoken(finals, item[0].transcript);
-        } else {
-          interim += item[0].transcript;
-        }
-      }
-      finalTranscriptRef.current = finals;
-      pushDictationText(appendSpoken(dictationBaseRef.current, appendSpoken(finals, interim)));
-    };
-    recognition.onerror = (event) => {
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        // Temporary inline error only — no permanent state lock, so the next
-        // click tries the native prompt again.
-        setError(
-          t("تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح", "Microphone permission denied — enable it in your browser settings"),
-        );
-      } else if (event.error === "audio-capture") {
-        setError(t("لم يتم العثور على ميكروفون", "No microphone found"));
-      } else if (event.error === "network") {
-        setError(
-          t("تعذر الاتصال بخدمة التعرّف على الصوت", "Speech service unavailable — check your connection"),
-        );
-      }
-      // "no-speech" (silence) and transient errors simply end the session via onend.
-    };
-    recognition.onend = () => {
-      recognitionRef.current = null;
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
     try {
-      // Fired synchronously inside the click handler (user gesture intact).
-      recognition.start();
+      // Step 1: request the microphone immediately (native permission prompt).
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Step 2: release the stream on the spot, then initialize SpeechRecognition
+      // with no awaits and no background listeners between stop() and start().
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+
+      // Keep whatever the student already typed and append dictation after it.
+      dictationBaseRef.current = textRef.current;
+      finalTranscriptRef.current = "";
+
+      const recognition = new Ctor();
+      recognition.lang = "ar-SA";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = (event) => {
+        let finals = "";
+        let interim = "";
+        for (let i = 0; i < event.results.length; i++) {
+          const item = event.results[i];
+          if (item.isFinal) {
+            finals = appendSpoken(finals, item[0].transcript);
+          } else {
+            interim += item[0].transcript;
+          }
+        }
+        finalTranscriptRef.current = finals;
+        pushDictationText(appendSpoken(dictationBaseRef.current, appendSpoken(finals, interim)));
+      };
+      recognition.onerror = (event) => {
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          // Temporary inline error only — no permanent state lock, so the next
+          // click tries the native prompt again.
+          setError(
+            t("تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح", "Microphone permission denied — enable it in your browser settings"),
+          );
+        } else if (event.error === "audio-capture") {
+          setError(t("لم يتم العثور على ميكروفون", "No microphone found"));
+        } else if (event.error === "network") {
+          setError(
+            t("تعذر الاتصال بخدمة التعرّف على الصوت", "Speech service unavailable — check your connection"),
+          );
+        }
+        // "no-speech" (silence) and transient errors simply end the session via onend.
+      };
+      recognition.onend = () => {
+        recognitionRef.current = null;
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start(); // same synchronous block as track.stop() above
       setIsListening(true);
     } catch {
+      // PermissionDenied from getUserMedia (or a synchronous start failure):
+      // friendly inline error only — no permanent UI lock; the next click
+      // retries from Step 1.
       recognitionRef.current = null;
-      setError(t("تعذر تشغيل الميكروفون", "Could not start the microphone"));
+      setIsListening(false);
+      setError(
+        t(
+          "تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح ثم أعد المحاولة",
+          "Microphone permission denied — enable it in your browser settings and try again",
+        ),
+      );
+    } finally {
+      startingRef.current = false;
     }
   };
 
@@ -303,7 +333,7 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
           >
             <button
               type="button"
-              onClick={() => (isListening ? stopDictation() : startDictation())}
+              onClick={() => (isListening ? stopDictation() : void startDictation())}
               disabled={isGrading}
               aria-pressed={isListening}
               aria-label={t("الإملاء الصوتي", "Voice dictation")}
