@@ -5,6 +5,7 @@ import type { ChangeEvent } from "react";
 import { CheckCircle2, Loader2, Mic, MicOff, Send, XCircle } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajTooltip from "@/components/ui/SirajTooltip";
+import SirajDialog from "@/components/ui/SirajDialog";
 import type { GradeMatnResult } from "@/app/api/grade-matn/route";
 
 interface MatnQuizFormProps {
@@ -13,6 +14,9 @@ interface MatnQuizFormProps {
 }
 
 const DEFAULT_CORRECT_ANSWER = "أن تعبد الله مخلصا له الدين";
+
+// "unknown" = Permissions API not queried/unsupported; the runtime error path still catches it.
+type MicPermissionState = "unknown" | "prompt" | "granted" | "denied";
 
 // SpeechRecognition is not part of lib.dom, so we type the small surface we use.
 type DictationResultItem = { isFinal: boolean; 0: { transcript: string } };
@@ -58,6 +62,8 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const [error, setError] = useState<string | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [micPermission, setMicPermission] = useState<MicPermissionState>("unknown");
+  const [showMicHelp, setShowMicHelp] = useState(false);
   // Browser capability check: SSR-safe (false on the server, live snapshot on the client).
   const speechSupported = useSyncExternalStore(
     subscribeNoop,
@@ -72,7 +78,30 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const recognitionRef = useRef<DictationRecognition | null>(null);
 
   useEffect(() => {
+    // Check the microphone permission once on mount and keep it live
+    // (state flips automatically when the student enables it in browser settings).
+    let cancelled = false;
+    let status: PermissionStatus | null = null;
+    try {
+      void navigator.permissions
+        .query({ name: "microphone" } as unknown as PermissionDescriptor)
+        .then((s) => {
+          if (cancelled) return;
+          status = s;
+          setMicPermission(s.state);
+          s.onchange = () => {
+            if (!cancelled) setMicPermission(s.state);
+          };
+        })
+        .catch(() => {
+          // Browser cannot query microphone permission (e.g. older Firefox/Safari).
+        });
+    } catch {
+      // Synchronous unsupported-shape errors are ignored the same way.
+    }
     return () => {
+      cancelled = true;
+      if (status) status.onchange = null;
       recognitionRef.current?.abort();
     };
   }, []);
@@ -126,9 +155,9 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     };
     recognition.onerror = (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setError(
-          t("تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح", "Microphone permission denied — enable it in your browser settings"),
-        );
+        // Blocked (or still shown as blocked): remember it and open the friendly guide.
+        setMicPermission("denied");
+        setShowMicHelp(true);
       } else if (event.error === "audio-capture") {
         setError(t("لم يتم العثور على ميكروفون", "No microphone found"));
       } else if (event.error === "network") {
@@ -162,6 +191,13 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     if (recognitionRef.current) stopDictation();
     textRef.current = event.target.value;
     setStudentAnswer(event.target.value);
+  };
+
+  const handleMicRetry = () => {
+    setShowMicHelp(false);
+    // Go straight to start(): if the student already enabled the microphone this
+    // succeeds; otherwise the not-allowed error re-opens the guide dialog.
+    startDictation();
   };
 
   const handleSubmit = () => {
@@ -241,7 +277,38 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {speechSupported ? (
+        {!speechSupported ? (
+          <SirajTooltip
+            label={t("الإملاء الصوتي غير مدعوم في هذا المتصفح", "Voice dictation is not supported in this browser")}
+            side="top"
+          >
+            <button
+              type="button"
+              disabled
+              aria-label={t("تحدّث", "Dictate")}
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-400 opacity-60 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-600"
+            >
+              <MicOff size={15} className="shrink-0" />
+              {t("تحدّث", "Dictate")}
+            </button>
+          </SirajTooltip>
+        ) : micPermission === "denied" ? (
+          <SirajTooltip
+            label={t("إذن الميكروفون مرفوض — اضغط لعرض طريقة التفعيل", "Microphone blocked — click for how to enable it")}
+            side="top"
+          >
+            <button
+              type="button"
+              onClick={() => setShowMicHelp(true)}
+              disabled={isGrading}
+              aria-label={t("إذن الميكروفون مرفوض", "Microphone permission denied")}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-600 transition-colors hover:border-red-400 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950"
+            >
+              <MicOff size={15} className="shrink-0" />
+              {t("الميكروفون موقوف", "Microphone blocked")}
+            </button>
+          </SirajTooltip>
+        ) : (
           <SirajTooltip
             label={
               isListening
@@ -264,21 +331,6 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
             >
               <Mic size={15} className="shrink-0" />
               {isListening ? t("جارٍ الاستماع...", "Listening...") : t("تحدّث", "Dictate")}
-            </button>
-          </SirajTooltip>
-        ) : (
-          <SirajTooltip
-            label={t("الإملاء الصوتي غير مدعوم في هذا المتصفح", "Voice dictation is not supported in this browser")}
-            side="top"
-          >
-            <button
-              type="button"
-              disabled
-              aria-label={t("تحدّث", "Dictate")}
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-400 opacity-60 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-600"
-            >
-              <MicOff size={15} className="shrink-0" />
-              {t("تحدّث", "Dictate")}
             </button>
           </SirajTooltip>
         )}
@@ -362,6 +414,20 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
           )}
         </div>
       )}
+
+      <SirajDialog
+        open={showMicHelp}
+        type="warning"
+        title={t("الميكروفون موقوف", "Microphone is blocked")}
+        message={t(
+          "يحتاج التطبيق إلى إذن الميكروفون ليسمع تسميعك. اضغط على أيقونة القفل أو الميكروفون بجانب الرابط في شريط عنوان المتصفح، اختر «السماح»، ثم اضغط «إعادة المحاولة».",
+          "The app needs microphone permission to hear your recitation. Click the lock/microphone icon next to the address bar, choose Allow, then press Try Again.",
+        )}
+        confirmLabel={t("إعادة المحاولة", "Try again")}
+        cancelLabel={t("إغلاق", "Close")}
+        onConfirm={handleMicRetry}
+        onClose={() => setShowMicHelp(false)}
+      />
     </div>
   );
 }
