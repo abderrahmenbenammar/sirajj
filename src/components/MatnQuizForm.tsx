@@ -62,7 +62,6 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const [isGrading, setIsGrading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [micPermission, setMicPermission] = useState<MicPermissionState>("unknown");
-  const [isMicStarting, setIsMicStarting] = useState(false);
   // Browser capability check: SSR-safe (false on the server, live snapshot on the client).
   const speechSupported = useSyncExternalStore(
     subscribeNoop,
@@ -75,7 +74,6 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const finalTranscriptRef = useRef("");
   const suppressChangeRef = useRef(false);
   const recognitionRef = useRef<DictationRecognition | null>(null);
-  const startingRef = useRef(false);
 
   useEffect(() => {
     // Check the microphone permission once on mount and keep it live
@@ -127,33 +125,13 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     }
   };
 
-  const startDictation = async () => {
+  // Synchronous on purpose: recognition.start() must run inside the click's
+  // user-gesture handler — awaiting getUserMedia first breaks that chain and
+  // Chrome/Edge (especially in the PWA) reject with "not-allowed".
+  const startDictation = () => {
     const Ctor = getDictationCtor();
-    if (!Ctor || recognitionRef.current || startingRef.current) return;
-    startingRef.current = true;
-    setIsMicStarting(true);
+    if (!Ctor || recognitionRef.current) return;
     setError(null);
-
-    // Best-effort microphone request: it triggers the native prompt when
-    // permissions are pending. A failure here must NOT lock a permanent
-    // "denied" state and must NOT block the click — SpeechRecognition below
-    // runs regardless and triggers its own native prompt if needed.
-    const mediaDevices = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
-    if (mediaDevices?.getUserMedia) {
-      let stream: MediaStream | null = null;
-      try {
-        stream = await mediaDevices.getUserMedia({ audio: true });
-      } catch {
-        stream = null;
-      }
-      // Granted: release the tracks immediately so SpeechRecognition can
-      // open the microphone itself.
-      if (stream) {
-        for (const track of stream.getTracks()) {
-          track.stop();
-        }
-      }
-    }
 
     // Keep whatever the student already typed and append dictation after it.
     dictationBaseRef.current = textRef.current;
@@ -200,14 +178,12 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
 
     recognitionRef.current = recognition;
     try {
+      // Fired synchronously inside the click handler (user gesture intact).
       recognition.start();
       setIsListening(true);
     } catch {
       recognitionRef.current = null;
       setError(t("تعذر تشغيل الميكروفون", "Could not start the microphone"));
-    } finally {
-      startingRef.current = false;
-      setIsMicStarting(false);
     }
   };
 
@@ -327,8 +303,8 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
           >
             <button
               type="button"
-              onClick={() => (isListening ? stopDictation() : void startDictation())}
-              disabled={isGrading || isMicStarting}
+              onClick={() => (isListening ? stopDictation() : startDictation())}
+              disabled={isGrading}
               aria-pressed={isListening}
               aria-label={t("الإملاء الصوتي", "Voice dictation")}
               className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -337,12 +313,8 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
                   : "border border-gray-300 bg-white text-gray-700 hover:border-red-300 hover:text-red-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-red-800 dark:hover:text-red-400"
               }`}
             >
-              {isMicStarting ? <Loader2 size={15} className="shrink-0 animate-spin" /> : <Mic size={15} className="shrink-0" />}
-              {isMicStarting
-                ? t("جارٍ طلب الإذن...", "Requesting...")
-                : isListening
-                  ? t("جارٍ الاستماع...", "Listening...")
-                  : t("تحدّث", "Dictate")}
+              <Mic size={15} className="shrink-0" />
+              {isListening ? t("جارٍ الاستماع...", "Listening...") : t("تحدّث", "Dictate")}
             </button>
           </SirajTooltip>
         )}
