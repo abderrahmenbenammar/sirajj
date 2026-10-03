@@ -5,6 +5,7 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import PwaInstallPrompt from "@/components/pwa/PwaInstallPrompt";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import PushNativeBootstrap from "@/components/PushNativeBootstrap";
 import "./globals.css";
 
 const notoNaskhArabic = Noto_Naskh_Arabic({
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegister />
         <PwaInstallPrompt />
         <Providers>
+          <PushNativeBootstrap />
           <Navbar />
           <main className="flex-1 pt-[calc(4rem_+_env(safe-area-inset-top))] lg:pt-[calc(4.5rem_+_env(safe-area-inset-top))]">{children}</main>
           <Footer />

@@ -8,14 +8,34 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.0'
-        classpath 'com.google.gms:google-services:4.4.4'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
 }
 
+plugins {
+    id("com.google.gms.google-services") version "4.5.0" apply false
+}
+
 apply from: "variables.gradle"
+
+// Unified Java toolchain: force source/target 17 on EVERY module (including
+// :capacitor-android pulled from node_modules, whose template sets 21).
+// afterEvaluate runs after each module's own script, so it overrides any
+// VERSION_21 compileOptions. The available JDK is 17 (Temurin), and javac 17
+// rejects "--release 21" with "invalid source release: 21".
+subprojects {
+    afterEvaluate { proj ->
+        def androidExt = proj.extensions.findByName('android')
+        if (androidExt != null) {
+            androidExt.compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
+        }
+    }
+}
 
 allprojects {
     repositories {

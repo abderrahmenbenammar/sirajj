@@ -39,6 +39,7 @@ model User {
   lessonQuestions   LessonQuestion[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  deviceTokens      DevicePushToken[]
   sessions          UserSession[]
   resetTokens       PasswordResetToken[]
 
@@ -448,6 +449,20 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
+// FCM registration tokens for native (Capacitor) devices — one row per token.
+model DevicePushToken {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String   @unique @db.Text
+  platform   String   @default("ANDROID_FCM") @db.VarChar(32)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+
+  @@index([userId], map: "device_push_tokens_user_id")
+  @@map("device_push_tokens")
+}
+
 model ContactMessage {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
@@ -520,4 +535,29 @@ model NewsletterSubscriber {
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("newsletter_subscribers")
+}
+
+// Memorized religious texts (mutun) for the الحفظ والتسميع module.
+model Matn {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  quizzes     MatnQuiz[]
+
+  @@map("mutoon")
+}
+
+model MatnQuiz {
+  id            String   @id @default(cuid())
+  matnId        String   @map("matn_id")
+  matn          Matn     @relation(fields: [matnId], references: [id], onDelete: Cascade)
+  question      String
+  correctAnswer String   @map("correct_answer") @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([matnId], map: "matn_quizzes_matn_id")
+  @@map("matn_quizzes")
 }

@@ -1,10 +1,13 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck } from "lucide-react";
+import { Capacitor, type PermissionState } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
+import { Bell, CheckCheck, Smartphone } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { usePushSubscription } from "@/lib/push-subscription";
 import { playNotificationSound } from "@/lib/notification-sound";
+import { ensurePushPermission } from "@/lib/push-permissions";
 
 interface NotificationItem {
   id: string;
@@ -22,6 +25,8 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [nativePermission, setNativePermission] = useState<PermissionState | null>(null);
+  const [nativeRequesting, setNativeRequesting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fetchRef = useRef<(() => Promise<void>) | null>(null);
   const seenIdsRef = useRef<Set<string> | null>(null);
@@ -65,6 +70,39 @@ export default function NotificationBell() {
   const handleToggle = () => {
     if (!isOpen) fetchRef.current?.();
     setIsOpen(!isOpen);
+  };
+
+  // في التطبيق الأصلي فقط: معرفة حالة إذن الإشعارات الحالية
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let active = true;
+    PushNotifications.checkPermissions()
+      .then((status) => {
+        if (active) setNativePermission(status.receive);
+      })
+      .catch((error) => console.error("[push-native] checkPermissions failed", error));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // زر يدوي لإظهار نافذة طلب الإذن مرة أخرى إذا رفض المستخدمها سابقاً
+  const handleEnableNative = () => {
+    setNativeRequesting(true);
+    void (async () => {
+      try {
+        const state = await ensurePushPermission();
+        if (state !== null) setNativePermission(state);
+        if (state === "granted") {
+          // يُطلق حدث registration الذي يرفع رمز الجهاز إلى الخادم
+          await PushNotifications.register();
+        }
+      } catch (error) {
+        console.error("[push-native] manual permission enable failed", error);
+      } finally {
+        setNativeRequesting(false);
+      }
+    })();
   };
 
   // إغلاق القائمة عند النقر خارجها
@@ -188,6 +226,31 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+
+          {/* تفعيل إذن إشعارات التطبيق (Capacitor / Android) — أولاً لأنه الأهم على الجهاز */}
+          {nativePermission !== null && nativePermission !== "granted" && (
+            <div className="border-t border-gray-100 px-4 py-3 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={handleEnableNative}
+                disabled={nativeRequesting}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 disabled:opacity-50"
+              >
+                <Smartphone size={14} />
+                {nativeRequesting
+                  ? t("جارٍ التفعيل...", "Enabling...")
+                  : t("تفعيل إشعارات التطبيق", "Enable app notifications")}
+              </button>
+              {nativePermission === "denied" && (
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                  {t(
+                    "تم رفض الإذن — فعّله من إعدادات النظام إذا لم تظهر النافذة",
+                    "Permission denied — enable it in system settings if no dialog appears",
+                  )}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* تفعيل الإشعارات الفورية (Web Push) */}
           {push.status !== "unsupported" && push.status !== "loading" && (

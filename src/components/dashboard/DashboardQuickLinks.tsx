@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/dashboard/profile", ar: "الملف الشخصي", en: "Profile" },
   { href: "/dashboard/certificates", ar: "الشهادات", en: "Certificates" },
   { href: "/dashboard/settings", ar: "الإعدادات", en: "Settings" },
+  { href: "/dashboard/mutoon", ar: "الحفظ والتسميع", en: "Memorization" },
   { href: "/library", ar: "المكتبة", en: "Library" },
 ] as const;
 

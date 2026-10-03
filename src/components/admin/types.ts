@@ -166,3 +166,19 @@ export const EMPTY_COURSE_FORM = {
 // server re-checks MIME + size regardless of what the client sends.
 export const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const MAX_COVER_SIZE = 10 * 1024 * 1024;
+
+// Memorization module (mutoon + quizzes). Dates cross the server/client
+// boundary as ISO strings.
+export type AdminMatnQuiz = {
+  id: string;
+  question: string;
+  correctAnswer: string;
+};
+
+export type AdminMatn = {
+  id: string;
+  title: string;
+  description: string | null;
+  quizCount: number;
+  quizzes: AdminMatnQuiz[];
+};

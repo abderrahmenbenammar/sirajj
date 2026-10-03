@@ -15,6 +15,7 @@ import {
   LibraryBig,
   Mail,
   Menu,
+  ScrollText,
   Send,
   Settings,
   Tags,
@@ -38,6 +39,7 @@ const NAV: NavBlock[] = [
       { href: "/admin/exams", ar: "الاختبارات", en: "Exams", icon: GraduationCap },
       { href: "/admin/categories", ar: "التصنيفات", en: "Categories", icon: Tags },
       { href: "/admin/library", ar: "المكتبة", en: "Library", icon: LibraryBig },
+      { href: "/admin/mutoon", ar: "المتون", en: "Mutoon", icon: ScrollText },
     ],
   },
   {
@@ -72,6 +74,8 @@ function pageTitle(pathname: string, t: (ar: string, en: string) => string): str
   if (pathname === "/admin/users") return t("المستخدمون", "Users");
   if (pathname === "/admin/certificates") return t("الشهادات", "Certificates");
   if (pathname === "/admin/library") return t("المكتبة", "Library");
+  if (pathname === "/admin/mutoon") return t("المتون", "Mutoon");
+  if (pathname.startsWith("/admin/mutoon/")) return t("إضافة متن", "New matn");
   if (pathname === "/admin/categories") return t("التصنيفات", "Categories");
   if (pathname === "/admin/contact") return t("الرسائل", "Messages");
   if (pathname === "/admin/newsletter") return t("النشرة البريدية", "Newsletter");

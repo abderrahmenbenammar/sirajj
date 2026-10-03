@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/push";
+import { sendFcmToUsers } from "@/lib/fcm";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -146,6 +147,11 @@ export async function POST(request: Request, { params }: Context) {
             body: `سؤال جديد في درس: ${lesson.titleAr}`,
             url: link,
           });
+          void sendFcmToUsers(adminIds, {
+            title: "سؤال جديد",
+            body: `سؤال جديد في درس: ${lesson.titleAr}`,
+            url: link,
+          });
         }
       } catch (error) {
         console.error("[notifications] failed to notify admins about question", error);
@@ -165,6 +171,11 @@ export async function POST(request: Request, { params }: Context) {
           },
         });
         await sendPushToUsers([recipientId], {
+          title: "رد جديد",
+          body: "تم الرد على سؤالك في منصة سراج",
+          url: link,
+        });
+        void sendFcmToUsers([recipientId], {
           title: "رد جديد",
           body: "تم الرد على سؤالك في منصة سراج",
           url: link,
