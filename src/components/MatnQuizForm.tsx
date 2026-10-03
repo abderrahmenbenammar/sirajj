@@ -54,6 +54,18 @@ function subscribeNoop() {
   return () => {};
 }
 
+/** Live microphone permission state; null when the Permissions API is unavailable. */
+async function readMicPermission(): Promise<PermissionState | null> {
+  try {
+    const status = await navigator.permissions.query({
+      name: "microphone",
+    } as unknown as PermissionDescriptor);
+    return status.state;
+  } catch {
+    return null;
+  }
+}
+
 export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT_ANSWER }: MatnQuizFormProps) {
   const { t } = useLang();
   const [studentAnswer, setStudentAnswer] = useState("");
@@ -126,6 +138,25 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     }
   };
 
+  /**
+   * Actionable guidance for a blocked microphone: while the site permission is
+   * "denied" the browser never shows the prompt again, so the message must say
+   * exactly where to re-enable it (retry alone cannot fix a persistent block).
+   */
+  const micDeniedGuidance = async () => {
+    const state = await readMicPermission();
+    if (state === "denied") {
+      return t(
+        "الإذن مرفوض مسبقًا لهذا الموقع فلن يظهر طلب جديد. أعِد التفعيل: أيقونة القفل في شريط العنوان ← إعدادات الموقع ← الميكروفون ← اسمح، ثم أعد المحاولة",
+        "Permission is blocked for this site, so no new prompt appears. Re-enable it: lock icon in the address bar → Site settings → Microphone → Allow, then retry",
+      );
+    }
+    return t(
+      "لم يُمنح إذن الميكروفون — اضغط «سماح» عند ظهور الطلب ثم أعد المحاولة",
+      "Microphone permission not granted — click \"Allow\" when prompted, then retry",
+    );
+  };
+
   // Two-step permission-first pattern: desktop PWAs and restricted Chromium
   // contexts reject recognition.start() with "not-allowed" unless the microphone
   // permission was just granted through an active getUserMedia call.
@@ -178,11 +209,9 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
       };
       recognition.onerror = (event) => {
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          // Temporary inline error only — no permanent state lock, so the next
-          // click tries the native prompt again.
-          setError(
-            t("تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح", "Microphone permission denied — enable it in your browser settings"),
-          );
+          // Temporary inline guidance only — no permanent state lock, so the
+          // next click retries from Step 1.
+          void micDeniedGuidance().then((message) => setError(message));
         } else if (event.error === "audio-capture") {
           setError(t("لم يتم العثور على ميكروفون", "No microphone found"));
         } else if (event.error === "network") {
@@ -200,18 +229,25 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
       recognitionRef.current = recognition;
       recognition.start(); // same synchronous block as track.stop() above
       setIsListening(true);
-    } catch {
-      // PermissionDenied from getUserMedia (or a synchronous start failure):
-      // friendly inline error only — no permanent UI lock; the next click
-      // retries from Step 1.
+    } catch (error) {
+      // Friendly inline guidance only — no permanent UI lock; the next click
+      // retries from Step 1. Branch on the real failure cause so a missing/busy
+      // microphone is never mislabeled as a permission denial.
       recognitionRef.current = null;
       setIsListening(false);
-      setError(
-        t(
-          "تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح ثم أعد المحاولة",
-          "Microphone permission denied — enable it in your browser settings and try again",
-        ),
-      );
+      const name = error instanceof Error ? error.name : "";
+      const detail = error instanceof Error && error.message ? ` (${name}: ${error.message})` : name ? ` (${name})` : "";
+      if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        setError(t("لم يُعثر على ميكروفون متاح في هذا الجهاز", "No microphone found on this device") + detail);
+      } else if (name === "NotReadableError" || name === "TrackStartError") {
+        setError(
+          t("الميكروفون مستخدم حاليًا من تطبيق آخر — أغلقه ثم أعد المحاولة", "The microphone is busy in another app — close it and try again") + detail,
+        );
+      } else if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
+        setError((await micDeniedGuidance()) + detail);
+      } else {
+        setError(t("تعذر تشغيل الميكروفون — أعد المحاولة", "Could not start the microphone — try again") + detail);
+      }
     } finally {
       startingRef.current = false;
     }
@@ -326,7 +362,7 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
               isListening
                 ? t("إيقاف الاستماع", "Stop dictation")
                 : micPermission === "denied"
-                  ? t("السماح مرفوض حاليًا — اضغط وسيُطلب من جديد", "Permission blocked — click to ask again")
+                  ? t("الإذن مرفوض مسبقًا — أعِد التفعيل من أيقونة القفل في شريط العنوان", "Blocked — re-enable via the address-bar lock icon")
                   : t("تحدّث بالعربية بدل الكتابة", "Dictate in Arabic instead of typing")
             }
             side="top"
