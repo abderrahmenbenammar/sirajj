@@ -130,37 +130,29 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const startDictation = async () => {
     const Ctor = getDictationCtor();
     if (!Ctor || recognitionRef.current || startingRef.current) return;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError(
-        t(
-          "المتصفح لا يدعم الوصول إلى الميكروفون (يلزم اتصال آمن)",
-          "This browser cannot access the microphone (a secure connection is required)",
-        ),
-      );
-      return;
-    }
     startingRef.current = true;
     setIsMicStarting(true);
     setError(null);
 
-    // Explicitly request the microphone first: this is what triggers the native
-    // browser permission popup (from the address bar) on the very first click.
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      startingRef.current = false;
-      setIsMicStarting(false);
-      setMicPermission("denied");
-      setError(
-        t("تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح", "Microphone permission denied — enable it in your browser settings"),
-      );
-      return;
-    }
-    // Permission granted: release the tracks immediately so SpeechRecognition
-    // can open the microphone itself.
-    for (const track of stream.getTracks()) {
-      track.stop();
+    // Best-effort microphone request: it triggers the native prompt when
+    // permissions are pending. A failure here must NOT lock a permanent
+    // "denied" state and must NOT block the click — SpeechRecognition below
+    // runs regardless and triggers its own native prompt if needed.
+    const mediaDevices = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
+    if (mediaDevices?.getUserMedia) {
+      let stream: MediaStream | null = null;
+      try {
+        stream = await mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        stream = null;
+      }
+      // Granted: release the tracks immediately so SpeechRecognition can
+      // open the microphone itself.
+      if (stream) {
+        for (const track of stream.getTracks()) {
+          track.stop();
+        }
+      }
     }
 
     // Keep whatever the student already typed and append dictation after it.
@@ -187,7 +179,8 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     };
     recognition.onerror = (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setMicPermission("denied");
+        // Temporary inline error only — no permanent state lock, so the next
+        // click tries the native prompt again.
         setError(
           t("تم رفض إذن الميكروفون، فعّله من إعدادات المتصفح", "Microphone permission denied — enable it in your browser settings"),
         );
@@ -321,28 +314,14 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
               {t("تحدّث", "Dictate")}
             </button>
           </SirajTooltip>
-        ) : micPermission === "denied" ? (
-          <SirajTooltip
-            label={t("إذن الميكروفون مرفوض — اضغط للمحاولة مرة أخرى", "Microphone blocked — click to try again")}
-            side="top"
-          >
-            <button
-              type="button"
-              onClick={() => void startDictation()}
-              disabled={isGrading || isMicStarting}
-              aria-label={t("إذن الميكروفون مرفوض", "Microphone permission denied")}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-600 transition-colors hover:border-red-400 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950"
-            >
-              {isMicStarting ? <Loader2 size={15} className="shrink-0 animate-spin" /> : <MicOff size={15} className="shrink-0" />}
-              {isMicStarting ? t("جارٍ طلب الإذن...", "Requesting...") : t("الميكروفون موقوف", "Microphone blocked")}
-            </button>
-          </SirajTooltip>
         ) : (
           <SirajTooltip
             label={
               isListening
                 ? t("إيقاف الاستماع", "Stop dictation")
-                : t("تحدّث بالعربية بدل الكتابة", "Dictate in Arabic instead of typing")
+                : micPermission === "denied"
+                  ? t("السماح مرفوض حاليًا — اضغط وسيُطلب من جديد", "Permission blocked — click to ask again")
+                  : t("تحدّث بالعربية بدل الكتابة", "Dictate in Arabic instead of typing")
             }
             side="top"
           >
