@@ -13,42 +13,10 @@ interface MatnQuizFormProps {
 }
 
 const DEFAULT_CORRECT_ANSWER = "أن تعبد الله مخلصا له الدين";
+const MAX_AUDIO_BYTES = 8_000_000; // matches the API route cap (8 MB)
 
 // "unknown" = Permissions API not queried/unsupported; the runtime error path still catches it.
 type MicPermissionState = "unknown" | "prompt" | "granted" | "denied";
-
-// SpeechRecognition is not part of lib.dom, so we type the small surface we use.
-type DictationResultItem = { isFinal: boolean; 0: { transcript: string } };
-type DictationEvent = { results: ArrayLike<DictationResultItem> };
-type DictationRecognition = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((event: DictationEvent) => void) | null;
-  onerror: ((event: { error?: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-};
-type DictationCtor = new () => DictationRecognition;
-
-function getDictationCtor(): DictationCtor | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as {
-    SpeechRecognition?: DictationCtor;
-    webkitSpeechRecognition?: DictationCtor;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
-
-/** Join spoken chunks, inserting a single space only when the text needs it. */
-function appendSpoken(existing: string, chunk: string): string {
-  const text = chunk.trim();
-  if (!text) return existing;
-  if (!existing) return text;
-  return /[\s\u00A0]$/.test(existing) ? existing + text : `${existing} ${text}`;
-}
 
 function subscribeNoop() {
   return () => {};
@@ -73,19 +41,21 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
   const [error, setError] = useState<string | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [micPermission, setMicPermission] = useState<MicPermissionState>("unknown");
   // Browser capability check: SSR-safe (false on the server, live snapshot on the client).
-  const speechSupported = useSyncExternalStore(
+  const recordSupported = useSyncExternalStore(
     subscribeNoop,
-    () => getDictationCtor() !== null,
+    () =>
+      typeof window !== "undefined" &&
+      typeof MediaRecorder !== "undefined" &&
+      Boolean(navigator.mediaDevices?.getUserMedia),
     () => false,
   );
 
   const textRef = useRef("");
-  const dictationBaseRef = useRef("");
-  const finalTranscriptRef = useRef("");
   const suppressChangeRef = useRef(false);
-  const recognitionRef = useRef<DictationRecognition | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
   const startingRef = useRef(false);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -125,36 +95,19 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     return () => {
       cancelled = true;
       if (status) status.onchange = null;
-      recognitionRef.current?.abort();
+      const recorder = recorderRef.current;
+      recorderRef.current = null;
+      if (recorder) {
+        recorder.onstop = null; // unmount: skip transcription, just release
+        try {
+          if (recorder.state !== "inactive") recorder.stop();
+        } catch {
+          // Recorder already stopped.
+        }
+      }
       releaseStream();
     };
   }, []);
-
-  /** Update the textarea from dictation without being mistaken for a user edit. */
-  const pushDictationText = (value: string) => {
-    if (value === textRef.current) return;
-    textRef.current = value;
-    suppressChangeRef.current = true;
-    setStudentAnswer(value);
-  };
-
-  const stopDictation = () => {
-    setIsListening(false);
-    const recognition = recognitionRef.current;
-    recognitionRef.current = null;
-    if (recognition) {
-      // Deliberate teardown: drop error handlers first so stopping the tracks
-      // below cannot surface a spurious "audio-capture" message; onend stays.
-      recognition.onerror = null;
-      recognition.onresult = null;
-      try {
-        recognition.stop();
-      } catch {
-        // Recognition already ended.
-      }
-    }
-    releaseStream();
-  };
 
   /**
    * Actionable guidance for a blocked microphone: while the site permission is
@@ -175,13 +128,71 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     );
   };
 
-  // Permission-first pattern: acquire the mic through getUserMedia first, then
-  // keep that MediaStream ACTIVE while SpeechRecognition starts — Chromium sees
-  // a live audio stream (active audio context + user gesture just exercised)
-  // instead of throwing NotAllowedError.
-  const startDictation = async () => {
-    const Ctor = getDictationCtor();
-    if (!Ctor || recognitionRef.current || startingRef.current) return;
+  /** Send the recorded Blob to the server and insert the transcript into the textarea. */
+  const transcribeAudio = async (blob: Blob) => {
+    if (blob.size === 0) {
+      setError(t("لم يُلتقط أي صوت — أعد التسجيل", "No audio captured — record again"));
+      return;
+    }
+    if (blob.size > MAX_AUDIO_BYTES) {
+      setError(
+        t("التسجيل طويل جدًا (الحد 8 ميغابايت) — سجّل مقطعًا أقصر", "Recording too long (8 MB limit) — record a shorter clip"),
+      );
+      return;
+    }
+    setIsTranscribing(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("audio", blob, "recording.webm");
+      const res = await fetch("/api/transcribe", { method: "POST", body: form });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(
+          typeof data?.error === "string"
+            ? data.error
+            : t("تعذر تحويل الصوت إلى نص، حاول مجددًا", "Transcription failed, try again"),
+        );
+        return;
+      }
+      const transcript = typeof data?.text === "string" ? data.text.trim() : "";
+      if (!transcript) {
+        setError(t("لم يُلتقط صوت واضح — أعد التسجيل", "No clear speech detected — record again"));
+        return;
+      }
+      // Insert the transcript directly into the response textarea.
+      const base = textRef.current;
+      const joined = base.length > 0 && !/\s$/.test(base) ? `${base} ${transcript}` : `${base}${transcript}`;
+      textRef.current = joined;
+      suppressChangeRef.current = true;
+      setStudentAnswer(joined);
+    } catch {
+      setError(t("تعذر الاتصال بالخادم", "Could not reach the server"));
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const stopRecording = () => {
+    setIsListening(false);
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder && recorder.state !== "inactive") {
+      try {
+        recorder.stop(); // onstop assembles the Blob and transcribes it
+      } catch {
+        // Recorder already stopped.
+      }
+    } else {
+      releaseStream();
+    }
+  };
+
+  // Permission-first pattern: acquire the mic through getUserMedia, record with
+  // the standard MediaRecorder API (no browser SpeechRecognition — it is
+  // origin-restricted on Vercel deployments), then transcribe server-side.
+  const startRecording = async () => {
+    if (!recordSupported || recorderRef.current || startingRef.current) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       setError(
         t(
@@ -196,68 +207,45 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
     releaseStream(); // drop any stale stream from an interrupted session
 
     try {
-      // Step 1: request the microphone (native permission prompt) and KEEP it.
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Step 2: initialize SpeechRecognition while the stream is still running —
-      // tracks are NOT stopped here; releaseStream() handles that when the
-      // session ends (stopDictation / onend / unmount).
-
-      // Keep whatever the student already typed and append dictation after it.
-      dictationBaseRef.current = textRef.current;
-      finalTranscriptRef.current = "";
-
-      const recognition = new Ctor();
-      recognition.lang = "ar-SA";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.onresult = (event) => {
-        let finals = "";
-        let interim = "";
-        for (let i = 0; i < event.results.length; i++) {
-          const item = event.results[i];
-          if (item.isFinal) {
-            finals = appendSpoken(finals, item[0].transcript);
-          } else {
-            interim += item[0].transcript;
-          }
-        }
-        finalTranscriptRef.current = finals;
-        pushDictationText(appendSpoken(dictationBaseRef.current, appendSpoken(finals, interim)));
+      const chunks: Blob[] = [];
+      const recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
       };
-      recognition.onerror = (event) => {
-        // The mic stream is deliberately NOT touched here: transient errors
-        // leave recognition running, and fatal ones end it — onend releases
-        // streamRef only when recognition stops completely.
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          // Temporary inline guidance only — no permanent state lock, so the
-          // next click retries from Step 1.
-          void micDeniedGuidance().then((message) => setError(message));
-        } else if (event.error === "audio-capture") {
-          setError(t("انقطعت جلسة الميكروفون — أعد المحاولة", "Microphone stream lost — try again"));
-        } else if (event.error === "network") {
-          setError(
-            t("تعذر الاتصال بخدمة التعرّف على الصوت", "Speech service unavailable — check your connection"),
-          );
-        }
-        // "no-speech" (silence) and transient errors simply end the session via onend.
+      recorder.onerror = () => {
+        // The stream is released by onstop (which always follows an error);
+        // nothing is destroyed here so a transient fault can still recover.
+        setError(t("تعذر تسجيل الصوت — أعد المحاولة", "Recording failed — try again"));
       };
-      recognition.onend = () => {
-        recognitionRef.current = null;
-        releaseStream(); // recognition stopped completely -> let go of the mic
+      recorder.onstop = () => {
+        recorderRef.current = null;
+        releaseStream(); // recording stopped completely -> let go of the mic
         setIsListening(false);
+        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+        void transcribeAudio(blob);
       };
 
-      recognitionRef.current = recognition;
-      recognition.start(); // stream is still live (streamRef holds it)
+      recorderRef.current = recorder;
+      recorder.start(1000); // periodic chunks so long recordings are not lost
       setIsListening(true);
     } catch (error) {
       // Friendly inline guidance only — no permanent UI lock; the next click
-      // retries from Step 1. Branch on the real failure cause so a missing/busy
-      // microphone is never mislabeled as a permission denial.
-      releaseStream(); // start failed -> never leak a captured microphone
-      recognitionRef.current = null;
+      // retries. Branch on the real failure cause so a missing/busy microphone
+      // is never mislabeled as a permission denial.
+      const recorder = recorderRef.current;
+      recorderRef.current = null;
+      if (recorder) {
+        recorder.onstop = null; // failed start: never transcribe
+        try {
+          if (recorder.state !== "inactive") recorder.stop();
+        } catch {
+          // Recorder already stopped.
+        }
+      }
+      releaseStream();
       setIsListening(false);
       const name = error instanceof Error ? error.name : "";
       const detail = error instanceof Error && error.message ? ` (${name}: ${error.message})` : name ? ` (${name})` : "";
@@ -269,6 +257,8 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
         );
       } else if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
         setError((await micDeniedGuidance()) + detail);
+      } else if (name === "NotSupportedError") {
+        setError(t("المتصفح لا يدعم تسجيل الصوت", "This browser does not support audio recording") + detail);
       } else {
         setError(t("تعذر تشغيل الميكروفون — أعد المحاولة", "Could not start the microphone — try again") + detail);
       }
@@ -282,14 +272,14 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
       suppressChangeRef.current = false;
       return;
     }
-    // Manual edit while dictating -> stop the microphone so the two never clash.
-    if (recognitionRef.current) stopDictation();
+    // Manual edit while recording -> stop so the two never clash.
+    if (recorderRef.current) stopRecording();
     textRef.current = event.target.value;
     setStudentAnswer(event.target.value);
   };
 
   const handleSubmit = () => {
-    if (recognitionRef.current) stopDictation();
+    if (recorderRef.current) stopRecording();
     if (studentAnswer.trim().length === 0) {
       setError(t("اكتب إجابتك أولًا", "Write your answer first"));
       return;
@@ -365,9 +355,9 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {!speechSupported ? (
+        {!recordSupported ? (
           <SirajTooltip
-            label={t("الإملاء الصوتي غير مدعوم في هذا المتصفح", "Voice dictation is not supported in this browser")}
+            label={t("التسجيل الصوتي غير مدعوم في هذا المتصفح", "Audio recording is not supported in this browser")}
             side="top"
           >
             <button
@@ -384,17 +374,19 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
           <SirajTooltip
             label={
               isListening
-                ? t("إيقاف الاستماع", "Stop dictation")
-                : micPermission === "denied"
-                  ? t("الإذن مرفوض مسبقًا — أعِد التفعيل من أيقونة القفل في شريط العنوان", "Blocked — re-enable via the address-bar lock icon")
-                  : t("تحدّث بالعربية بدل الكتابة", "Dictate in Arabic instead of typing")
+                ? t("إيقاف التسجيل", "Stop recording")
+                : isTranscribing
+                  ? t("جارٍ تحويل الصوت إلى نص", "Transcribing audio to text")
+                  : micPermission === "denied"
+                    ? t("الإذن مرفوض مسبقًا — أعِد التفعيل من أيقونة القفل في شريط العنوان", "Blocked — re-enable via the address-bar lock icon")
+                    : t("تحدّث بالعربية بدل الكتابة", "Dictate in Arabic instead of typing")
             }
             side="top"
           >
             <button
               type="button"
-              onClick={() => (isListening ? stopDictation() : void startDictation())}
-              disabled={isGrading}
+              onClick={() => (isListening ? stopRecording() : void startRecording())}
+              disabled={isGrading || isTranscribing}
               aria-pressed={isListening}
               aria-label={t("الإملاء الصوتي", "Voice dictation")}
               className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -404,7 +396,11 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
               }`}
             >
               <Mic size={15} className="shrink-0" />
-              {isListening ? t("جارٍ الاستماع...", "Listening...") : t("تحدّث", "Dictate")}
+              {isListening
+                ? t("جارٍ التسجيل...", "Recording...")
+                : isTranscribing
+                  ? t("جارٍ التحويل...", "Transcribing...")
+                  : t("تحدّث", "Dictate")}
             </button>
           </SirajTooltip>
         )}
@@ -413,6 +409,13 @@ export default function MatnQuizForm({ question, correctAnswer = DEFAULT_CORRECT
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400" aria-live="polite">
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
             {t("يسجّل صوتك الآن", "Recording your voice")}
+          </span>
+        )}
+
+        {isTranscribing && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400" aria-live="polite">
+            <Loader2 size={13} className="animate-spin" />
+            {t("جارٍ تحويل الصوت إلى نص...", "Transcribing audio to text...")}
           </span>
         )}
       </div>
