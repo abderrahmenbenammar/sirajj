@@ -45,6 +45,13 @@ function isPrismaNotFound(error: unknown): boolean {
   );
 }
 
+/** Prisma P2003/P2014: a foreign key / required relation blocked the delete. */
+function isForeignKeyBlocked(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error)) return false;
+  const code = String((error as { code?: unknown }).code);
+  return code === "P2003" || code === "P2014";
+}
+
 async function adminOrError(): Promise<string | null> {
   // Fresh DB role check on every mutation (same rule as the admin API routes).
   const { response } = await requireAdmin();
@@ -175,15 +182,31 @@ export async function deleteMatn(id: string): Promise<MatnActionResult> {
     });
     if (!existing) return { ok: false, error: "المتن غير موجود" };
 
-    // Quizzes follow via the DB-level ON DELETE CASCADE (matn_quizzes.matn_id).
-    await prisma.matn.delete({ where: { id: existing.id } });
+    // Atomic bulk delete: remove dependent quizzes explicitly first, then the
+    // matn itself. This succeeds even in environments where the FK was created
+    // WITHOUT ON DELETE CASCADE, and rolls everything back if anything fails
+    // (e.g. an unexpected referencing table still blocks the delete).
+    await prisma.$transaction([
+      prisma.matnQuiz.deleteMany({ where: { matnId: existing.id } }),
+      prisma.matn.delete({ where: { id: existing.id } }),
+    ]);
+
     revalidatePath("/admin/mutoon");
+    revalidatePath("/admin/matn");
     revalidatePath("/dashboard/mutoon");
+    revalidatePath(`/dashboard/mutoon/${existing.id}`);
     return { ok: true, id: existing.id };
   } catch (error) {
     if (isPrismaNotFound(error)) return { ok: false, error: "المتن غير موجود" };
+    if (isForeignKeyBlocked(error)) {
+      console.error("[matn-actions] deleteMatn blocked by FK", error);
+      return {
+        ok: false,
+        error: "عذراً، تعذر حذف المتن: هناك بيانات مرتبطة تمنع الحذف حاليًا",
+      };
+    }
     console.error("[matn-actions] deleteMatn failed", error);
-    return { ok: false, error: "تعذر حذف المتن، حاول مجددًا" };
+    return { ok: false, error: "عذراً، تعذر حذف المتن" };
   }
 }
 

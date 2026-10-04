@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
-import { HelpCircle, Pencil, Trash2 } from "lucide-react";
+import { HelpCircle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajConfirm, useSirajMessage } from "@/components/ui/SirajDialog";
 import SirajTooltip from "@/components/ui/SirajTooltip";
@@ -33,6 +33,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const [quizType, setQuizType] = useState<MatnQuizType>("write");
   const [quizOptionsText, setQuizOptionsText] = useState("");
   const [quizPending, startQuizTransition] = useTransition();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const startMatnEdit = () => {
     setMatnTitle(matn.title);
@@ -57,22 +58,27 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
     startMatnTransition(async () => {
       const confirmed = await confirm(
         t(
-          `سيتم حذف المتن «${matn.title}» مع جميع أسئلة التسميع المرتبطة به (${matn.quizCount}) نهائيًا. لا يمكن التراجع عن هذا الإجراء.`,
-          `This will permanently delete "${matn.title}" together with all ${matn.quizCount} of its recitation questions. This cannot be undone.`,
+          `هل أنت متأكد من حذف هذا المتن وجميع الأسئلة المرتبطة به؟ سيُحذف المتن «${matn.title}» مع أسئلة التسميع (${matn.quizCount}) نهائيًا ولا يمكن التراجع.`,
+          `Are you sure you want to delete this matn and all its related questions? "${matn.title}" and its ${matn.quizCount} recitation questions will be permanently removed and cannot be undone.`,
         ),
         {
           type: "warning",
-          title: t("حذف المتن", "Delete matn"),
+          title: t("تأكيد حذف المتن", "Confirm matn deletion"),
           confirmLabel: t("حذف نهائي", "Delete forever"),
           confirmVariant: "danger",
         },
       );
       if (!confirmed) return;
-      const result = await deleteMatn(matn.id);
-      if (result.ok) {
-        notify(t("تم حذف المتن وأسئلته", "Matn and its questions were deleted"), "success");
-      } else {
-        notify(result.error, "error");
+      setIsDeleting(true);
+      try {
+        const result = await deleteMatn(matn.id);
+        if (result.ok) {
+          notify(t("تم حذف المتن وأسئلته", "Matn and its questions were deleted"), "success");
+        } else {
+          notify(result.error, "error");
+        }
+      } finally {
+        setIsDeleting(false);
       }
     });
   };
@@ -156,11 +162,16 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
             <button
               type="button"
               onClick={removeMatn}
-              disabled={matnPending}
+              disabled={matnPending || isDeleting}
               aria-label={`${t("حذف", "Delete")} ${matn.title}`}
+              aria-busy={isDeleting}
               className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40"
             >
-              <Trash2 size={16} />
+              {isDeleting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Trash2 size={16} />
+              )}
             </button>
           </SirajTooltip>
         </div>
