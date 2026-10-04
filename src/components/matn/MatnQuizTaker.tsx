@@ -93,7 +93,7 @@ export default function MatnQuizTaker({ quizzes }: { quizzes: MatnQuizItem[] }) 
                 <X size={20} />
               </button>
             </div>
-            <MatnQuizForm question={selected.question} correctAnswer={selected.correctAnswer} />
+            <MatnQuizForm questions={quizzes} />
           </div>
         </div>
       )}
