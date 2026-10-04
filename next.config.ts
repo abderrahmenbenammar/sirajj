@@ -29,7 +29,7 @@ const securityHeaders = [
       "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
       "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co http://192.168.1.2:3000 ws://192.168.1.2:3000",
       "worker-src 'self'",
-      "manifest-src 'self'",
+      "manifest-src 'self' https://vercel.com https://*.vercel.app;",
       "frame-ancestors 'none'",
     ].join("; "),
   },
