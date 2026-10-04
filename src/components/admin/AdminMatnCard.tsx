@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { HelpCircle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajConfirm, useSirajMessage } from "@/components/ui/SirajDialog";
@@ -19,6 +20,7 @@ import type { AdminMatn, AdminMatnQuiz } from "@/components/admin/types";
 
 export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const { t } = useLang();
+  const router = useRouter();
   const { dialog, notify } = useSirajMessage();
   const { dialog: confirmDialog, confirm } = useSirajConfirm();
 
@@ -74,10 +76,18 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
         const result = await deleteMatn(matn.id);
         if (result.ok) {
           notify(t("تم حذف المتن وأسئلته", "Matn and its questions were deleted"), "success");
+          // Re-render the server components immediately so the deleted card
+          // disappears from the list without a manual page reload.
+          router.refresh();
         } else {
-          notify(result.error, "error");
+          notify(result.error || t("تعذر حذف المتن", "Could not delete the matn"), "error");
         }
+      } catch (err) {
+        console.error("DELETE_MATN_ERROR:", err);
+        notify(t("حدث خطأ أثناء الحذف", "An error occurred while deleting"), "error");
       } finally {
+        // Always clear the pending flag — on success, failure, or exception —
+        // so the trash button can never stay disabled/faded indefinitely.
         setIsDeleting(false);
       }
     });
