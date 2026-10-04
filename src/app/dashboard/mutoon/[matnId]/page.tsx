@@ -54,10 +54,9 @@ export default async function MatnDetailPage({
         </div>
       </div>
 
-      <h2 className="mb-3 mt-6 text-base font-bold text-gray-900 dark:text-white">
-        أسئلة التسميع ({matn.quizzes.length})
-      </h2>
-      <MatnQuizTaker quizzes={matn.quizzes} />
+      <div className="mt-6">
+        <MatnQuizTaker title={matn.title} quizzes={matn.quizzes} />
+      </div>
     </div>
   );
 }

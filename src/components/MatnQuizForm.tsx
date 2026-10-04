@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, Loader2, RotateCcw, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ListChecks, Loader2, RotateCcw, Sparkles, XCircle } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import type { GradeMatnResult } from "@/app/api/grade-matn/route";
 
@@ -13,6 +13,8 @@ export interface MatnQuizQuestion {
 }
 
 interface MatnQuizFormProps {
+  /** Matn title shown on the welcome hero card. */
+  title?: string;
   questions: MatnQuizQuestion[];
 }
 
@@ -23,29 +25,31 @@ type AnswerRecord = {
   isPassed: boolean;
 };
 
+type QuizState = "welcome" | "active" | "completed";
+
 // Single source of truth for pass/fail (mirrors /api/grade-matn).
 const PASS_THRESHOLD = 85;
 
-export default function MatnQuizForm({ questions }: MatnQuizFormProps) {
+export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const { t } = useLang();
   const totalQuestions = questions.length;
+  const [quizState, setQuizState] = useState<QuizState>("welcome");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, AnswerRecord>>({});
   const [studentAnswer, setStudentAnswer] = useState("");
   const [result, setResult] = useState<GradeMatnResult | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSummary, setShowSummary] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Auto-focus and scroll the textarea into view whenever a new card enters.
   useEffect(() => {
-    if (showSummary) return;
+    if (quizState !== "active") return;
     const el = textareaRef.current;
     if (!el) return;
     el.focus({ preventScroll: true });
     el.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [currentIndex, showSummary]);
+  }, [quizState, currentIndex]);
 
   if (totalQuestions === 0) {
     return (
@@ -63,9 +67,10 @@ export default function MatnQuizForm({ questions }: MatnQuizFormProps) {
   const current = questions[currentIndex];
   const isGraded = result !== null;
   const isLast = currentIndex === totalQuestions - 1;
-  const progressPercent = showSummary
-    ? 100
-    : ((currentIndex + 1) / totalQuestions) * 100;
+  const progressPercent =
+    quizState === "completed"
+      ? 100
+      : ((currentIndex + 1) / totalQuestions) * 100;
 
   const checkAnswer = () => {
     const text = studentAnswer.trim();
@@ -108,7 +113,7 @@ export default function MatnQuizForm({ questions }: MatnQuizFormProps) {
 
   const goNext = () => {
     if (isLast) {
-      setShowSummary(true);
+      setQuizState("completed");
       return;
     }
     setCurrentIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
@@ -129,7 +134,7 @@ export default function MatnQuizForm({ questions }: MatnQuizFormProps) {
     setResult(null);
     setError(null);
     setIsGrading(false);
-    setShowSummary(false);
+    setQuizState("active");
   };
 
   // Ctrl+Enter / Cmd+Enter triggers Check Answer / Next Question from anywhere
@@ -137,162 +142,89 @@ export default function MatnQuizForm({ questions }: MatnQuizFormProps) {
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
       event.preventDefault();
-      if (!showSummary) primaryAction();
+      if (quizState === "active") primaryAction();
     }
   };
 
-  const overallScore =
-    totalQuestions > 0
-      ? Math.round(
-          Object.values(userAnswers).reduce((sum, answer) => sum + answer.score, 0) /
-            totalQuestions,
-        )
-      : 0;
+  const overallScore = Math.round(
+    Object.values(userAnswers).reduce((sum, answer) => sum + answer.score, 0) /
+      totalQuestions,
+  );
   const overallPassed = overallScore >= PASS_THRESHOLD;
 
   const cardMotion = {
-    initial: { opacity: 0, x: 50, scale: 0.95 },
+    initial: { opacity: 0, x: 50, scale: 0.96 },
     animate: { opacity: 1, x: 0, scale: 1 },
-    exit: { opacity: 0, x: -50, scale: 0.95 },
-    transition: { type: "spring" as const, stiffness: 300, damping: 30 },
+    exit: { opacity: 0, x: -50, scale: 0.96 },
+    transition: { type: "spring" as const, stiffness: 280, damping: 26 },
   };
 
   return (
     <div dir="rtl" className="w-full max-w-2xl mx-auto">
-      {/* Global progress bar */}
-      <div className="mb-4">
-        <div className="mb-1.5 flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
-          <span>
-            {showSummary
-              ? t("اكتمل الاختبار", "Quiz complete")
-              : t(
-                  `السؤال ${currentIndex + 1} من ${totalQuestions}`,
-                  `Question ${currentIndex + 1} of ${totalQuestions}`,
-                )}
-          </span>
-          <span dir="ltr">{Math.round(progressPercent)}%</span>
-        </div>
-        <div
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(progressPercent)}
-          aria-label={t("تقدم الاختبار", "Quiz progress")}
-          className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800"
-        >
+      {/* Top progress bar (active/completed phases only) */}
+      {quizState !== "welcome" && (
+        <div className="mb-4">
+          <div className="mb-1.5 flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
+            <span>
+              {quizState === "completed"
+                ? t("اكتمل الاختبار", "Quiz complete")
+                : t(
+                    `السؤال ${currentIndex + 1} من ${totalQuestions}`,
+                    `Question ${currentIndex + 1} of ${totalQuestions}`,
+                  )}
+            </span>
+            <span dir="ltr">{Math.round(progressPercent)}%</span>
+          </div>
           <div
-            className="h-full rounded-full bg-emerald-500"
-            style={{ width: `${progressPercent}%`, transition: "width 0.4s ease" }}
-          />
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait" initial={false}>
-        {showSummary ? (
-          <motion.div
-            key="summary"
-            {...cardMotion}
-            className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-md dark:border-gray-800 dark:bg-gray-900 sm:p-6"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progressPercent)}
+            aria-label={t("تقدم الاختبار", "Quiz progress")}
+            className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800"
           >
-            <div className="flex items-center gap-2">
-              {overallPassed ? (
-                <CheckCircle2 size={20} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <XCircle size={20} className="shrink-0 text-amber-500 dark:text-amber-400" />
-              )}
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                {t("النتيجة النهائية", "Final Result")}
-              </h2>
-            </div>
-
             <div
-              aria-live="polite"
-              className={`mt-4 rounded-xl border p-4 ${
-                overallPassed
-                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
-                  : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span
-                  className={`text-sm font-bold ${
-                    overallPassed
-                      ? "text-emerald-700 dark:text-emerald-300"
-                      : "text-amber-700 dark:text-amber-300"
-                  }`}
-                >
-                  {overallPassed
-                    ? t("أحسنت! تم اجتياز الاختبار", "Passed — well done!")
-                    : t("تحتاج مراجعة بعض الإجابات", "Some answers need review")}
-                </span>
-                <span className="text-2xl font-extrabold tabular-nums text-gray-900 dark:text-white">
-                  <span dir="ltr">{overallScore}%</span>
-                </span>
-              </div>
-            </div>
+              className="h-full rounded-full bg-emerald-500"
+              style={{ width: `${progressPercent}%`, transition: "width 0.4s ease" }}
+            />
+          </div>
+        </div>
+      )}
 
-            <ul className="mt-4 space-y-2">
-              {questions.map((question, index) => {
-                const answer = userAnswers[index];
-                const passed = (answer?.score ?? 0) >= PASS_THRESHOLD;
-                return (
-                  <li
-                    key={question.question + index}
-                    className={`flex gap-3 rounded-xl border p-3 ${
-                      answer && answer.score < 100
-                        ? "border-amber-200/70 bg-amber-50/50 dark:border-amber-900/60 dark:bg-amber-950/20"
-                        : "border-emerald-200/70 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/20"
-                    }`}
-                  >
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold ${
-                        passed
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                      }`}
-                    >
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
-                        {question.question}
-                      </p>
-                      <p className="mt-0.5 text-xs font-bold text-gray-600 dark:text-gray-300">
-                        {answer
-                          ? t("درجتك: ", "Your score: ") + `${answer.score}%`
-                          : t("لم يُجب", "Unanswered")}
-                      </p>
-                      {answer?.feedback && (
-                        <p className="mt-1 text-xs leading-6 text-gray-600 dark:text-gray-400">
-                          {answer.feedback}
-                        </p>
-                      )}
-                      {answer && answer.score < 100 && (
-                        <div className="mt-1.5 rounded-lg border border-emerald-200/70 bg-white p-2 dark:border-gray-700 dark:bg-gray-900/80">
-                          <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-                            {t("النص الصحيح للمراجعة:", "Reference correct answer:")}
-                          </p>
-                          <p className="mt-0.5 text-xs font-medium leading-6 text-gray-900 dark:text-gray-100">
-                            {question.correctAnswer}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
+      <AnimatePresence mode="wait">
+        {quizState === "welcome" && (
+          <motion.div
+            key="welcome"
+            {...cardMotion}
+            className="rounded-2xl border border-gray-200/80 bg-white px-6 py-10 text-center shadow-md dark:border-gray-800 dark:bg-gray-900 sm:px-8"
+          >
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25">
+              <Sparkles size={28} />
+            </span>
+            <h2 className="mt-5 text-xl font-extrabold text-gray-900 dark:text-white">
+              {title || t("التسميع", "Recitation")}
+            </h2>
+            <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300">
+              <ListChecks size={13} className="shrink-0" />
+              {t(`عدد الأسئلة: ${totalQuestions}`, `Questions: ${totalQuestions}`)}
+            </span>
+            <p className="mx-auto mt-4 max-w-sm text-sm leading-7 text-gray-600 dark:text-gray-400">
+              {t(
+                "راجع المتن سؤالًا بعد سؤال مع تصحيح فوري لكل إجابة — أنت قادر على النجاح، فالله معك",
+                "Review the matn one question at a time with instant feedback — you've got this, God is with you",
+              )}
+            </p>
             <button
               type="button"
-              onClick={restartQuiz}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition-colors hover:border-emerald-300 hover:text-emerald-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
+              onClick={() => setQuizState("active")}
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
             >
-              <RotateCcw size={16} />
-              {t("إعادة الاختبار", "Restart quiz")}
+              {t("ابدأ المراجعة 🚀", "Start Review 🚀")}
             </button>
           </motion.div>
-        ) : (
+        )}
+
+        {quizState === "active" && (
           <motion.div
             key={`question-${currentIndex}`}
             {...cardMotion}
@@ -410,6 +342,113 @@ export default function MatnQuizForm({ questions }: MatnQuizFormProps) {
                   {t("تحقق من الإجابة", "Check Answer")}
                 </>
               )}
+            </button>
+          </motion.div>
+        )}
+
+        {quizState === "completed" && (
+          <motion.div
+            key="completed"
+            {...cardMotion}
+            onKeyDown={handleKeyDown}
+            className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-md dark:border-gray-800 dark:bg-gray-900 sm:p-6"
+          >
+            <div className="flex items-center gap-2">
+              {overallPassed ? (
+                <CheckCircle2 size={20} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <XCircle size={20} className="shrink-0 text-amber-500 dark:text-amber-400" />
+              )}
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                {t("النتيجة النهائية", "Final Result")}
+              </h2>
+            </div>
+
+            <div
+              aria-live="polite"
+              className={`mt-4 rounded-xl border p-4 ${
+                overallPassed
+                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
+                  : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span
+                  className={`text-sm font-bold ${
+                    overallPassed
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-amber-700 dark:text-amber-300"
+                  }`}
+                >
+                  {overallPassed
+                    ? t("أحسنت! تم اجتياز الاختبار", "Passed — well done!")
+                    : t("تحتاج مراجعة بعض الإجابات", "Some answers need review")}
+                </span>
+                <span className="text-2xl font-extrabold tabular-nums text-gray-900 dark:text-white">
+                  <span dir="ltr">{overallScore}%</span>
+                </span>
+              </div>
+            </div>
+
+            <ul className="mt-4 space-y-2">
+              {questions.map((question, index) => {
+                const answer = userAnswers[index];
+                const passed = (answer?.score ?? 0) >= PASS_THRESHOLD;
+                return (
+                  <li
+                    key={question.question + index}
+                    className={`flex gap-3 rounded-xl border p-3 ${
+                      answer && answer.score < 100
+                        ? "border-amber-200/70 bg-amber-50/50 dark:border-amber-900/60 dark:bg-amber-950/20"
+                        : "border-emerald-200/70 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/20"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold ${
+                        passed
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                        {question.question}
+                      </p>
+                      <p className="mt-0.5 text-xs font-bold text-gray-600 dark:text-gray-300">
+                        {answer
+                          ? t("درجتك: ", "Your score: ") + `${answer.score}%`
+                          : t("لم يُجب", "Unanswered")}
+                      </p>
+                      {answer?.feedback && (
+                        <p className="mt-1 text-xs leading-6 text-gray-600 dark:text-gray-400">
+                          {answer.feedback}
+                        </p>
+                      )}
+                      {answer && answer.score < 100 && (
+                        <div className="mt-1.5 rounded-lg border border-emerald-200/70 bg-white p-2 dark:border-gray-700 dark:bg-gray-900/80">
+                          <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                            {t("النص الصحيح للمراجعة:", "Reference correct answer:")}
+                          </p>
+                          <p className="mt-0.5 text-xs font-medium leading-6 text-gray-900 dark:text-gray-100">
+                            {question.correctAnswer}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <button
+              type="button"
+              onClick={restartQuiz}
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition-colors hover:border-emerald-300 hover:text-emerald-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
+            >
+              <RotateCcw size={16} />
+              {t("إعادة الاختبار", "Restart quiz")}
             </button>
           </motion.div>
         )}
