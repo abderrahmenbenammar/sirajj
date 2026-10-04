@@ -7,6 +7,7 @@ import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajConfirm, useSirajMessage } from "@/components/ui/SirajDialog";
 import SirajTooltip from "@/components/ui/SirajTooltip";
 import NewMatnQuizForm from "@/components/admin/NewMatnQuizForm";
+import GenerateMatnQuizzes from "@/components/admin/GenerateMatnQuizzes";
 import QuizTypeFields, {
   isMatnQuizType,
   optionsToText,
@@ -314,6 +315,8 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
           ))}
         </ul>
       )}
+
+      <GenerateMatnQuizzes matnId={matn.id} />
 
       <NewMatnQuizForm matnId={matn.id} />
 

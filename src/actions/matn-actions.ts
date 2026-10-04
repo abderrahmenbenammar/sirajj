@@ -258,3 +258,90 @@ export async function deleteMatnQuiz(id: string): Promise<MatnActionResult> {
     return { ok: false, error: "تعذر حذف السؤال، حاول مجددًا" };
   }
 }
+
+// ---- Bulk save of AI-generated quizzes (admin, idempotent) ----
+
+const saveQuizItemSchema = matnQuizSchema.omit({ matnId: true });
+const saveQuizzesSchema = z.object({
+  matnId: z.string().trim().min(1, "المتن مطلوب"),
+  questions: z
+    .array(saveQuizItemSchema)
+    .min(1, "لا توجد أسئلة للحفظ")
+    .max(20, "لا يمكن حفظ أكثر من 20 سؤالًا في مرة واحدة"),
+});
+
+export type SaveMatnQuizzesResult =
+  | { ok: true; id: string; created: number; skipped: number }
+  | { ok: false; error: string };
+
+/** Same whitespace-tolerant key as the generate route (idempotent re-save). */
+function quizSaveKey(type: string, question: string, answer: string): string {
+  const norm = (value: string) => value.replace(/\s+/g, " ").trim();
+  return `${type}|${norm(question)}|${norm(answer)}`;
+}
+
+export async function saveMatnQuizzes(input: {
+  matnId: string;
+  questions: Array<{
+    question: string;
+    correctAnswer: string;
+    type?: MatnQuizType;
+    options?: string[];
+  }>;
+}): Promise<SaveMatnQuizzesResult> {
+  const forbidden = await adminOrError();
+  if (forbidden) return { ok: false, error: forbidden };
+
+  const parsed = saveQuizzesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+
+  try {
+    const matn = await prisma.matn.findUnique({
+      where: { id: parsed.data.matnId },
+      select: { id: true },
+    });
+    if (!matn) return { ok: false, error: "المتن غير موجود" };
+
+    // Idempotency: skip rows that already exist for this matn (same type +
+    // whitespace-normalized question/answer), so re-saving is a no-op.
+    const existing = await prisma.matnQuiz.findMany({
+      where: { matnId: matn.id },
+      select: { type: true, question: true, correctAnswer: true },
+    });
+    const keys = new Set(
+      existing.map((row) => quizSaveKey(row.type, row.question, row.correctAnswer)),
+    );
+    const toCreate = parsed.data.questions.filter((item) => {
+      const key = quizSaveKey(item.type, item.question, item.correctAnswer);
+      if (keys.has(key)) return false;
+      keys.add(key); // also dedupe within the payload itself
+      return true;
+    });
+
+    if (toCreate.length > 0) {
+      await prisma.matnQuiz.createMany({
+        data: toCreate.map((item) => ({
+          matnId: matn.id,
+          question: item.question,
+          correctAnswer: item.correctAnswer,
+          type: item.type,
+          // Options only make sense for mcq; other types always store NULL.
+          options: item.type === "mcq" ? (item.options ?? Prisma.DbNull) : Prisma.DbNull,
+        })),
+      });
+    }
+
+    revalidatePath("/admin/mutoon");
+    revalidatePath("/dashboard/mutoon");
+    revalidatePath(`/dashboard/mutoon/${matn.id}`);
+    return {
+      ok: true,
+      id: matn.id,
+      created: toCreate.length,
+      skipped: parsed.data.questions.length - toCreate.length,
+    };
+  } catch (error) {
+    console.error("[matn-actions] saveMatnQuizzes failed", error);
+    return { ok: false, error: "تعذر حفظ الأسئلة، حاول مجددًا" };
+  }
+}
