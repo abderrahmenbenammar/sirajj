@@ -36,6 +36,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const [quizOptionsText, setQuizOptionsText] = useState("");
   const [quizPending, startQuizTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [matnDeleted, setMatnDeleted] = useState(false);
 
   const startMatnEdit = () => {
     setMatnTitle(matn.title);
@@ -56,38 +57,54 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
     });
   };
 
-  const removeMatn = () => {
+  const handleDelete = () => {
     startMatnTransition(async () => {
-      const confirmed = await confirm(
-        t(
-          `هل أنت متأكد من حذف هذا المتن وجميع الأسئلة المرتبطة به؟ سيُحذف المتن «${matn.title}» مع أسئلة التسميع (${matn.quizCount}) نهائيًا ولا يمكن التراجع.`,
-          `Are you sure you want to delete this matn and all its related questions? "${matn.title}" and its ${matn.quizCount} recitation questions will be permanently removed and cannot be undone.`,
-        ),
-        {
-          type: "warning",
-          title: t("تأكيد حذف المتن", "Confirm matn deletion"),
-          confirmLabel: t("حذف نهائي", "Delete forever"),
-          confirmVariant: "danger",
-        },
-      );
-      if (!confirmed) return;
-      setIsDeleting(true);
+      // Every step (confirm, action call, notifications) lives inside this
+      // try/finally so the transition promise always settles — otherwise the
+      // pending flag (and the faded trash button) could stay stuck forever.
       try {
-        const result = await deleteMatn(matn.id);
-        if (result.ok) {
+        const confirmed = await confirm(
+          t(
+            `هل أنت متأكد من حذف هذا المتن وجميع الأسئلة المرتبطة به؟ سيُحذف المتن «${matn.title}» مع أسئلة التسميع (${matn.quizCount}) نهائيًا ولا يمكن التراجع.`,
+            `Are you sure you want to delete this matn and all its related questions? "${matn.title}" and its ${matn.quizCount} recitation questions will be permanently removed and cannot be undone.`,
+          ),
+          {
+            type: "warning",
+            title: t("تأكيد حذف المتن", "Confirm matn deletion"),
+            confirmLabel: t("حذف نهائي", "Delete forever"),
+            confirmVariant: "danger",
+          },
+        );
+        if (!confirmed) return;
+
+        setIsDeleting(true);
+
+        // Server actions can return { ok: true }, { success: true }, a bare
+        // boolean, or nothing at all (e.g. an auth redirect) — normalise the
+        // payload first so a missing/odd shape never throws mid-handler.
+        const outcome: boolean | { ok?: boolean; success?: boolean; error?: string } | null | undefined =
+          await deleteMatn(matn.id);
+        const result: { ok?: boolean; success?: boolean; error?: string } =
+          typeof outcome === "object" && outcome !== null ? outcome : { ok: outcome === true };
+
+        // Handle both { ok: true } and { success: true } response schemas.
+        if (result?.ok || result?.success) {
           notify(t("تم حذف المتن وأسئلته", "Matn and its questions were deleted"), "success");
-          // Re-render the server components immediately so the deleted card
-          // disappears from the list without a manual page reload.
+          // Optimistic UI: drop the card right away, then re-fetch the route so
+          // the server-rendered list catches up without a manual reload.
+          setMatnDeleted(true);
           router.refresh();
         } else {
-          notify(result.error || t("تعذر حذف المتن", "Could not delete the matn"), "error");
+          notify(result?.error || t("تعذر حذف المتن", "Could not delete the matn"), "error");
+          setIsDeleting(false); // Instantly reset opacity if server rejected
         }
       } catch (err) {
         console.error("DELETE_MATN_ERROR:", err);
-        notify(t("حدث خطأ أثناء الحذف", "An error occurred while deleting"), "error");
+        notify(t("حدث خطأ أثناء الاتصال بالسيرفر", "An error occurred while connecting to the server"), "error");
+        setIsDeleting(false); // Instantly reset opacity on network/uncaught error
       } finally {
-        // Always clear the pending flag — on success, failure, or exception —
-        // so the trash button can never stay disabled/faded indefinitely.
+        // Guaranteed cleanup on success, failure, or exception — the trash
+        // button can never stay disabled/faded indefinitely.
         setIsDeleting(false);
       }
     });
@@ -143,6 +160,13 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
     });
   };
 
+  // Optimistic removal: once the server confirmed the delete, drop the card
+  // markup immediately and keep only the success dialog mounted while the
+  // router refresh re-renders the list without this matn.
+  if (matnDeleted) {
+    return <SirajDialog {...dialog} />;
+  }
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -171,7 +195,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
           <SirajTooltip label={t("حذف المتن وأسئلته", "Delete matn and its questions")} side="top">
             <button
               type="button"
-              onClick={removeMatn}
+              onClick={handleDelete}
               disabled={matnPending || isDeleting}
               aria-label={`${t("حذف", "Delete")} ${matn.title}`}
               aria-busy={isDeleting}
