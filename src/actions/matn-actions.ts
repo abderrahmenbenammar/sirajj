@@ -10,7 +10,7 @@ export type MatnActionResult = { ok: true; id: string } | { ok: false; error: st
 
 const matnSchema = z.object({
   title: z.string().trim().min(3, "عنوان المتن قصير جدًا").max(200, "عنوان المتن طويل جدًا"),
-  description: z.string().trim().max(2000, "الوصف طويل جدًا").optional(),
+  description: z.string().trim().max(20000, "نص المتن طويل جدًا").optional(),
 });
 
 const questionTypes = ["write", "reorder", "fill_blank", "mcq"] as const;

@@ -139,7 +139,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
         <div className="min-w-0">
           <h2 className="text-base font-bold text-gray-900 dark:text-white">{matn.title}</h2>
           {matn.description && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{matn.description}</p>
+            <p className="mt-1 line-clamp-3 break-words text-sm text-gray-500 dark:text-gray-400">{matn.description}</p>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -196,15 +196,19 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
             className="admin-input"
           />
           <label htmlFor={`matn-edit-description-${matn.id}`} className="mb-1 mt-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
-            {t("الوصف (اختياري)", "Description (optional)")}
+            {t("نص المتن", "Matn text")}
           </label>
           <textarea
             id={`matn-edit-description-${matn.id}`}
             rows={3}
-            maxLength={2000}
+            maxLength={20000}
             value={matnDescription}
             disabled={matnPending}
             onChange={(e) => setMatnDescription(e.target.value)}
+            placeholder={t(
+              "انسخ ونشـر نص المتن كاملاً هنا ليتولى الذكاء الاصطناعي تحليل وإنشاء الأسئلة منه تلقائياً...",
+              "Paste the full matn text here so the AI can analyze it and generate questions automatically...",
+            )}
             className="admin-input"
           />
           <div className="mt-2 flex gap-2">
@@ -327,7 +331,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
         </ul>
       )}
 
-      <GenerateMatnQuizzes matnId={matn.id} />
+      <GenerateMatnQuizzes matnId={matn.id} initialText={matn.description ?? ""} />
 
       <NewMatnQuizForm matnId={matn.id} />
 

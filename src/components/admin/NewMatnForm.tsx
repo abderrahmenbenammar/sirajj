@@ -49,16 +49,19 @@ export default function NewMatnForm() {
         </div>
         <div>
           <label htmlFor="matn-description" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t("الوصف (اختياري)", "Description (optional)")}
+            {t("نص المتن", "Matn text")}
           </label>
           <textarea
             id="matn-description"
             rows={3}
-            maxLength={2000}
+            maxLength={20000}
             value={description}
             disabled={isPending}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={t("نبذة مختصرة عن المتن", "A short summary of the matn")}
+            placeholder={t(
+              "انسخ ونشـر نص المتن كاملاً هنا ليتولى الذكاء الاصطناعي تحليل وإنشاء الأسئلة منه تلقائياً...",
+              "Paste the full matn text here so the AI can analyze it and generate questions automatically...",
+            )}
             className="admin-input"
           />
         </div>

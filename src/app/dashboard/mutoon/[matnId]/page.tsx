@@ -46,7 +46,7 @@ export default async function MatnDetailPage({
               {matn.title}
             </h1>
             {matn.description && (
-              <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-gray-500 dark:text-gray-400">
                 {matn.description}
               </p>
             )}

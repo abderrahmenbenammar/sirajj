@@ -26,11 +26,11 @@ type Mode = "generate" | "save" | null;
  * balanced set of interactive questions, the admin reviews/edits the preview,
  * then saves everything into MatnQuiz (idempotent — re-saves skip duplicates).
  */
-export default function GenerateMatnQuizzes({ matnId }: { matnId: string }) {
+export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: string; initialText?: string }) {
   const { t } = useLang();
   const { dialog, notify } = useSirajMessage();
   const [open, setOpen] = useState(false);
-  const [fullText, setFullText] = useState("");
+  const [fullText, setFullText] = useState(initialText ?? "");
   const [count, setCount] = useState(8);
   const [drafts, setDrafts] = useState<DraftQuestion[]>([]);
   const [mode, setMode] = useState<Mode>(null);
