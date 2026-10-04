@@ -3,13 +3,88 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, ListChecks, Loader2, RotateCcw, Sparkles, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, GripVertical, ListChecks, Loader2, RotateCcw, Sparkles, XCircle } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { normalizeArabicText } from "@/lib/text-normalization";
 import type { GradeMatnResult } from "@/app/api/grade-matn/route";
 
 export interface MatnQuizQuestion {
   question: string;
   correctAnswer: string;
+  type?: string | null;
+  options?: unknown;
+}
+
+type QuestionType = "write" | "reorder" | "fill_blank" | "mcq";
+
+const QUESTION_TYPES: readonly string[] = ["write", "reorder", "fill_blank", "mcq"];
+const OPTION_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح"];
+const MAX_BLANKS = 3;
+
+// Light grammatical words that are rarely the "key" content of a passage.
+const BLANK_STOPWORDS = new Set([
+  "الذي", "التي", "الذين", "غير", "بعد", "عند", "بين", "لها", "له", "فيها",
+  "منه", "منها", "الا", "او", "ثم", "بل", "قد", "مع", "الان",
+]);
+
+function getQuestionType(question: MatnQuizQuestion): QuestionType {
+  return typeof question.type === "string" && QUESTION_TYPES.includes(question.type)
+    ? (question.type as QuestionType)
+    : "write";
+}
+
+/** Deterministic string hash -> uint32 seed. */
+function hashSeed(text: string, salt: number): number {
+  let h = salt >>> 0;
+  for (let i = 0; i < text.length; i += 1) {
+    h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  }
+  return h >>> 0;
+}
+
+/** mulberry32 shuffle of index array — pure & stable across re-renders. */
+function shuffleWithSeed(items: number[], seed: number): number[] {
+  let s = seed >>> 0;
+  const rand = () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let x = s;
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Pick up to MAX_BLANKS "key" words (long content words) to hide in a
+ * fill_blank question, spread across the passage. Always >= 1 blank.
+ */
+function computeBlankIndices(words: string[]): number[] {
+  if (words.length === 0) return [];
+  if (words.length === 1) return [0];
+
+  const eligible = words
+    .map((word, index) => ({ word, index }))
+    .filter(({ word }) => word.length >= 4 && !BLANK_STOPWORDS.has(word))
+    .map(({ index }) => index);
+
+  const pool = eligible.length > 0
+    ? eligible
+    : [Math.floor(words.length / 2)]; // fallback: hide the middle word
+
+  const count = Math.min(MAX_BLANKS, pool.length);
+  if (count === pool.length) return pool;
+
+  // Spread the chosen blanks evenly across the eligible pool.
+  const chosen = new Set<number>();
+  const step = (pool.length - 1) / (count - 1);
+  for (let k = 0; k < count; k += 1) chosen.add(pool[Math.round(k * step)]);
+  return [...chosen].sort((a, b) => a - b);
 }
 
 interface MatnQuizFormProps {
@@ -37,18 +112,21 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, AnswerRecord>>({});
   const [studentAnswer, setStudentAnswer] = useState("");
+  const [reorderPicks, setReorderPicks] = useState<number[]>([]);
+  const [blankValues, setBlankValues] = useState<string[]>([]);
+  const [mcqChoice, setMcqChoice] = useState<string | null>(null);
   const [result, setResult] = useState<GradeMatnResult | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-focus and scroll the textarea into view whenever a new card enters.
+  // Scroll every new card into view; focus the textarea only for free-writing
+  // questions (the structured types have no single primary input).
   useEffect(() => {
     if (quizState !== "active") return;
-    const el = textareaRef.current;
-    if (!el) return;
-    el.focus({ preventScroll: true });
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    textareaRef.current?.focus({ preventScroll: true });
   }, [quizState, currentIndex]);
 
   if (totalQuestions === 0) {
@@ -72,9 +150,103 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
       ? 100
       : ((currentIndex + 1) / totalQuestions) * 100;
 
+  const currentType = getQuestionType(current);
+  const answerWords = current.correctAnswer.split(/\s+/).filter(Boolean);
+
+  // --- Structured-question derivations (pure & stable across re-renders) ---
+  // reorder: seeded scramble of word indices.
+  const scrambleOrder = shuffleWithSeed(
+    answerWords.map((_, index) => index),
+    hashSeed(current.correctAnswer, currentIndex + 1),
+  );
+  // fill_blank: which word positions are hidden (indices ascending).
+  const blankIndices = currentType === "fill_blank" ? computeBlankIndices(answerWords) : [];
+  const blankPosition = new Map<number, number>(
+    blankIndices.map((index, position) => [index, position]),
+  );
+  // mcq: option pool = correct answer + stored options, topped up from sibling
+  // questions when fewer than 4, then shuffled into a stable display order.
+  const optionPool: string[] = [];
+  const pushOption = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed.length > 0 && !optionPool.includes(trimmed)) optionPool.push(trimmed);
+  };
+  if (currentType === "mcq") {
+    pushOption(current.correctAnswer);
+    if (Array.isArray(current.options)) {
+      for (const option of current.options) if (typeof option === "string") pushOption(option);
+    }
+    if (optionPool.length < 4) {
+      questions.forEach((question, index) => {
+        if (index !== currentIndex && optionPool.length < 4) pushOption(question.correctAnswer);
+      });
+    }
+  }
+  const displayOptions =
+    currentType === "mcq"
+      ? shuffleWithSeed(
+          optionPool.map((_, index) => index),
+          hashSeed(current.correctAnswer, 7),
+        ).map((index) => optionPool[index])
+      : [];
+  // Degenerate mcq (no usable distractors) falls back to free writing.
+  const activeType: QuestionType =
+    currentType === "mcq" && optionPool.length < 2 ? "write" : currentType;
+
+  /** The text that will be verified (and graded if not an exact match). */
+  const getSubmittedText = (): string => {
+    if (activeType === "reorder") {
+      return reorderPicks.map((index) => answerWords[index]).filter(Boolean).join(" ");
+    }
+    if (activeType === "fill_blank") {
+      let position = 0;
+      return answerWords
+        .map((word, index) => {
+          if (!blankPosition.has(index)) return word;
+          const value = blankValues[position] ?? "";
+          position += 1;
+          return value.trim();
+        })
+        .join(" ");
+    }
+    if (activeType === "mcq") return (mcqChoice ?? "").trim();
+    return studentAnswer.trim();
+  };
+
+  // State A: the bottom action stays disabled until the input is meaningful.
+  const canSubmit =
+    activeType === "reorder"
+      ? answerWords.length > 0 && reorderPicks.length === answerWords.length
+      : activeType === "fill_blank"
+        ? blankIndices.length > 0 &&
+          blankIndices.every((_, position) => (blankValues[position] ?? "").trim().length > 0)
+        : activeType === "mcq"
+          ? (mcqChoice ?? "").trim().length > 0
+          : studentAnswer.trim().length > 0;
+
   const checkAnswer = () => {
-    const text = studentAnswer.trim();
+    const text = getSubmittedText();
     if (text.length === 0 || isGrading || isGraded) return;
+
+    // Instant client-side verification for the structured types: an exact
+    // match (after Arabic normalization) is a guaranteed 100 with zero
+    // latency — no round trip to /api/grade-matn.
+    if (
+      activeType !== "write" &&
+      normalizeArabicText(text) === normalizeArabicText(current.correctAnswer)
+    ) {
+      const feedback = t(
+        "ممتاز! إجابة صحيحة تمامًا — تصحيح فوري",
+        "Perfect! Exact match — instant check",
+      );
+      setUserAnswers((prev) => ({
+        ...prev,
+        [currentIndex]: { text, score: 100, feedback, isPassed: true },
+      }));
+      setResult({ isPassed: true, score: 100, feedback });
+      return;
+    }
+
     setIsGrading(true);
     setError(null);
 
@@ -118,6 +290,9 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
     }
     setCurrentIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
     setStudentAnswer("");
+    setReorderPicks([]);
+    setBlankValues([]);
+    setMcqChoice(null);
     setResult(null);
     setError(null);
   };
@@ -131,6 +306,9 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
     setUserAnswers({});
     setCurrentIndex(0);
     setStudentAnswer("");
+    setReorderPicks([]);
+    setBlankValues([]);
+    setMcqChoice(null);
     setResult(null);
     setError(null);
     setIsGrading(false);
@@ -227,6 +405,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
         {quizState === "active" && (
           <motion.div
             key={`question-${currentIndex}`}
+            ref={cardRef}
             {...cardMotion}
             onKeyDown={handleKeyDown}
             className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-md dark:border-gray-800 dark:bg-gray-900 sm:p-6"
@@ -245,23 +424,172 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
               </div>
             </div>
 
-            <label
-              htmlFor="matn-answer"
-              className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              {t("إجابتك", "Your answer")}
-            </label>
-            <textarea
-              id="matn-answer"
-              ref={textareaRef}
-              value={studentAnswer}
-              onChange={(event) => setStudentAnswer(event.target.value)}
-              rows={5}
-              disabled={isGrading}
-              readOnly={isGraded}
-              placeholder={t("اكتب المتن هنا...", "Type the matn here...")}
-              className="mt-2 w-full rounded-xl border border-gray-300 bg-gray-50 p-3 text-base leading-8 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-            />
+            {activeType === "write" && (
+              <>
+                <label
+                  htmlFor="matn-answer"
+                  className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {t("إجابتك", "Your answer")}
+                </label>
+                <textarea
+                  id="matn-answer"
+                  ref={textareaRef}
+                  value={studentAnswer}
+                  onChange={(event) => setStudentAnswer(event.target.value)}
+                  rows={5}
+                  disabled={isGrading}
+                  readOnly={isGraded}
+                  placeholder={t("اكتب المتن هنا...", "Type the matn here...")}
+                  className="mt-2 w-full rounded-xl border border-gray-300 bg-gray-50 p-3 text-base leading-8 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                />
+              </>
+            )}
+
+            {activeType === "reorder" && (
+              <div className="mt-4">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <GripVertical size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  {t(
+                    "رتّب الكلمات لتكوين المقطع الصحيح",
+                    "Arrange the words to form the correct passage",
+                  )}
+                </p>
+                {/* The student's current arrangement (click a tile to remove it) */}
+                <div className="mt-2 min-h-[3.5rem] rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/60 p-2.5 dark:border-emerald-800 dark:bg-emerald-950/30">
+                  {reorderPicks.length === 0 ? (
+                    <p className="p-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+                      {t(
+                        "انقر الكلمات بالترتيب من لوحة الكلمات أدناه",
+                        "Tap the words in order from the word bank below",
+                      )}
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {reorderPicks.map((wordIndex, position) => (
+                        <button
+                          key={`pick-${wordIndex}`}
+                          type="button"
+                          disabled={isGrading || isGraded}
+                          onClick={() =>
+                            setReorderPicks((prev) => prev.filter((_, pos) => pos !== position))
+                          }
+                          className="rounded-lg border border-emerald-500 bg-white px-2.5 py-1 text-sm font-bold text-emerald-700 shadow-sm transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-60 dark:border-emerald-700 dark:bg-gray-900 dark:text-emerald-300"
+                        >
+                          {answerWords[wordIndex]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Remaining scrambled tiles */}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {scrambleOrder
+                    .filter((index) => !reorderPicks.includes(index))
+                    .map((index) => (
+                      <button
+                        key={`bank-${index}`}
+                        type="button"
+                        disabled={isGrading || isGraded}
+                        onClick={() => setReorderPicks((prev) => [...prev, index])}
+                        className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-emerald-700 dark:hover:text-emerald-400"
+                      >
+                        {answerWords[index]}
+                      </button>
+                    ))}
+                  {reorderPicks.length === answerWords.length && answerWords.length > 0 && (
+                    <span className="flex items-center gap-1 rounded-lg bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                      <CheckCircle2 size={13} />
+                      {t("اكتمل الترتيب", "Ordering complete")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeType === "fill_blank" && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t("أكمل الكلمات الناقصة من المتن", "Complete the missing words of the matn")}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3 leading-9 dark:border-gray-700 dark:bg-gray-800">
+                  {answerWords.map((word, index) => {
+                    const position = blankPosition.get(index);
+                    if (position === undefined) {
+                      return (
+                        <span key={`word-${index}`} className="text-base text-gray-900 dark:text-gray-100">
+                          {word}
+                        </span>
+                      );
+                    }
+                    return (
+                      <input
+                        key={`blank-${index}`}
+                        type="text"
+                        value={blankValues[position] ?? ""}
+                        disabled={isGrading || isGraded}
+                        onChange={(event) =>
+                          setBlankValues((prev) => {
+                            const next = [...prev];
+                            next[position] = event.target.value;
+                            return next;
+                          })
+                        }
+                        aria-label={t("كلمة ناقصة", "Missing word")}
+                        style={{ width: `${Math.max(4, word.length + 2)}ch` }}
+                        className="rounded-lg border-b-2 border-emerald-400 bg-emerald-50/80 px-1.5 text-center text-base text-gray-900 outline-none transition-colors focus:border-emerald-600 disabled:opacity-60 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-gray-100"
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeType === "mcq" && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t("اختر المقطع الصحيح من الخيارات", "Choose the correct passage from the options")}
+                </p>
+                <div className="mt-2 space-y-2">
+                  {displayOptions.map((option, index) => {
+                    const selected = mcqChoice === option;
+                    return (
+                      <button
+                        key={`option-${index}`}
+                        type="button"
+                        disabled={isGrading || isGraded}
+                        onClick={() => setMcqChoice(option)}
+                        className={`flex w-full items-start gap-2.5 rounded-xl border-2 p-3 text-start transition-colors disabled:cursor-default ${
+                          isGraded && selected
+                            ? result?.isPassed
+                              ? "border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/40"
+                              : "border-red-400 bg-red-50 dark:border-red-700 dark:bg-red-950/40"
+                            : selected
+                              ? "border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/40"
+                              : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-800"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold ${
+                            selected
+                              ? "bg-emerald-600 text-white"
+                              : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          {OPTION_LETTERS[index] ?? index + 1}
+                        </span>
+                        <span className="flex-1 text-sm font-medium leading-7 text-gray-900 dark:text-gray-100">
+                          {option}
+                        </span>
+                        {selected && (
+                          <CheckCircle2 size={18} className="mt-1 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {error && (
               <p role="alert" className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
@@ -319,7 +647,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
             <button
               type="button"
               onClick={primaryAction}
-              disabled={isGrading || (!isGraded && studentAnswer.trim().length === 0)}
+              disabled={isGrading || (!isGraded && !canSubmit)}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGrading ? (

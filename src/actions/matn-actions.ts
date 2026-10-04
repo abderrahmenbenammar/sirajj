@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 
@@ -12,10 +13,22 @@ const matnSchema = z.object({
   description: z.string().trim().max(2000, "الوصف طويل جدًا").optional(),
 });
 
+const questionTypes = ["write", "reorder", "fill_blank", "mcq"] as const;
+export type MatnQuizType = (typeof questionTypes)[number];
+
+// Optional per-type payload: e.g. the 4 choices of an "mcq" question.
+const matnQuizOptionsSchema = z
+  .array(z.string().trim().min(1, "الخيار فارغ").max(1000, "الخيار طويل جدًا"))
+  .min(2, "اختر خيارين على الأقل")
+  .max(8, "لا يمكن تجاوز 8 خيارات")
+  .optional();
+
 const matnQuizSchema = z.object({
   matnId: z.string().min(1, "المتن مطلوب"),
   question: z.string().trim().min(3, "نص السؤال قصير جدًا").max(500, "نص السؤال طويل جدًا"),
   correctAnswer: z.string().trim().min(1, "النص الصحيح مطلوب").max(4000, "النص الصحيح طويل جدًا"),
+  type: z.enum(questionTypes).default("write"),
+  options: matnQuizOptionsSchema,
 });
 
 // Updates reuse the same field rules, minus the parent id (it comes as an argument).
@@ -73,6 +86,8 @@ export async function createMatnQuiz(input: {
   matnId: string;
   question: string;
   correctAnswer: string;
+  type?: MatnQuizType;
+  options?: string[];
 }): Promise<MatnActionResult> {
   const forbidden = await adminOrError();
   if (forbidden) return { ok: false, error: forbidden };
@@ -92,6 +107,8 @@ export async function createMatnQuiz(input: {
         matnId: matn.id,
         question: parsed.data.question,
         correctAnswer: parsed.data.correctAnswer,
+        type: parsed.data.type,
+        options: parsed.data.options ?? Prisma.DbNull,
       },
       select: { id: true },
     });
@@ -172,7 +189,12 @@ export async function deleteMatn(id: string): Promise<MatnActionResult> {
 
 export async function updateMatnQuiz(
   id: string,
-  data: { question: string; correctAnswer: string },
+  data: {
+    question: string;
+    correctAnswer: string;
+    type?: MatnQuizType;
+    options?: string[];
+  },
 ): Promise<MatnActionResult> {
   const forbidden = await adminOrError();
   if (forbidden) return { ok: false, error: forbidden };
@@ -195,6 +217,8 @@ export async function updateMatnQuiz(
       data: {
         question: parsed.data.question,
         correctAnswer: parsed.data.correctAnswer,
+        type: parsed.data.type,
+        options: parsed.data.options ?? Prisma.DbNull,
       },
       select: { id: true },
     });

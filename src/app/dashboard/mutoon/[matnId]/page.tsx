@@ -20,7 +20,7 @@ export default async function MatnDetailPage({
       description: true,
       quizzes: {
         orderBy: { createdAt: "asc" },
-        select: { id: true, question: true, correctAnswer: true },
+        select: { id: true, question: true, correctAnswer: true, type: true, options: true },
       },
     },
   });

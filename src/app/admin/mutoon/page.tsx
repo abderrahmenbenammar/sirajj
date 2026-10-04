@@ -20,7 +20,7 @@ export default async function AdminMutoonPage() {
       _count: { select: { quizzes: true } },
       quizzes: {
         orderBy: { createdAt: "asc" },
-        select: { id: true, question: true, correctAnswer: true },
+        select: { id: true, question: true, correctAnswer: true, type: true, options: true },
       },
     },
   });

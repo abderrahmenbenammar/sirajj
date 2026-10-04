@@ -173,6 +173,8 @@ export type AdminMatnQuiz = {
   id: string;
   question: string;
   correctAnswer: string;
+  type: string;
+  options: unknown;
 };
 
 export type AdminMatn = {

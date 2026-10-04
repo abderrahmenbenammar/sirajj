@@ -7,7 +7,13 @@ import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajConfirm, useSirajMessage } from "@/components/ui/SirajDialog";
 import SirajTooltip from "@/components/ui/SirajTooltip";
 import NewMatnQuizForm from "@/components/admin/NewMatnQuizForm";
+import QuizTypeFields, {
+  isMatnQuizType,
+  optionsToText,
+  parseOptionsText,
+} from "@/components/admin/QuizTypeFields";
 import { updateMatn, deleteMatn, updateMatnQuiz, deleteMatnQuiz } from "@/actions/matn-actions";
+import type { MatnQuizType } from "@/actions/matn-actions";
 import type { AdminMatn, AdminMatnQuiz } from "@/components/admin/types";
 
 export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
@@ -23,6 +29,8 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [quizQuestion, setQuizQuestion] = useState("");
   const [quizAnswer, setQuizAnswer] = useState("");
+  const [quizType, setQuizType] = useState<MatnQuizType>("write");
+  const [quizOptionsText, setQuizOptionsText] = useState("");
   const [quizPending, startQuizTransition] = useTransition();
 
   const startMatnEdit = () => {
@@ -71,13 +79,20 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const startQuizEdit = (quiz: AdminMatnQuiz) => {
     setQuizQuestion(quiz.question);
     setQuizAnswer(quiz.correctAnswer);
+    setQuizType(isMatnQuizType(quiz.type) ? quiz.type : "write");
+    setQuizOptionsText(optionsToText(quiz.options));
     setEditingQuizId(quiz.id);
   };
 
   const submitQuizEdit = (event: FormEvent, quiz: AdminMatnQuiz) => {
     event.preventDefault();
     startQuizTransition(async () => {
-      const result = await updateMatnQuiz(quiz.id, { question: quizQuestion, correctAnswer: quizAnswer });
+      const result = await updateMatnQuiz(quiz.id, {
+        question: quizQuestion,
+        correctAnswer: quizAnswer,
+        type: quizType,
+        options: quizType === "mcq" ? parseOptionsText(quizOptionsText) : undefined,
+      });
       if (result.ok) {
         notify(t("تم تحديث السؤال", "Question updated"), "success");
         setEditingQuizId(null);
@@ -267,6 +282,14 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
                     disabled={quizPending}
                     onChange={(e) => setQuizAnswer(e.target.value)}
                     className="admin-input"
+                  />
+                  <QuizTypeFields
+                    idPrefix={`quiz-edit-${quiz.id}`}
+                    type={quizType}
+                    onTypeChange={setQuizType}
+                    optionsText={quizOptionsText}
+                    onOptionsTextChange={setQuizOptionsText}
+                    disabled={quizPending}
                   />
                   <div className="mt-2 flex gap-2">
                     <button

@@ -8,6 +8,8 @@ export type MatnQuizItem = {
   id: string;
   question: string;
   correctAnswer: string;
+  type?: string | null;
+  options?: unknown;
 };
 
 export default function MatnQuizTaker({

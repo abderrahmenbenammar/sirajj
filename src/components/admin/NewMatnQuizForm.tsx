@@ -5,7 +5,9 @@ import type { FormEvent } from "react";
 import { Plus } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
+import QuizTypeFields, { parseOptionsText } from "@/components/admin/QuizTypeFields";
 import { createMatnQuiz } from "@/actions/matn-actions";
+import type { MatnQuizType } from "@/actions/matn-actions";
 
 export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
   const { t } = useLang();
@@ -13,16 +15,25 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
+  const [quizType, setQuizType] = useState<MatnQuizType>("write");
+  const [optionsText, setOptionsText] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     startTransition(async () => {
-      const result = await createMatnQuiz({ matnId, question, correctAnswer });
+      const result = await createMatnQuiz({
+        matnId,
+        question,
+        correctAnswer,
+        type: quizType,
+        options: quizType === "mcq" ? parseOptionsText(optionsText) : undefined,
+      });
       if (result.ok) {
         notify(t("تمت إضافة السؤال", "Question added"), "success");
         setQuestion("");
         setCorrectAnswer("");
+        setOptionsText("");
         setOpen(false);
       } else {
         notify(result.error, "error");
@@ -73,6 +84,14 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
             onChange={(e) => setCorrectAnswer(e.target.value)}
             placeholder={t("النص الدقيق المطلوب حفظه", "The exact text to memorize")}
             className="admin-input"
+          />
+          <QuizTypeFields
+            idPrefix={`quiz-new-${matnId}`}
+            type={quizType}
+            onTypeChange={setQuizType}
+            optionsText={optionsText}
+            onOptionsTextChange={setOptionsText}
+            disabled={isPending}
           />
           <div className="mt-2 flex gap-2">
             <button type="submit" disabled={isPending} className="admin-button w-auto px-5 disabled:opacity-50">
