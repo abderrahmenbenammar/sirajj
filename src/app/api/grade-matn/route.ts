@@ -18,10 +18,14 @@ const gradeResultSchema = z.object({
     .number()
     .min(0)
     .max(100)
-    .describe("0-100: exactness of the memorization match"),
+    .describe(
+      "0-100 memorization score. MUST be exactly 100 when memorization is complete and the only discrepancies are minor typographical/keyboard slips (repeated letter such as a doubled consonant, extra or missing space, hamza variance, or a small spelling typo that does not alter the meaning) — such slips must NEVER reduce the score. Any value below 100 must reflect genuine memorization defects only (missing words, wrong words that change meaning, transposed sentences, missing core concepts), proportional to their severity.",
+    ),
   feedback: z
     .string()
-    .describe("Encouraging Arabic feedback naming missing words or minor mistakes"),
+    .describe(
+      "Encouraging Arabic feedback in 1-3 simple sentences. For typo-only answers the score is 100: you may gently mention the typo while making clear the memorization is complete; otherwise name the missing or wrong words precisely.",
+    ),
 });
 
 export type GradeMatnResult = z.infer<typeof gradeResultSchema>;
@@ -30,17 +34,24 @@ const SYSTEM_PROMPT = `أنت "مُحفِّظ متون" صارم لكن عادل
 
 قواعد التصحيح:
 - النصان المعطيان مُنظَّفان مسبقًا (بدون تشكيل أو همزات متغيرة أو علامات ترقيم)، فقارن الكلمات جوهرًا بجوهر.
-- اشترط تطابق الكلمات الأساسية في المتن تطابقًا تامًا؛ أي كلمة جوهرية ناقصة أو مبدَّلة تُنقص الدرجة بوضوح.
-- تسامح فقط في: أخطاء إملائية طفيفة لا تغيّر المعنى (حرف واحد)، أو إسقاط أداة ربط/حرف جر (مثل: و، في، من، إلى) إذا بقي المعنى سليمًا.
-- سلّم الدرجات هكذا:
-  - 100: تطابق تام كلمة بكلمة.
-  - 90-99: خطأ إملائي طفيف واحد لا يمس المعنى.
-  - 85-89: إسقاط أداة ربط أو حرف جر مع بقاء المعنى.
-  - 70-84: كلمة جوهرية ناقصة أو مبدَّلة واحدة.
-  - 50-69: عدة كلمات ناقصة أو مبدَّلة.
-  - 0-49: الإجابة مختلفة جوهريًا أو شبه فارغة.
-- isPassed يكون true فقط عندما تكون score أكبر من أو تساوي 85.
-- اكتب feedback باللغة العربية الفصحى المبسطة، مشجّعًا، من جملة إلى ثلاث جمل، واذكر فيه الكلمات الناقصة أو الأخطاء بالتحديد.`;
+- ميزان واحد: عيوب الحفظ وحدها هي ما يُنقص الدرجة. الأخطاء المطبعية وأخطاء لوحة المفاتيح لا تُنقص الدرجة إطلاقًا.
+
+قاعدة الدرجة الكاملة (score = 100 حتمًا):
+- إذا كان حفظ الطالب كاملًا لمتن والمتن، والاختلافات الوحيدة أخطاء مطبعية طفيفة — كتكرار حرف (مثل «لللقبرر» بدل «للقبر»)، مسافة زائدة أو ناقصة، تغيّر همزي، أو خطأ إملائي صغير لا يغيّر المعنى الشرعي — فاجعل score = 100.
+- لا تخصم أي درجة بسببها مهما كان عددها. يجوز أن تُشير إلى الخطأ المطبعي برفق في feedback، لكن score يجب أن يبقى 100.
+
+قواعد الخصم (لا تُطبَّق إلا على عيوب الحفظ الحقيقية):
+- اشترط تطابق الكلمات الأساسية في المتن؛ أي كلمة جوهرية ناقصة أو مبدَّلة، أو جملة مقلوبة، أو مفهوم ناقص — تُنقص الدرجة بقدر خطورته.
+
+سلّم الدرجات (يعتمد على عيوب الحفظ فقط):
+- 100: حفظ كامل للمتن؛ والأخطاء المطبعية لا تنزله أبدًا.
+- 90-99: إسقاط أداة ربط أو حرف جر (مثل: و، في، من، إلى) مع بقاء المعنى سليمًا.
+- 85-89: إسقاط أو تبديل كلمة طفيفة غير محورية مع بقاء المعنى.
+- 70-84: كلمة جوهرية واحدة ناقصة أو مبدَّلة.
+- 50-69: عدة كلمات ناقصة أو مبدَّلة، أو ترتيب معكوس جزئي.
+- 0-49: الإجابة مختلفة جوهريًا أو ناقصة أجزاء كبيرة أو شبه فارغة.
+- isPassed يكون true فقط عندما تكون score أكبر من أو يساوي 85.
+- اكتب feedback باللغة العربية الفصحى المبسطة، مشجّعًا، من جملة إلى ثلاث جمل. إذا كان الخطأ مطبعيًا فقط فاذكره بلطف مع تقرير أن الحفظ متقن؛ وإذا كان عيب حفظ فاذكر الكلمات الناقصة أو المبدَّلة بالتحديد.`;
 
 export async function POST(request: Request) {
   try {
