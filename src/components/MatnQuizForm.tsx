@@ -123,6 +123,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordSupported, setRecordSupported] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+  const [microphoneToast, setMicrophoneToast] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -131,6 +132,16 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const mountedRef = useRef(false);
   const studentAnswerRef = useRef(studentAnswer);
   const recordingChunksRef = useRef<Blob[]>([]);
+  const toastTimerRef = useRef<number | null>(null);
+
+  const showMicrophoneToast = (message: string) => {
+    setMicrophoneToast(message);
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => {
+      setMicrophoneToast(null);
+      toastTimerRef.current = null;
+    }, 6000);
+  };
 
   const updateStudentAnswer = (next: string | ((current: string) => string)) => {
     const value = typeof next === "function" ? next(studentAnswerRef.current) : next;
@@ -201,113 +212,115 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
     }
   };
 
-  const startRecording = async () => {
+  const handleRecordingStartError = (recordError: unknown) => {
+    if (!mountedRef.current) return;
+    setIsListening(false);
+    setIsTranscribing(false);
+    recorderRef.current = null;
+    recordingChunksRef.current = [];
+    stopStream();
+    const errorName = recordError instanceof Error ? recordError.name : "";
+    if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError" || errorName === "SecurityError") {
+      const message = "يرجى السماح بصلاحية الميكروفون من إعدادات المتصفح للتسميع الصوتي";
+      setError(message);
+      showMicrophoneToast(message);
+    } else if (recordError instanceof Error && recordError.message === "MICROPHONE_PERMISSION_TIMEOUT") {
+      setError(t(
+        "لم يصل ردّ على طلب الميكروفون. اسمح بالوصول من نافذة المتصفح ثم حاول مجددًا.",
+        "The microphone request timed out. Allow access in the browser prompt, then try again.",
+      ));
+    } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+      setError(t("لم يتم العثور على ميكروفون متصل", "No microphone was found"));
+    } else {
+      console.error("MATN_RECORDING_START_ERROR:", recordError);
+      setError(t("تعذر بدء التسجيل، تحقق من إعدادات الميكروفون وحاول مجددًا", "Could not start recording. Check your microphone settings and try again."));
+    }
+  };
+
+  const startRecording = () => {
     if (startingRef.current || isListening || isTranscribing || isRequestingPermission) return;
-    setError(null);
     if (!recordSupported || typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setError(t("متصفحك لا يدعم التسجيل الصوتي. جرّب متصفحًا حديثًا.", "Your browser does not support audio recording. Try a recent browser."));
       return;
     }
 
     startingRef.current = true;
+    setError(null);
+    let streamRequest: Promise<MediaStream>;
+    try {
+      // Invoke getUserMedia directly in the click event's call stack, before
+      // any permission query or await, so browsers can show their native prompt.
+      streamRequest = navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (recordError) {
+      startingRef.current = false;
+      handleRecordingStartError(recordError);
+      return;
+    }
+
     setIsRequestingPermission(true);
     let permissionTimedOut = false;
     let permissionTimer: number | undefined;
-    try {
-      // Some browsers support permission queries; requesting audio still works
-      // when this API is unavailable or the permission query is rejected.
+    // If a browser leaves its permission prompt open past the deadline, stop
+    // the stream if the user later grants access.
+    void streamRequest.then((lateStream) => {
+      if (permissionTimedOut) lateStream.getTracks().forEach((track) => track.stop());
+    }).catch(() => undefined);
+    const permissionTimeout = new Promise<MediaStream>((_, reject) => {
+      permissionTimer = window.setTimeout(() => {
+        permissionTimedOut = true;
+        reject(new Error("MICROPHONE_PERMISSION_TIMEOUT"));
+      }, 30_000);
+    });
+
+    void (async () => {
       try {
-        const permissions = navigator.permissions as Permissions & {
-          query: (descriptor: PermissionDescriptor | { name: "microphone" }) => Promise<PermissionStatus>;
+        const stream = await Promise.race([streamRequest, permissionTimeout]);
+        if (!mountedRef.current) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        const preferredMimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"]
+          .find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+        const recorder = preferredMimeType
+          ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+          : new MediaRecorder(stream);
+        recorderRef.current = recorder;
+        recordingChunksRef.current = [];
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) recordingChunksRef.current.push(event.data);
         };
-        const permission = await permissions.query({ name: "microphone" });
-        if (permission.state === "denied") {
-          throw new DOMException("Microphone permission denied", "NotAllowedError");
-        }
-      } catch (permissionError) {
-        if (permissionError instanceof DOMException && permissionError.name === "NotAllowedError") {
-          throw permissionError;
-        }
-        // Permission query support varies; getUserMedia is the source of truth.
+        recorder.onstop = () => {
+          const blob = new Blob(recordingChunksRef.current, {
+            type: recorder.mimeType || recordingChunksRef.current[0]?.type || "audio/webm",
+          });
+          recordingChunksRef.current = [];
+          recorderRef.current = null;
+          stopStream();
+          if (mountedRef.current) void transcribeAudio(blob);
+        };
+        recorder.onerror = () => {
+          recorder.onstop = null;
+          recorderRef.current = null;
+          recordingChunksRef.current = [];
+          stopStream();
+          if (mountedRef.current) {
+            setIsListening(false);
+            setIsTranscribing(false);
+            setError(t("حدث خطأ أثناء التسجيل، يرجى المحاولة مجددًا", "Recording failed. Please try again."));
+          }
+        };
+        recorder.start(250);
+        setIsListening(true);
+      } catch (recordError) {
+        handleRecordingStartError(recordError);
+      } finally {
+        if (permissionTimer !== undefined) window.clearTimeout(permissionTimer);
+        startingRef.current = false;
+        if (mountedRef.current) setIsRequestingPermission(false);
       }
-
-      const streamRequest = navigator.mediaDevices.getUserMedia({ audio: true });
-      // getUserMedia may remain pending if the browser prompt is ignored. A
-      // late grant after timeout is explicitly stopped so it cannot leak audio.
-      void streamRequest.then((lateStream) => {
-        if (permissionTimedOut) lateStream.getTracks().forEach((track) => track.stop());
-      }).catch(() => undefined);
-      const permissionTimeout = new Promise<MediaStream>((_, reject) => {
-        permissionTimer = window.setTimeout(() => {
-          permissionTimedOut = true;
-          reject(new Error("MICROPHONE_PERMISSION_TIMEOUT"));
-        }, 30_000);
-      });
-      const stream = await Promise.race([streamRequest, permissionTimeout]);
-      if (!mountedRef.current) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-
-      streamRef.current = stream;
-      const preferredMimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"]
-        .find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
-      const recorder = preferredMimeType
-        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
-        : new MediaRecorder(stream);
-      recorderRef.current = recorder;
-      recordingChunksRef.current = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(recordingChunksRef.current, {
-          type: recorder.mimeType || recordingChunksRef.current[0]?.type || "audio/webm",
-        });
-        recordingChunksRef.current = [];
-        recorderRef.current = null;
-        stopStream();
-        if (mountedRef.current) void transcribeAudio(blob);
-      };
-      recorder.onerror = () => {
-        recorder.onstop = null;
-        recorderRef.current = null;
-        recordingChunksRef.current = [];
-        stopStream();
-        if (mountedRef.current) {
-          setIsListening(false);
-          setIsTranscribing(false);
-          setError(t("حدث خطأ أثناء التسجيل، يرجى المحاولة مجددًا", "Recording failed. Please try again."));
-        }
-      };
-      recorder.start(250);
-      setIsListening(true);
-    } catch (recordError) {
-      if (!mountedRef.current) return;
-      setIsListening(false);
-      setIsTranscribing(false);
-      recorderRef.current = null;
-      recordingChunksRef.current = [];
-      stopStream();
-      const errorName = recordError instanceof Error ? recordError.name : "";
-      if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError" || errorName === "SecurityError") {
-        setError("يرجى السماح بصلاحية الميكروفون من إعدادات المتصفح للتسميع الصوتي");
-      } else if (recordError instanceof Error && recordError.message === "MICROPHONE_PERMISSION_TIMEOUT") {
-        setError(t(
-          "لم يصل ردّ على طلب الميكروفون. اسمح بالوصول من نافذة المتصفح ثم حاول مجددًا.",
-          "The microphone request timed out. Allow access in the browser prompt, then try again.",
-        ));
-      } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
-        setError(t("لم يتم العثور على ميكروفون متصل", "No microphone was found"));
-      } else {
-        console.error("MATN_RECORDING_START_ERROR:", recordError);
-        setError(t("تعذر بدء التسجيل، تحقق من إعدادات الميكروفون وحاول مجددًا", "Could not start recording. Check your microphone settings and try again."));
-      }
-    } finally {
-      if (permissionTimer !== undefined) window.clearTimeout(permissionTimer);
-      startingRef.current = false;
-      if (mountedRef.current) setIsRequestingPermission(false);
-    }
+    })();
   };
 
   const microphoneBusy = isListening || isTranscribing || isRequestingPermission;
@@ -324,6 +337,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
     return () => {
       mountedRef.current = false;
       window.cancelAnimationFrame(supportFrame);
+      if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
       const recorder = recorderRef.current;
       if (recorder && recorder.state !== "inactive") {
         recorder.onstop = null;
@@ -554,6 +568,34 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
 
   return (
     <div dir="rtl" className="w-full max-w-2xl mx-auto">
+      <AnimatePresence>
+        {microphoneToast && (
+          <motion.div
+            key="microphone-toast"
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-x-4 bottom-4 z-[110] mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-medium text-red-800 shadow-lg dark:border-red-900 dark:bg-gray-900 dark:text-red-200"
+            role="alert"
+            aria-live="assertive"
+          >
+            <span className="flex-1">{microphoneToast}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setMicrophoneToast(null);
+                if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+                toastTimerRef.current = null;
+              }}
+              aria-label={t("إغلاق التنبيه", "Dismiss notification")}
+              className="shrink-0 rounded px-1 text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950"
+            >
+              ×
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Top progress bar (active/completed phases only) */}
       {quizState !== "welcome" && (
         <div className="mb-4">
@@ -730,7 +772,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                           >
                             <button
                               type="button"
-                              onClick={() => void startRecording()}
+                              onClick={startRecording}
                               disabled={!recordSupported || isGrading || isGraded}
                               aria-label={t("تحدث للإجابة", "Speak your answer")}
                               aria-describedby={!recordSupported ? "microphone-support-hint" : undefined}
