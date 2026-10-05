@@ -13,17 +13,28 @@ export default function NewMatnForm() {
   const { dialog, notify } = useSirajMessage();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (isSubmitting || isPending) return;
+    setIsSubmitting(true);
     startTransition(async () => {
-      const result = await createMatn({ title, description });
-      if (result.ok) {
-        notify(t("تمت إضافة المتن", "Matn added"), "success");
-        router.push("/admin/mutoon");
-      } else {
-        notify(result.error, "error");
+      try {
+        const result = await createMatn({ title, description });
+        if (result.ok) {
+          notify(t("تمت إضافة المتن", "Matn added"), "success");
+          router.refresh();
+          router.push("/admin/mutoon");
+        } else {
+          notify(result.error, "error");
+        }
+      } catch (error) {
+        console.error("ADMIN_CRUD_ERROR:", error);
+        notify(t("تعذر حفظ المتن، حاول مجددًا", "Could not save the matn. Please try again."), "error");
+      } finally {
+        setIsSubmitting(false);
       }
     });
   };
@@ -41,7 +52,7 @@ export default function NewMatnForm() {
             minLength={3}
             maxLength={200}
             value={title}
-            disabled={isPending}
+            disabled={isPending || isSubmitting}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t("مثال: متن الآجرومية", "e.g. Al-Ajurrumiyyah")}
             className="admin-input"
@@ -56,7 +67,7 @@ export default function NewMatnForm() {
             rows={3}
             maxLength={20000}
             value={description}
-            disabled={isPending}
+            disabled={isPending || isSubmitting}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t(
               "انسخ ونشـر نص المتن كاملاً هنا ليتولى الذكاء الاصطناعي تحليل وإنشاء الأسئلة منه تلقائياً...",
@@ -65,8 +76,8 @@ export default function NewMatnForm() {
             className="admin-input"
           />
         </div>
-        <button type="submit" disabled={isPending} className="admin-button disabled:opacity-50">
-          {isPending ? t("جارٍ الحفظ...", "Saving...") : t("حفظ المتن", "Save matn")}
+        <button type="submit" disabled={isPending || isSubmitting} className="admin-button disabled:opacity-50">
+          {isPending || isSubmitting ? t("جارٍ الحفظ...", "Saving...") : t("حفظ المتن", "Save matn")}
         </button>
       </form>
       <SirajDialog {...dialog} />

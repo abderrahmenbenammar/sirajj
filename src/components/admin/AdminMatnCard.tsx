@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { HelpCircle, Loader2, Pencil, Trash2 } from "lucide-react";
@@ -37,6 +37,8 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const [quizPending, startQuizTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
   const [matnDeleted, setMatnDeleted] = useState(false);
+  const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null);
+  const deleteBusyRef = useRef(false);
 
   const startMatnEdit = () => {
     setMatnTitle(matn.title);
@@ -47,67 +49,80 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const submitMatnEdit = (event: FormEvent) => {
     event.preventDefault();
     startMatnTransition(async () => {
-      const result = await updateMatn(matn.id, { title: matnTitle, description: matnDescription });
-      if (result.ok) {
-        notify(t("تم تحديث المتن", "Matn updated"), "success");
-        setMatnEditing(false);
-      } else {
-        notify(result.error, "error");
+      // Keep the transition promise from rejecting: React renders the rejected
+      // thenable on the next pass and the whole card would crash.
+      try {
+        const result = await updateMatn(matn.id, { title: matnTitle, description: matnDescription });
+        if (result.ok) {
+          notify(t("تم تحديث المتن", "Matn updated"), "success");
+          setMatnEditing(false);
+          router.refresh();
+        } else {
+          notify(result.error, "error");
+        }
+      } catch (err) {
+        console.error("UPDATE_MATN_ERROR:", err);
+        notify(t("حدث خطأ أثناء الاتصال بالسيرفر", "An error occurred while connecting to the server"), "error");
       }
     });
   };
 
-  const handleDelete = () => {
-    startMatnTransition(async () => {
-      // Every step (confirm, action call, notifications) lives inside this
-      // try/finally so the transition promise always settles — otherwise the
-      // pending flag (and the faded trash button) could stay stuck forever.
-      try {
-        const confirmed = await confirm(
-          t(
-            `هل أنت متأكد من حذف هذا المتن وجميع الأسئلة المرتبطة به؟ سيُحذف المتن «${matn.title}» مع أسئلة التسميع (${matn.quizCount}) نهائيًا ولا يمكن التراجع.`,
-            `Are you sure you want to delete this matn and all its related questions? "${matn.title}" and its ${matn.quizCount} recitation questions will be permanently removed and cannot be undone.`,
-          ),
-          {
-            type: "warning",
-            title: t("تأكيد حذف المتن", "Confirm matn deletion"),
-            confirmLabel: t("حذف نهائي", "Delete forever"),
-            confirmVariant: "danger",
-          },
-        );
-        if (!confirmed) return;
+  // The confirm dialog MUST be awaited outside startMatnTransition: while an
+  // async transition promise is pending React suspends this component (the
+  // isPending thenable), so the dialog could never render, its promise could
+  // never resolve, and the trash button stayed faded/disabled forever.
+  const handleDelete = async () => {
+    if (deleteBusyRef.current) return;
+    deleteBusyRef.current = true;
+    // Every step (confirm, action call, notifications) lives inside this
+    // try/finally so the busy flag is always released and the button can
+    // never stay disabled/faded indefinitely.
+    try {
+      const confirmed = await confirm(
+        t(
+          `هل أنت متأكد من حذف هذا المتن وجميع الأسئلة المرتبطة به؟ سيُحذف المتن «${matn.title}» مع أسئلة التسميع (${matn.quizCount}) نهائيًا ولا يمكن التراجع.`,
+          `Are you sure you want to delete this matn and all its related questions? "${matn.title}" and its ${matn.quizCount} recitation questions will be permanently removed and cannot be undone.`,
+        ),
+        {
+          type: "warning",
+          title: t("تأكيد حذف المتن", "Confirm matn deletion"),
+          confirmLabel: t("حذف نهائي", "Delete forever"),
+          confirmVariant: "danger",
+        },
+      );
+      if (!confirmed) return;
 
-        setIsDeleting(true);
+      setIsDeleting(true);
 
-        // Server actions can return { ok: true }, { success: true }, a bare
-        // boolean, or nothing at all (e.g. an auth redirect) — normalise the
-        // payload first so a missing/odd shape never throws mid-handler.
-        const outcome: boolean | { ok?: boolean; success?: boolean; error?: string } | null | undefined =
-          await deleteMatn(matn.id);
-        const result: { ok?: boolean; success?: boolean; error?: string } =
-          typeof outcome === "object" && outcome !== null ? outcome : { ok: outcome === true };
+      // Server actions can return { ok: true }, { success: true }, a bare
+      // boolean, or nothing at all (e.g. an auth redirect) — normalise the
+      // payload first so a missing/odd shape never throws mid-handler.
+      const outcome: boolean | { ok?: boolean; success?: boolean; error?: string } | null | undefined =
+        await deleteMatn(matn.id);
+      const result: { ok?: boolean; success?: boolean; error?: string } =
+        typeof outcome === "object" && outcome !== null ? outcome : { ok: outcome === true };
 
-        // Handle both { ok: true } and { success: true } response schemas.
-        if (result?.ok || result?.success) {
-          notify(t("تم حذف المتن وأسئلته", "Matn and its questions were deleted"), "success");
-          // Optimistic UI: drop the card right away, then re-fetch the route so
-          // the server-rendered list catches up without a manual reload.
-          setMatnDeleted(true);
-          router.refresh();
-        } else {
-          notify(result?.error || t("تعذر حذف المتن", "Could not delete the matn"), "error");
-          setIsDeleting(false); // Instantly reset opacity if server rejected
-        }
-      } catch (err) {
-        console.error("DELETE_MATN_ERROR:", err);
-        notify(t("حدث خطأ أثناء الاتصال بالسيرفر", "An error occurred while connecting to the server"), "error");
-        setIsDeleting(false); // Instantly reset opacity on network/uncaught error
-      } finally {
-        // Guaranteed cleanup on success, failure, or exception — the trash
-        // button can never stay disabled/faded indefinitely.
-        setIsDeleting(false);
+      // Handle both { ok: true } and { success: true } response schemas.
+      if (result?.ok || result?.success) {
+        notify(t("تم حذف المتن وأسئلته", "Matn and its questions were deleted"), "success");
+        // Optimistic UI: drop the card right away, then re-fetch the route so
+        // the server-rendered list catches up without a manual reload.
+        setMatnDeleted(true);
+        router.refresh();
+      } else {
+        notify(result?.error || t("تعذر حذف المتن", "Could not delete the matn"), "error");
+        setIsDeleting(false); // Instantly reset opacity if server rejected
       }
-    });
+    } catch (err) {
+      console.error("DELETE_MATN_ERROR:", err);
+      notify(t("حدث خطأ أثناء الاتصال بالسيرفر", "An error occurred while connecting to the server"), "error");
+      setIsDeleting(false); // Instantly reset opacity on network/uncaught error
+    } finally {
+      // Guaranteed cleanup on success, failure, or exception — the trash
+      // button can never stay disabled/faded indefinitely.
+      setIsDeleting(false);
+      deleteBusyRef.current = false;
+    }
   };
 
   const startQuizEdit = (quiz: AdminMatnQuiz) => {
@@ -121,23 +136,34 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
   const submitQuizEdit = (event: FormEvent, quiz: AdminMatnQuiz) => {
     event.preventDefault();
     startQuizTransition(async () => {
-      const result = await updateMatnQuiz(quiz.id, {
-        question: quizQuestion,
-        correctAnswer: quizAnswer,
-        type: quizType,
-        options: quizType === "mcq" ? parseOptionsText(quizOptionsText) : undefined,
-      });
-      if (result.ok) {
-        notify(t("تم تحديث السؤال", "Question updated"), "success");
-        setEditingQuizId(null);
-      } else {
-        notify(result.error, "error");
+      // Same as submitMatnEdit: never let the transition promise reject.
+      try {
+        const result = await updateMatnQuiz(quiz.id, {
+          question: quizQuestion,
+          correctAnswer: quizAnswer,
+          type: quizType,
+          options: quizType === "mcq" ? parseOptionsText(quizOptionsText) : undefined,
+        });
+        if (result.ok) {
+          notify(t("تم تحديث السؤال", "Question updated"), "success");
+          setEditingQuizId(null);
+          router.refresh();
+        } else {
+          notify(result.error, "error");
+        }
+      } catch (err) {
+        console.error("UPDATE_QUIZ_ERROR:", err);
+        notify(t("حدث خطأ أثناء الاتصال بالسيرفر", "An error occurred while connecting to the server"), "error");
       }
     });
   };
 
-  const removeQuiz = (quiz: AdminMatnQuiz) => {
-    startQuizTransition(async () => {
+  // Same rule as handleDelete: confirm() must resolve before any transition
+  // starts, otherwise the component suspends and the dialog can never render.
+  const removeQuiz = async (quiz: AdminMatnQuiz) => {
+    if (deleteBusyRef.current) return;
+    deleteBusyRef.current = true;
+    try {
       const confirmed = await confirm(
         t(
           `سيتم حذف السؤال: «${quiz.question}» نهائيًا.`,
@@ -151,13 +177,29 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
         },
       );
       if (!confirmed) return;
-      const result = await deleteMatnQuiz(quiz.id);
-      if (result.ok) {
-        notify(t("تم حذف السؤال", "Question deleted"), "success");
-      } else {
-        notify(result.error, "error");
+
+      setDeletingQuizId(quiz.id);
+      try {
+        const outcome: boolean | { ok?: boolean; success?: boolean; error?: string } | null | undefined =
+          await deleteMatnQuiz(quiz.id);
+        const result: { ok?: boolean; success?: boolean; error?: string } =
+          typeof outcome === "object" && outcome !== null ? outcome : { ok: outcome === true };
+        if (result?.ok || result?.success) {
+          notify(t("تم حذف السؤال", "Question deleted"), "success");
+          // Re-render the server components so the quiz list and its count
+          // update without a manual page reload.
+          router.refresh();
+        } else {
+          notify(result?.error || t("تعذر حذف السؤال", "Could not delete the question"), "error");
+        }
+      } catch (err) {
+        console.error("DELETE_QUIZ_ERROR:", err);
+        notify(t("حدث خطأ أثناء الاتصال بالسيرفر", "An error occurred while connecting to the server"), "error");
       }
-    });
+    } finally {
+      setDeletingQuizId(null);
+      deleteBusyRef.current = false;
+    }
   };
 
   // Optimistic removal: once the server confirmed the delete, drop the card
@@ -289,11 +331,15 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
                     <button
                       type="button"
                       onClick={() => removeQuiz(quiz)}
-                      disabled={quizPending}
+                      disabled={quizPending || deletingQuizId === quiz.id}
                       aria-label={`${t("حذف السؤال", "Delete question")} ${index + 1}`}
                       className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40"
                     >
-                      <Trash2 size={15} />
+                      {deletingQuizId === quiz.id ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={15} />
+                      )}
                     </button>
                   </SirajTooltip>
                 </div>

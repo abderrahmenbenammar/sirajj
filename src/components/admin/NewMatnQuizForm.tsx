@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
@@ -11,32 +12,44 @@ import type { MatnQuizType } from "@/actions/matn-actions";
 
 export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
   const { t } = useLang();
+  const router = useRouter();
   const { dialog, notify } = useSirajMessage();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [quizType, setQuizType] = useState<MatnQuizType>("write");
   const [optionsText, setOptionsText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (isSubmitting || isPending) return;
+    setIsSubmitting(true);
     startTransition(async () => {
-      const result = await createMatnQuiz({
-        matnId,
-        question,
-        correctAnswer,
-        type: quizType,
-        options: quizType === "mcq" ? parseOptionsText(optionsText) : undefined,
-      });
-      if (result.ok) {
-        notify(t("تمت إضافة السؤال", "Question added"), "success");
-        setQuestion("");
-        setCorrectAnswer("");
-        setOptionsText("");
-        setOpen(false);
-      } else {
-        notify(result.error, "error");
+      try {
+        const result = await createMatnQuiz({
+          matnId,
+          question,
+          correctAnswer,
+          type: quizType,
+          options: quizType === "mcq" ? parseOptionsText(optionsText) : undefined,
+        });
+        if (result.ok) {
+          notify(t("تمت إضافة السؤال", "Question added"), "success");
+          setQuestion("");
+          setCorrectAnswer("");
+          setOptionsText("");
+          setOpen(false);
+          router.refresh();
+        } else {
+          notify(result.error, "error");
+        }
+      } catch (error) {
+        console.error("ADMIN_CRUD_ERROR:", error);
+        notify(t("تعذر حفظ السؤال، حاول مجددًا", "Could not save the question. Please try again."), "error");
+      } finally {
+        setIsSubmitting(false);
       }
     });
   };
@@ -66,7 +79,7 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
             minLength={3}
             maxLength={500}
             value={question}
-            disabled={isPending}
+            disabled={isPending || isSubmitting}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder={t("مثال: ما القاعدة الثانية؟", "e.g. What is the second rule?")}
             className="admin-input"
@@ -80,7 +93,7 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
             rows={3}
             maxLength={4000}
             value={correctAnswer}
-            disabled={isPending}
+            disabled={isPending || isSubmitting}
             onChange={(e) => setCorrectAnswer(e.target.value)}
             placeholder={t("النص الدقيق المطلوب حفظه", "The exact text to memorize")}
             className="admin-input"
@@ -91,15 +104,15 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
             onTypeChange={setQuizType}
             optionsText={optionsText}
             onOptionsTextChange={setOptionsText}
-            disabled={isPending}
+            disabled={isPending || isSubmitting}
           />
           <div className="mt-2 flex gap-2">
-            <button type="submit" disabled={isPending} className="admin-button w-auto px-5 disabled:opacity-50">
-              {isPending ? t("جارٍ الحفظ...", "Saving...") : t("حفظ السؤال", "Save question")}
+            <button type="submit" disabled={isPending || isSubmitting} className="admin-button w-auto px-5 disabled:opacity-50">
+              {isPending || isSubmitting ? t("جارٍ الحفظ...", "Saving...") : t("حفظ السؤال", "Save question")}
             </button>
             <button
               type="button"
-              disabled={isPending}
+              disabled={isPending || isSubmitting}
               onClick={() => setOpen(false)}
               className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400"
             >

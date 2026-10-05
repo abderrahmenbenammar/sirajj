@@ -54,8 +54,13 @@ function isForeignKeyBlocked(error: unknown): boolean {
 
 async function adminOrError(): Promise<string | null> {
   // Fresh DB role check on every mutation (same rule as the admin API routes).
-  const { response } = await requireAdmin();
-  return response ? "غير مصرح" : null;
+  try {
+    const { response } = await requireAdmin();
+    return response ? "غير مصرح" : null;
+  } catch (error) {
+    console.error("ADMIN_CRUD_ERROR:", error);
+    return "غير مصرح";
+  }
 }
 
 function validationError(error: z.ZodError): string {
@@ -81,10 +86,11 @@ export async function createMatn(input: {
       select: { id: true },
     });
     revalidatePath("/admin/mutoon");
+    revalidatePath("/admin/matn");
     revalidatePath("/dashboard/mutoon");
     return { ok: true, id: matn.id };
   } catch (error) {
-    console.error("[matn-actions] createMatn failed", error);
+    console.error("ADMIN_CRUD_ERROR:", error);
     return { ok: false, error: "تعذر إنشاء المتن، حاول مجددًا" };
   }
 }
@@ -120,11 +126,12 @@ export async function createMatnQuiz(input: {
       select: { id: true },
     });
     revalidatePath("/admin/mutoon");
+    revalidatePath("/admin/matn");
     revalidatePath("/dashboard/mutoon");
     revalidatePath(`/dashboard/mutoon/${matn.id}`);
     return { ok: true, id: quiz.id };
   } catch (error) {
-    console.error("[matn-actions] createMatnQuiz failed", error);
+    console.error("ADMIN_CRUD_ERROR:", error);
     return { ok: false, error: "تعذر إنشاء السؤال، حاول مجددًا" };
   }
 }
@@ -158,12 +165,13 @@ export async function updateMatn(
       select: { id: true },
     });
     revalidatePath("/admin/mutoon");
+    revalidatePath("/admin/matn");
     revalidatePath("/dashboard/mutoon");
     revalidatePath(`/dashboard/mutoon/${existing.id}`);
     return { ok: true, id: existing.id };
   } catch (error) {
     if (isPrismaNotFound(error)) return { ok: false, error: "المتن غير موجود" };
-    console.error("[matn-actions] updateMatn failed", error);
+    console.error("ADMIN_CRUD_ERROR:", error);
     return { ok: false, error: "تعذر تحديث المتن، حاول مجددًا" };
   }
 }
@@ -199,13 +207,13 @@ export async function deleteMatn(id: string): Promise<MatnActionResult> {
   } catch (error) {
     if (isPrismaNotFound(error)) return { ok: false, error: "المتن غير موجود" };
     if (isForeignKeyBlocked(error)) {
-      console.error("[matn-actions] deleteMatn blocked by FK", error);
+      console.error("ADMIN_CRUD_ERROR:", error);
       return {
         ok: false,
         error: "عذراً، تعذر حذف المتن: هناك بيانات مرتبطة تمنع الحذف حاليًا",
       };
     }
-    console.error("[matn-actions] deleteMatn failed", error);
+    console.error("ADMIN_CRUD_ERROR:", error);
     return { ok: false, error: "عذراً، تعذر حذف المتن" };
   }
 }
@@ -251,7 +259,7 @@ export async function updateMatnQuiz(
     return { ok: true, id: existing.id };
   } catch (error) {
     if (isPrismaNotFound(error)) return { ok: false, error: "السؤال غير موجود" };
-    console.error("[matn-actions] updateMatnQuiz failed", error);
+    console.error("ADMIN_CRUD_ERROR:", error);
     return { ok: false, error: "تعذر تحديث السؤال، حاول مجددًا" };
   }
 }
@@ -272,12 +280,13 @@ export async function deleteMatnQuiz(id: string): Promise<MatnActionResult> {
 
     await prisma.matnQuiz.delete({ where: { id: existing.id } });
     revalidatePath("/admin/mutoon");
+    revalidatePath("/admin/matn");
     revalidatePath("/dashboard/mutoon");
     revalidatePath(`/dashboard/mutoon/${existing.matnId}`);
     return { ok: true, id: existing.id };
   } catch (error) {
     if (isPrismaNotFound(error)) return { ok: false, error: "السؤال غير موجود" };
-    console.error("[matn-actions] deleteMatnQuiz failed", error);
+    console.error("ADMIN_CRUD_ERROR:", error);
     return { ok: false, error: "تعذر حذف السؤال، حاول مجددًا" };
   }
 }
@@ -364,7 +373,7 @@ export async function saveMatnQuizzes(input: {
       skipped: parsed.data.questions.length - toCreate.length,
     };
   } catch (error) {
-    console.error("[matn-actions] saveMatnQuizzes failed", error);
+    console.error("ADMIN_CRUD_ERROR:", error);
     return { ok: false, error: "تعذر حفظ الأسئلة، حاول مجددًا" };
   }
 }
