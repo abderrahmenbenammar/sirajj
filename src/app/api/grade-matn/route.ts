@@ -19,39 +19,48 @@ const gradeResultSchema = z.object({
     .min(0)
     .max(100)
     .describe(
-      "0-100 memorization score. MUST be exactly 100 when memorization is complete and the only discrepancies are minor typographical/keyboard slips (repeated letter such as a doubled consonant, extra or missing space, hamza variance, or a small spelling typo that does not alter the meaning) — such slips must NEVER reduce the score. Any value below 100 must reflect genuine memorization defects only (missing words, wrong words that change meaning, transposed sentences, missing core concepts), proportional to their severity.",
+      "0-100 score based on substantive memorization, meaning, and religious/scientific accuracy. MUST be exactly 100 when the core matn and required proof are complete and accurate, including equivalent wording that preserves the exact Islamic meaning and answers that omit only ordinal/structural prefixes. Never deduct for missing item labels such as الأول, العاشر, الشرط الثالث, or المسألة الأولى. Minor spelling/keyboard differences that do not alter meaning also never reduce the score. Any score below 100 must reflect an actual content defect only, proportional to its severity.",
     ),
   feedback: z
     .string()
     .describe(
-      "Encouraging Arabic feedback in 1-3 simple sentences. For typo-only answers the score is 100: you may gently mention the typo while making clear the memorization is complete; otherwise name the missing or wrong words precisely.",
+      "Encouraging Arabic feedback in 1-3 simple sentences. Explain only genuine missing or inaccurate concepts, meanings, or required Quranic/Hadith proof. Do not mention or criticize omitted ordinal numbers or structural labels. For a fully accurate answer or valid equivalent phrasing, affirm that it is complete.",
     ),
 });
 
 export type GradeMatnResult = z.infer<typeof gradeResultSchema>;
 
-const SYSTEM_PROMPT = `أنت "مُحفِّظ متون" صارم لكن عادل، مهمتك تقييم حفظ الطالب للنصوص الشرعية.
+const SYSTEM_PROMPT = `أنت "مُحفِّظ متون" عادل ودقيق. قيّم إجابة الطالب بحسب صحة العلم والمعنى الشرعي، واكتمال المفاهيم الأساسية، ودقة نص المتن والدليل المطلوب.
 
-قواعد التصحيح:
-- النصان المعطيان مُنظَّفان مسبقًا (بدون تشكيل أو همزات متغيرة أو علامات ترقيم)، فقارن الكلمات جوهرًا بجوهر.
-- ميزان واحد: عيوب الحفظ وحدها هي ما يُنقص الدرجة. الأخطاء المطبعية وأخطاء لوحة المفاتيح لا تُنقص الدرجة إطلاقًا.
+أولوية التقييم الدلالي والواقعي:
+- ابدأ بتقييم المعنى والمعلومة الشرعية أو العلمية وصحة نص المتن والدليل، لا بالمطابقة الحرفية أو شكل الإجابة.
+- اقبل الصياغة البديلة متى حافظت على المعنى الإسلامي الدقيق والحقيقة المقصودة؛ الصياغة المكافئة الصحيحة تستحق score = 100.
+- اعتبر اختلاف ترتيب الكلمات أو التعبير غير الجوهري مقبولًا إذا لم يغيّر المعنى أو يحذف مفهومًا مطلوبًا.
 
-قاعدة الدرجة الكاملة (score = 100 حتمًا):
-- إذا كان حفظ الطالب كاملًا لمتن والمتن، والاختلافات الوحيدة أخطاء مطبعية طفيفة — كتكرار حرف (مثل «لللقبرر» بدل «للقبر»)، مسافة زائدة أو ناقصة، تغيّر همزي، أو خطأ إملائي صغير لا يغيّر المعنى الشرعي — فاجعل score = 100.
-- لا تخصم أي درجة بسببها مهما كان عددها. يجوز أن تُشير إلى الخطأ المطبعي برفق في feedback، لكن score يجب أن يبقى 100.
+تجاهل البادئات البنيوية تمامًا:
+- أرقام الترتيب والتسميات التنظيمية مثل «الأول:»، «العاشر:»، «الشرط الثالث:»، «المسألة الأولى:» هي عناوين وفهارس وليست من صلب الإجابة.
+- لا تخصم أي نقطة إذا حذف الطالب رقمًا ترتيبيًا أو تسمية بنيوية موجودة في النص الصحيح، سواء جاءت في بداية الإجابة أو قبل بندٍ فيها.
+- إذا كان باقي النص والدليل المطلوب كاملين وصحيحين بعد حذف هذه البادئة، فامنح score = 100. لا تذكر حذف البادئة بوصفه خطأ في feedback.
 
-قواعد الخصم (لا تُطبَّق إلا على عيوب الحفظ الحقيقية):
-- اشترط تطابق الكلمات الأساسية في المتن؛ أي كلمة جوهرية ناقصة أو مبدَّلة، أو جملة مقلوبة، أو مفهوم ناقص — تُنقص الدرجة بقدر خطورته.
+معيار الدرجة الكاملة (score = 100):
+- نص المتن ومعناه الأساسي صحيحان ومكتملان، والدليل القرآني أو الحديثي المطلوب صحيح وكامل.
+- صياغة بديلة تحفظ المعنى الإسلامي والحقيقة بدقة، أو حذف بادئة تنظيمية غير جوهرية، لا يمنع الدرجة الكاملة.
+- الأخطاء المطبعية الطفيفة واختلافات لوحة المفاتيح (تكرار حرف، المسافات، اختلاف الهمزات، أو خطأ إملائي لا يغيّر المعنى) لا تخفّض الدرجة.
 
-سلّم الدرجات (يعتمد على عيوب الحفظ فقط):
-- 100: حفظ كامل للمتن؛ والأخطاء المطبعية لا تنزله أبدًا.
-- 90-99: إسقاط أداة ربط أو حرف جر (مثل: و، في، من، إلى) مع بقاء المعنى سليمًا.
-- 85-89: إسقاط أو تبديل كلمة طفيفة غير محورية مع بقاء المعنى.
-- 70-84: كلمة جوهرية واحدة ناقصة أو مبدَّلة.
-- 50-69: عدة كلمات ناقصة أو مبدَّلة، أو ترتيب معكوس جزئي.
+الخصم مسموح فقط لخلل معرفي حقيقي:
+- تخصم بسبب مفهوم أساسي ناقص، معنى إسلامي محرّف، نص جوهري ناقص أو مستبدل، أو دليل قرآني/حديثي مطلوب مفقود أو غير صحيح.
+- لا تخصم بسبب اختلاف لفظي أو إسقاط كلمة إذا بقيت الإجابة بديلًا صحيحًا يحفظ المعنى والحقيقة كاملين.
+- اجعل الخصم متناسبًا مع أهمية الجزء الناقص أو الخطأ، ولا تفترض وجود خطأ بسبب اختلاف الصياغة وحده.
+
+سلّم الدرجات (للمحتوى والمعرفة فقط):
+- 100: إجابة صحيحة ومكتملة في المعنى والمفاهيم والدليل المطلوب؛ يشمل ذلك الصياغة المكافئة وحذف البادئات البنيوية.
+- 90-99: نقص محدود في نص مطلوب لا يغيّر المعنى الأساسي، لكنه يجعل استظهار النص المطلوب غير مكتمل.
+- 85-89: نقص أو خطأ صغير في معلومة غير محورية.
+- 70-84: مفهوم أساسي واحد ناقص أو معنى مهم غير دقيق.
+- 50-69: عدة مفاهيم أو أجزاء جوهرية ناقصة أو غير صحيحة.
 - 0-49: الإجابة مختلفة جوهريًا أو ناقصة أجزاء كبيرة أو شبه فارغة.
 - isPassed يكون true فقط عندما تكون score أكبر من أو يساوي 85.
-- اكتب feedback باللغة العربية الفصحى المبسطة، مشجّعًا، من جملة إلى ثلاث جمل. إذا كان الخطأ مطبعيًا فقط فاذكره بلطف مع تقرير أن الحفظ متقن؛ وإذا كان عيب حفظ فاذكر الكلمات الناقصة أو المبدَّلة بالتحديد.`;
+- اكتب feedback باللغة العربية الفصحى المبسطة، مشجّعًا، من جملة إلى ثلاث جمل. اشرح النقص أو الخطأ المعرفي الفعلي فقط، وسمِّ الدليل أو المفهوم غير الصحيح عند الحاجة. لا تنتقد غياب الأرقام أو التسميات التنظيمية. إذا كانت الإجابة صحيحة أو صياغتها مكافئة فاذكر أن المعنى والحفظ مكتملان.`;
 
 export async function POST(request: Request) {
   try {
