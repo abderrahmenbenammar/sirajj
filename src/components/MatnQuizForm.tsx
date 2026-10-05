@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, GripVertical, ListChecks, Loader2, Mic, MicOff, RotateCcw, Sparkles, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, GripVertical, ListChecks, Loader2, RotateCcw, Sparkles, XCircle } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { normalizeArabicText } from "@/lib/text-normalization";
-import SirajTooltip from "@/components/ui/SirajTooltip";
 import type { GradeMatnResult } from "@/app/api/grade-matn/route";
 
 export interface MatnQuizQuestion {
@@ -119,234 +118,8 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const [result, setResult] = useState<GradeMatnResult | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isListening, setIsListening] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [recordSupported, setRecordSupported] = useState(false);
-  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
-  const [microphoneToast, setMicrophoneToast] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const startingRef = useRef(false);
-  const mountedRef = useRef(false);
-  const studentAnswerRef = useRef(studentAnswer);
-  const recordingChunksRef = useRef<Blob[]>([]);
-  const toastTimerRef = useRef<number | null>(null);
-
-  const showMicrophoneToast = (message: string) => {
-    setMicrophoneToast(message);
-    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => {
-      setMicrophoneToast(null);
-      toastTimerRef.current = null;
-    }, 6000);
-  };
-
-  const updateStudentAnswer = (next: string | ((current: string) => string)) => {
-    const value = typeof next === "function" ? next(studentAnswerRef.current) : next;
-    studentAnswerRef.current = value;
-    setStudentAnswer(value);
-  };
-
-  const stopStream = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    if (!mountedRef.current) return;
-    setIsTranscribing(true);
-    setError(null);
-    try {
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "matn-answer.webm");
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        body: formData,
-        cache: "no-store",
-      });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(
-          typeof payload?.error === "string"
-            ? payload.error
-            : t("تعذر تحويل الصوت إلى نص، حاول مجددًا", "Could not transcribe the recording. Please try again."),
-        );
-      }
-
-      const transcript = typeof payload?.text === "string" ? payload.text.trim() : "";
-      if (!transcript) {
-        setError(t("لم نتمكن من التقاط كلام واضح، حاول مجددًا", "No clear speech was detected. Please try again."));
-        return;
-      }
-      updateStudentAnswer((currentText) =>
-        currentText.trim() ? `${currentText.trim()} ${transcript}` : transcript,
-      );
-      textareaRef.current?.focus({ preventScroll: true });
-    } catch (transcribeError) {
-      if (!mountedRef.current) return;
-      setError(
-        transcribeError instanceof Error && transcribeError.message
-          ? transcribeError.message
-          : t("تعذر تحويل الصوت إلى نص، حاول مجددًا", "Could not transcribe the recording. Please try again."),
-      );
-    } finally {
-      if (mountedRef.current) setIsTranscribing(false);
-    }
-  };
-
-  const stopRecording = () => {
-    const recorder = recorderRef.current;
-    if (!recorder || recorder.state === "inactive") return;
-    setIsListening(false);
-    setIsTranscribing(true);
-    try {
-      recorder.stop();
-    } catch (stopError) {
-      console.error("MATN_RECORDING_STOP_ERROR:", stopError);
-      recorderRef.current = null;
-      stopStream();
-      setIsTranscribing(false);
-      setError(t("تعذر إيقاف التسجيل، حاول مجددًا", "Could not stop the recording. Please try again."));
-    }
-  };
-
-  const handleRecordingStartError = (recordError: unknown) => {
-    if (!mountedRef.current) return;
-    setIsListening(false);
-    setIsTranscribing(false);
-    recorderRef.current = null;
-    recordingChunksRef.current = [];
-    stopStream();
-    const errorName = recordError instanceof Error ? recordError.name : "";
-    if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError" || errorName === "SecurityError") {
-      const message = "يرجى السماح بصلاحية الميكروفون من إعدادات المتصفح للتسميع الصوتي";
-      setError(message);
-      showMicrophoneToast(message);
-    } else if (recordError instanceof Error && recordError.message === "MICROPHONE_PERMISSION_TIMEOUT") {
-      setError(t(
-        "لم يصل ردّ على طلب الميكروفون. اسمح بالوصول من نافذة المتصفح ثم حاول مجددًا.",
-        "The microphone request timed out. Allow access in the browser prompt, then try again.",
-      ));
-    } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
-      setError(t("لم يتم العثور على ميكروفون متصل", "No microphone was found"));
-    } else {
-      console.error("MATN_RECORDING_START_ERROR:", recordError);
-      setError(t("تعذر بدء التسجيل، تحقق من إعدادات الميكروفون وحاول مجددًا", "Could not start recording. Check your microphone settings and try again."));
-    }
-  };
-
-  const startRecording = () => {
-    if (startingRef.current || isListening || isTranscribing || isRequestingPermission) return;
-    if (!recordSupported || typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setError(t("متصفحك لا يدعم التسجيل الصوتي. جرّب متصفحًا حديثًا.", "Your browser does not support audio recording. Try a recent browser."));
-      return;
-    }
-
-    startingRef.current = true;
-    setError(null);
-    let streamRequest: Promise<MediaStream>;
-    try {
-      // Invoke getUserMedia directly in the click event's call stack, before
-      // any permission query or await, so browsers can show their native prompt.
-      streamRequest = navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (recordError) {
-      startingRef.current = false;
-      handleRecordingStartError(recordError);
-      return;
-    }
-
-    setIsRequestingPermission(true);
-    let permissionTimedOut = false;
-    let permissionTimer: number | undefined;
-    // If a browser leaves its permission prompt open past the deadline, stop
-    // the stream if the user later grants access.
-    void streamRequest.then((lateStream) => {
-      if (permissionTimedOut) lateStream.getTracks().forEach((track) => track.stop());
-    }).catch(() => undefined);
-    const permissionTimeout = new Promise<MediaStream>((_, reject) => {
-      permissionTimer = window.setTimeout(() => {
-        permissionTimedOut = true;
-        reject(new Error("MICROPHONE_PERMISSION_TIMEOUT"));
-      }, 30_000);
-    });
-
-    void (async () => {
-      try {
-        const stream = await Promise.race([streamRequest, permissionTimeout]);
-        if (!mountedRef.current) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-        const preferredMimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"]
-          .find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
-        const recorder = preferredMimeType
-          ? new MediaRecorder(stream, { mimeType: preferredMimeType })
-          : new MediaRecorder(stream);
-        recorderRef.current = recorder;
-        recordingChunksRef.current = [];
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) recordingChunksRef.current.push(event.data);
-        };
-        recorder.onstop = () => {
-          const blob = new Blob(recordingChunksRef.current, {
-            type: recorder.mimeType || recordingChunksRef.current[0]?.type || "audio/webm",
-          });
-          recordingChunksRef.current = [];
-          recorderRef.current = null;
-          stopStream();
-          if (mountedRef.current) void transcribeAudio(blob);
-        };
-        recorder.onerror = () => {
-          recorder.onstop = null;
-          recorderRef.current = null;
-          recordingChunksRef.current = [];
-          stopStream();
-          if (mountedRef.current) {
-            setIsListening(false);
-            setIsTranscribing(false);
-            setError(t("حدث خطأ أثناء التسجيل، يرجى المحاولة مجددًا", "Recording failed. Please try again."));
-          }
-        };
-        recorder.start(250);
-        setIsListening(true);
-      } catch (recordError) {
-        handleRecordingStartError(recordError);
-      } finally {
-        if (permissionTimer !== undefined) window.clearTimeout(permissionTimer);
-        startingRef.current = false;
-        if (mountedRef.current) setIsRequestingPermission(false);
-      }
-    })();
-  };
-
-  const microphoneBusy = isListening || isTranscribing || isRequestingPermission;
-
-  useEffect(() => {
-    mountedRef.current = true;
-    const supportFrame = window.requestAnimationFrame(() => {
-      setRecordSupported(
-        typeof navigator !== "undefined" &&
-          typeof MediaRecorder !== "undefined" &&
-          typeof navigator.mediaDevices?.getUserMedia === "function",
-      );
-    });
-    return () => {
-      mountedRef.current = false;
-      window.cancelAnimationFrame(supportFrame);
-      if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-      const recorder = recorderRef.current;
-      if (recorder && recorder.state !== "inactive") {
-        recorder.onstop = null;
-        recorder.onerror = null;
-        recorder.stop();
-      }
-      stopStream();
-    };
-  }, []);
 
   // Scroll every new card into view; focus the textarea only for free-writing
   // questions (the structured types have no single primary input).
@@ -453,7 +226,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
 
   const checkAnswer = () => {
     const text = getSubmittedText();
-    if (text.length === 0 || isGrading || isGraded || microphoneBusy) return;
+    if (text.length === 0 || isGrading || isGraded) return;
 
     // Instant client-side verification for the structured types: an exact
     // match (after Arabic normalization) is a guaranteed 100 with zero
@@ -511,13 +284,12 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   };
 
   const goNext = () => {
-    if (microphoneBusy) return;
     if (isLast) {
       setQuizState("completed");
       return;
     }
     setCurrentIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
-    updateStudentAnswer("");
+    setStudentAnswer("");
     setReorderPicks([]);
     setBlankValues([]);
     setMcqChoice(null);
@@ -526,7 +298,6 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   };
 
   const primaryAction = () => {
-    if (microphoneBusy) return;
     if (isGraded) goNext();
     else checkAnswer();
   };
@@ -534,7 +305,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const restartQuiz = () => {
     setUserAnswers({});
     setCurrentIndex(0);
-    updateStudentAnswer("");
+    setStudentAnswer("");
     setReorderPicks([]);
     setBlankValues([]);
     setMcqChoice(null);
@@ -549,7 +320,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
       event.preventDefault();
-      if (quizState === "active" && !microphoneBusy) primaryAction();
+      if (quizState === "active") primaryAction();
     }
   };
 
@@ -568,34 +339,6 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
 
   return (
     <div dir="rtl" className="w-full max-w-2xl mx-auto">
-      <AnimatePresence>
-        {microphoneToast && (
-          <motion.div
-            key="microphone-toast"
-            initial={{ opacity: 0, y: 12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-x-4 bottom-4 z-[110] mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-medium text-red-800 shadow-lg dark:border-red-900 dark:bg-gray-900 dark:text-red-200"
-            role="alert"
-            aria-live="assertive"
-          >
-            <span className="flex-1">{microphoneToast}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setMicrophoneToast(null);
-                if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
-                toastTimerRef.current = null;
-              }}
-              aria-label={t("إغلاق التنبيه", "Dismiss notification")}
-              className="shrink-0 rounded px-1 text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950"
-            >
-              ×
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
       {/* Top progress bar (active/completed phases only) */}
       {quizState !== "welcome" && (
         <div className="mb-4">
@@ -689,111 +432,17 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                 >
                   {t("إجابتك", "Your answer")}
                 </label>
-                <div className="mt-2">
-                  <textarea
-                    id="matn-answer"
-                    ref={textareaRef}
-                    value={studentAnswer}
-                    onChange={(event) => updateStudentAnswer(event.target.value)}
-                    rows={5}
-                    disabled={isGrading || microphoneBusy}
-                    readOnly={isGraded}
-                    placeholder={t("اكتب المتن هنا...", "Type the matn here...")}
-                    className="w-full rounded-xl border border-gray-300 bg-gray-50 p-3 text-base leading-8 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                  />
-                  <div className="mt-2 flex min-h-10 items-center gap-2">
-                    <AnimatePresence mode="wait" initial={false}>
-                      {isRequestingPermission ? (
-                        <motion.div
-                          key="microphone-permission"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.18 }}
-                          className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          <Loader2 size={15} className="animate-spin" />
-                          {t("في انتظار السماح بالوصول للميكروفون...", "Waiting for microphone permission...")}
-                        </motion.div>
-                      ) : isListening ? (
-                        <motion.div
-                          key="microphone-recording"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.18 }}
-                          className="inline-flex items-center gap-2"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          <SirajTooltip label={t("إيقاف التسجيل", "Stop recording")} side="top">
-                            <button
-                              type="button"
-                              onClick={stopRecording}
-                              aria-label={t("إيقاف التسجيل", "Stop recording")}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-red-700 transition-colors hover:bg-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:bg-red-950/60 dark:text-red-300 dark:hover:bg-red-900"
-                            >
-                              <MicOff size={18} />
-                            </button>
-                          </SirajTooltip>
-                          <span className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 dark:bg-red-950/50 dark:text-red-300">
-                            {t("جارٍ التسجيل...", "Recording...")}
-                          </span>
-                        </motion.div>
-                      ) : isTranscribing ? (
-                        <motion.div
-                          key="microphone-transcribing"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.18 }}
-                          className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          <Loader2 size={15} className="animate-spin" />
-                          {t("جارٍ تحويل الصوت...", "Transcribing audio...")}
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="microphone-idle"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.18 }}
-                          className="inline-flex items-center gap-2"
-                        >
-                          <SirajTooltip
-                            label={t("تحدث للإجابة", "Speak your answer")}
-                            side="top"
-                            disabled={!recordSupported || isGrading || isGraded}
-                          >
-                            <button
-                              type="button"
-                              onClick={startRecording}
-                              disabled={!recordSupported || isGrading || isGraded}
-                              aria-label={t("تحدث للإجابة", "Speak your answer")}
-                              aria-describedby={!recordSupported ? "microphone-support-hint" : undefined}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 transition-colors hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900"
-                            >
-                              <Mic size={18} />
-                            </button>
-                          </SirajTooltip>
-                          {!recordSupported && (
-                            <span
-                              id="microphone-support-hint"
-                              className="text-xs text-gray-500 dark:text-gray-400"
-                            >
-                              {t("متصفحك لا يدعم التسجيل الصوتي", "Audio recording is not supported by this browser")}
-                            </span>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
+                <textarea
+                  id="matn-answer"
+                  ref={textareaRef}
+                  value={studentAnswer}
+                  onChange={(event) => setStudentAnswer(event.target.value)}
+                  rows={5}
+                  disabled={isGrading}
+                  readOnly={isGraded}
+                  placeholder={t("اكتب المتن هنا...", "Type the matn here...")}
+                  className="mt-2 w-full rounded-xl border border-gray-300 bg-gray-50 p-3 text-base leading-8 text-gray-900 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                />
               </>
             )}
 
@@ -998,7 +647,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
             <button
               type="button"
               onClick={primaryAction}
-              disabled={isGrading || microphoneBusy || (!isGraded && !canSubmit)}
+              disabled={isGrading || (!isGraded && !canSubmit)}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGrading ? (
