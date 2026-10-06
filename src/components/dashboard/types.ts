@@ -13,6 +13,20 @@ export interface DashboardStats {
   certificatesCount: number;
 }
 
+export interface DashboardActivityDay {
+  /** UTC date in YYYY-MM-DD format. */
+  dateKey: string;
+  count: number;
+  weekdayAr: string;
+  weekdayEn: string;
+}
+
+export interface DashboardLearningActivity {
+  days: DashboardActivityDay[];
+  currentStreak: number;
+  completedThisWeek: number;
+}
+
 export interface DashboardCourse {
   id: string;
   titleAr: string;

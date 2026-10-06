@@ -14,8 +14,10 @@ import DashboardQuickLinks from "@/components/dashboard/DashboardQuickLinks";
 import type {
   DashboardCertificate,
   DashboardCourse,
+  DashboardLearningActivity,
   DashboardStats,
 } from "@/components/dashboard/types";
+import StudentLearningActivityCard from "@/components/dashboard/StudentLearningActivityCard";
 
 // Authenticated, per-user data (session + Prisma) — must render at request
 // time, never at build time.
@@ -50,7 +52,10 @@ export default async function DashboardPage() {
     }),
     prisma.lessonCompletion.findMany({
       where: { studentId: userId },
-      select: { lesson: { select: { courseId: true } } },
+      select: {
+        completedAt: true,
+        lesson: { select: { courseId: true } },
+      },
     }),
     prisma.certificate.findMany({
       where: { studentId: userId },
@@ -60,9 +65,54 @@ export default async function DashboardPage() {
   ]);
 
   const doneByCourse: Record<string, number> = {};
+  const completedByDay = new Map<string, number>();
+  const completedDayKeys = new Set<string>();
+  const todayUtc = new Date();
+  todayUtc.setUTCHours(0, 0, 0, 0);
+  const todayKey = todayUtc.toISOString().slice(0, 10);
+  const weekStartUtc = new Date(todayUtc);
+  weekStartUtc.setUTCDate(weekStartUtc.getUTCDate() - 6);
+  const weekStartKey = weekStartUtc.toISOString().slice(0, 10);
+
   for (const completion of completions) {
     const courseId = completion.lesson.courseId;
     doneByCourse[courseId] = (doneByCourse[courseId] ?? 0) + 1;
+
+    const dayKey = completion.completedAt.toISOString().slice(0, 10);
+    if (dayKey <= todayKey) completedDayKeys.add(dayKey);
+    if (dayKey >= weekStartKey && dayKey <= todayKey) {
+      completedByDay.set(dayKey, (completedByDay.get(dayKey) ?? 0) + 1);
+    }
+  }
+
+  const learningActivity: DashboardLearningActivity = {
+    days: Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(weekStartUtc);
+      date.setUTCDate(weekStartUtc.getUTCDate() + index);
+      const dateKey = date.toISOString().slice(0, 10);
+
+      return {
+        dateKey,
+        count: completedByDay.get(dateKey) ?? 0,
+        weekdayAr: new Intl.DateTimeFormat("ar", {
+          weekday: "short",
+          timeZone: "UTC",
+        }).format(date),
+        weekdayEn: new Intl.DateTimeFormat("en", {
+          weekday: "short",
+          timeZone: "UTC",
+        }).format(date),
+      };
+    }),
+    currentStreak: 0,
+    completedThisWeek: Array.from(completedByDay.values()).reduce((sum, count) => sum + count, 0),
+  };
+
+  const streakDate = new Date(todayUtc);
+  if (!completedDayKeys.has(todayKey)) streakDate.setUTCDate(streakDate.getUTCDate() - 1);
+  while (completedDayKeys.has(streakDate.toISOString().slice(0, 10))) {
+    learningActivity.currentStreak += 1;
+    streakDate.setUTCDate(streakDate.getUTCDate() - 1);
   }
 
   const courses: DashboardCourse[] = enrollments.map((enrollment) => {
@@ -110,6 +160,7 @@ export default async function DashboardPage() {
         <DashboardHeader firstName={firstName} />
 
         <StudentStatsGrid stats={stats} />
+        <StudentLearningActivityCard activity={learningActivity} />
 
         <DashboardSection
           title={{ ar: "تقدمك في الدورات", en: "Your Course Progress" }}

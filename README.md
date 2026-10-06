@@ -1,51 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SIRAJ
 
-## Authentication and database
+SIRAJ is a bilingual Arabic/English learning platform for structured Islamic studies. It includes courses and lessons, student progress and certificates, matn memorization and quizzes, and an admin area for managing learning content.
 
-The project uses Auth.js credentials authentication with Prisma and SQLite for local development. Passwords are hashed with bcrypt, and email verification and password reset tokens are stored hashed in the database.
+## Requirements
 
-```powershell
-Copy-Item .env.example .env
-npm run db:push
-npm run db:seed
-npm run dev
-```
+- Node.js 20 or newer
+- npm
+- A PostgreSQL database (the production setup uses Supabase)
 
-Set `AUTH_SECRET` to a long random value before deployment. Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, and `APP_URL` to enable verification and password-reset emails. Without SMTP in development, links are printed in the server terminal.
+## Local setup
 
-Use `npm run db:studio` to inspect local data. For production, change `DATABASE_URL` to a PostgreSQL connection string and use a managed email provider.
+1. Install dependencies and create your local environment file:
 
-## Getting Started
+   ```bash
+   npm ci
+   cp .env.example .env
+   ```
 
-First, run the development server:
+   On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. Set `DATABASE_URL` to the pooled PostgreSQL connection string and `DIRECT_URL` to the direct connection string. Set `AUTH_SECRET` to a unique secret and `APP_URL` to `http://localhost:3000`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Apply the checked-in migrations and load the starter data:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```bash
+   npm run db:migrate
+   npm run db:seed
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the development server:
 
-## Learn More
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See `.env.example` for the complete list. The core variables are:
 
-## Deploy on Vercel
+- `DATABASE_URL`, `DIRECT_URL`: PostgreSQL pooled and direct database connections.
+- `AUTH_SECRET`: secret used by Auth.js.
+- `APP_URL`: canonical application URL, including the production URL after deployment.
+- `GOOGLE_GENERATIVE_AI_API_KEY`: enables AI matn grading and assisted quiz generation.
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: server-side Supabase Storage access.
+- `YOUTUBE_API_KEY`: optional; used to retrieve YouTube lesson durations.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`: optional email delivery for account verification and password reset.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Keep secrets in the local `.env` file or your hosting provider's environment settings. Never commit secret values.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Useful commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local development server. |
+| `npm run lint` | Run ESLint. |
+| `npx tsc --noEmit` | Check TypeScript types. |
+| `npm run build` | Generate Prisma Client and build the app. |
+| `npm run db:migrate` | Apply checked-in Prisma migrations. |
+| `npm run db:seed` | Load starter categories and FAQ data. |
+| `npm run db:studio` | Open Prisma Studio. |
+
+For a schema change during development, create a migration with `npx prisma migrate dev --name describe_change`, then commit the migration directory. Use `npm run db:migrate` to apply committed migrations in staging and production.
+
+## Deployment
+
+The Vercel build command in `vercel.json` applies committed database migrations before building the Next.js app. Configure all required environment variables in the Vercel project settings for each environment, and ensure the database credentials can apply migrations. Vercel deployments use the same PostgreSQL database configuration described above.
