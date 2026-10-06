@@ -72,10 +72,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-[var(--font-noto-naskh),system-ui,sans-serif]">
         <ServiceWorkerRegister />
-        <PwaInstallPrompt />
         <Providers>
           <PushNativeBootstrap />
           <Navbar />
+          <PwaInstallPrompt />
           <main className="flex-1 pt-[calc(4rem_+_env(safe-area-inset-top))] lg:pt-[calc(4.5rem_+_env(safe-area-inset-top))]">{children}</main>
           <Footer />
         </Providers>
