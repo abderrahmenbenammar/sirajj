@@ -47,6 +47,14 @@ const generatedQuestionSchema = z.object({
 const generationSchema = z.object({
   questions: z.array(generatedQuestionSchema).min(1).max(20),
 });
+const questionRevisionSchema = z.object({
+  revisions: z.array(
+    z.object({
+      index: z.number().int().min(0).max(19),
+      question: z.string().min(3).max(500),
+    }),
+  ).max(20),
+});
 
 export type GeneratedMatnQuestion = z.infer<typeof generatedQuestionSchema>;
 
@@ -71,6 +79,18 @@ const SYSTEM_PROMPT = `أنت "مولّد أسئلة التسميع" — تُخ�
 - مثال: إذا كانت الإجابة «من حسن إسلام المرء تركه ما لا يعنيه»، فالسؤال «أكمل: من حسن إسلام المرء تركه...» مرفوض. لسؤال الكتابة استخدم تلميحًا مثل «اكتب الحديث الذي يوجّه المسلم إلى حسن اختيار ما يشغله».
 - اكتب نصوص الأسئلة بالعربية الفصحى البسيطة، وأعد العدد المطلوب من الأسئلة بالضبط (لا أكثر ولا أقل).
 - لا تتجاوز حدود النص المُعطى بأي سؤال.`;
+
+const QUESTION_REVIEW_PROMPT = `أنت مراجع تربوي دقيق لأسئلة حفظ المتون. أعد كتابة نصوص الأسئلة المشار إليها فقط، واترك الإجابات والأنواع والخيارات كما هي.
+
+قواعد المراجعة:
+- لا تكشف answer داخل question، ولا تقتبس منه أربع كلمات متتابعة، ولا تضع تلميحًا يجعل الإجابة منسوخة أو ظاهرة.
+- write: اسأل عن المقطع من خلال موضوعه أو معناه دون اقتباس ألفاظه أو بدايته.
+- mcq: اسأل عن المعنى أو الحكم، واترك الإجابة الصحيحة ضمن الخيارات فقط.
+- reorder: واجهة الطالب تعرض الكلمات مبعثرة من answer؛ اجعل السؤال توجيهًا قصيرًا فقط.
+- fill_blank: واجهة الطالب تنشئ الفراغات من answer؛ اجعل السؤال توجيهًا أو سياقًا قصيرًا لا يعيد كلمات النص.
+- حافظ على صلة السؤال بالمتن، واجعله عربيًا واضحًا وطبيعيًا، ومتنوّعًا لا آليًا أو عامًا ما أمكن.
+- أعد مراجعة كل صياغة قبل إخراجها. إذا لم تستطع كتابة تلميح آمن، استخدم سؤالًا تعليميًا عامًا مناسبًا للنوع بدل نقل الإجابة.
+- أخرج revision لكل index مطلوب، ولا تُعد الإجابة أو أي حقل آخر.`;
 
 /** Cheap idempotency key shared with the saveMatnQuizzes action. */
 function questionKey(type: string, question: string, answer: string): string {
@@ -112,6 +132,19 @@ function revealsAnswer(question: string, answer: string): boolean {
   return false;
 }
 
+function fallbackQuestion(type: z.infer<typeof matnQuizTypeSchema>): string {
+  switch (type) {
+    case "write":
+      return "اكتب المقطع الذي يقرر المعنى المقصود في هذا الباب كما ورد في المتن.";
+    case "mcq":
+      return "أي الخيارات يوافق ما قرره المتن في هذا الموضوع؟";
+    case "reorder":
+      return "رتّب الكلمات المعروضة لتكوين المقطع كما ورد في المتن.";
+    case "fill_blank":
+      return "أكمل الكلمات الناقصة من المقطع كما ورد في المتن.";
+  }
+}
+
 /**
  * Post-process model output into the exact shape the student UI consumes:
  * - trim everything, drop empty items
@@ -123,20 +156,15 @@ function normalizeQuestions(
   items: z.infer<typeof generatedQuestionSchema>[],
   count: number,
   selectedTypes: readonly z.infer<typeof matnQuizTypeSchema>[],
-): { questions: GeneratedMatnQuestion[]; rejectedAnswerLeaks: number } {
+): GeneratedMatnQuestion[] {
   const out: GeneratedMatnQuestion[] = [];
   const seen = new Set<string>();
-  let rejectedAnswerLeaks = 0;
   for (const item of items) {
     if (!selectedTypes.includes(item.type)) continue;
 
     const question = item.question.trim();
     const answer = item.answer.trim();
     if (question.length < 3 || answer.length === 0) continue;
-    if (revealsAnswer(question, answer)) {
-      rejectedAnswerLeaks += 1;
-      continue;
-    }
 
     let type = item.type;
     let options: string[] | undefined;
@@ -164,7 +192,54 @@ function normalizeQuestions(
     out.push({ question, type, answer, options });
     if (out.length >= count) break;
   }
-  return { questions: out, rejectedAnswerLeaks };
+  return out;
+}
+
+/** Internally repair answer-revealing wording; never ask the admin to clean it up. */
+async function reviewQuestions(
+  questions: GeneratedMatnQuestion[],
+  modelName: string,
+  deadline: number,
+): Promise<GeneratedMatnQuestion[]> {
+  const leakingQuestions = questions
+    .map((question, index) => ({
+      index,
+      type: question.type,
+      question: question.question,
+      answer: question.answer,
+    }))
+    .filter((item) => revealsAnswer(item.question, item.answer));
+
+  if (leakingQuestions.length === 0) return questions;
+
+  const revisedQuestions = new Map<number, string>();
+  const remaining = deadline - Date.now();
+  if (remaining > 1_000) {
+    try {
+      const result = await generateObject({
+        model: google(modelName),
+        schema: zodSchema(questionRevisionSchema),
+        system: QUESTION_REVIEW_PROMPT,
+        prompt: `راجع وأعد صياغة السؤال المشار إليه في كل عنصر. حافظ على نوعه وهدفه، ولا تذكر الإجابة في نص السؤال.\n\nالأسئلة التي تحتاج مراجعة:\n${JSON.stringify(leakingQuestions)}`,
+        maxRetries: 1,
+        abortSignal: AbortSignal.timeout(remaining),
+      });
+      for (const revision of result.object.revisions) {
+        revisedQuestions.set(revision.index, revision.question.trim());
+      }
+    } catch (error) {
+      console.error("Generate Matn Question Review Error:", modelName, error);
+    }
+  }
+
+  return questions.map((question, index) => {
+    if (!revealsAnswer(question.question, question.answer)) return question;
+    const revision = revisedQuestions.get(index);
+    if (revision && !revealsAnswer(revision, question.answer)) {
+      return { ...question, question: revision };
+    }
+    return { ...question, question: fallbackQuestion(question.type) };
+  });
 }
 
 export async function POST(request: Request) {
@@ -206,6 +281,7 @@ export async function POST(request: Request) {
     // Hard budget under maxDuration=60 so exhausted attempts still return JSON.
     const deadline = Date.now() + 50_000;
     let generated: z.infer<typeof generationSchema> | null = null;
+    let generatedWithModel = modelChain[0];
 
     for (const modelName of modelChain) {
       const remaining = deadline - Date.now();
@@ -220,6 +296,7 @@ export async function POST(request: Request) {
           abortSignal: AbortSignal.timeout(remaining),
         });
         generated = result.object;
+        generatedWithModel = modelName;
         break;
       } catch (error) {
         console.error("Generate Matn Quizzes Error:", modelName, error);
@@ -233,19 +310,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const normalized = normalizeQuestions(generated.questions, questionCount, selectedTypes);
-    const questions = normalized.questions;
-    if (questions.length < questionCount) {
+    let questions = normalizeQuestions(generated.questions, questionCount, selectedTypes);
+    if (questions.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            normalized.rejectedAnswerLeaks > 0
-              ? "استُبعدت أسئلة لأن صياغتها كشفت الإجابة ولم يكتمل العدد المطلوب. أعد التوليد أو قلل عدد الأسئلة"
-              : "لم يتمكن النموذج من استخراج العدد المطلوب من الأسئلة الصالحة. حاول بنص مختلف",
-        },
+        { error: "لم يتمكن النموذج من استخراج أسئلة صالحة من هذا النص، حاول بنص مختلف" },
         { status: 502 },
       );
     }
+    questions = await reviewQuestions(questions, generatedWithModel, deadline);
 
     const missingTypes = selectedTypes.filter(
       (type) => !questions.some((question) => question.type === type),
