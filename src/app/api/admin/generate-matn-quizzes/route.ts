@@ -4,6 +4,7 @@ import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeArabicText } from "@/lib/text-normalization";
 
 // Structured generation of a full question set can exceed the default budget.
 export const maxDuration = 60;
@@ -54,16 +55,20 @@ const SYSTEM_PROMPT = `أنت "مولّد أسئلة التسميع" — تُخ�
 تحليل النص:
 - اقرأ المتن كاملًا واستخرج مقاطعه الأساسية ومفاهيمه وعباراته المفتاحية (شروط، أحكام، مصطلحات).
 - وزّع الأسئلة بالتساوي على الأنواع التي يحددها المشرف في الطلب، ولا تستخدم أي نوع خارج القائمة المحددة.
+- حقل question يظهر منفصلًا للطالب قبل الإجابة؛ يجب أن يختبر الحفظ أو الفهم ولا يحتوي الإجابة أو يقتبسها.
 
 نوع السؤال ودوره:
-1) reorder: عبارة قصيرة أو مقطع قصير من المتن يُبعثر كلماته ويُعاد ترتيبه. الإجابة = العبارة كاملة بترتيبها الصحيح.
-2) fill_blank: جملة من المتن تُحذف منها كلمات مفتاحية (مصطلح/شرط/حكم) ليكملها الطالب. الإجابة = الجملة كاملة بكل كلماتها الأصلية (لا تحذف منها شيئًا).
-3) mcq: سؤال اختيار من متعدد يختبر مفهومًا أو عبارة محددة من المتن. أضف 4 خيارات: خيار واحد صحيح هو نص الإجابة حرفيًا من المتن + 3 مشتتات دقيقة ومحكمة وفق مصطلحات الدراسات الإسلامية واللغة العربية، متقاربة في الطول والأسلوب ومختلفة في المعنى، لا تكرر نوع الخطأ نفسه في المشتتات، ولا تجعل أي مشتت صحيحًا أيضًا.
-4) write: سؤال إجابة قصيرة مباشر يطلب حفظ مقطع أساسي من المتن.
+1) reorder: التطبيق يبعثر كلمات answer تلقائيًا؛ اجعل question توجيهًا أو تلميحًا موضوعيًا قصيرًا فقط، ولا تنقل فيه كلمات المقطع.
+2) fill_blank: التطبيق يحذف كلمات من answer تلقائيًا؛ اجعل question تلميحًا قصيرًا عن الموضوع فقط، ولا تكتب الجملة كاملة أو نسخةً فيها فراغات.
+3) mcq: اطرح سؤالًا محايدًا عن المعنى أو الحكم. أضف 4 خيارات: الإجابة الصحيحة هي answer حرفيًا + 3 مشتتات معقولة، وضع الإجابة الصحيحة في الخيارات فقط، لا في question.
+4) write: اطلب كتابة المقطع عبر وصف معناه أو موضوعه، من دون اقتباس بدايته أو ذكر كلماته المفتاحية التي تكشفه.
 
 قواعد صارمة:
 - كل إجابة (answer) مأخوذة من النص المُعطى نفسه — لا تخترع ولا تلخّص ولا تغيّر صياغة المتن في الإجابة.
-- أسئلة fill_blank و reorder: الإجابة نص المتن حرفيًا (مع علامات ترقيم خفيفة فقط إن لزم).
+- answer هو النص المرجعي الكامل. لا تكرر answer في question، ولا تضع فيه بدايته أو جملةً مرادفةً تكشف النص المطلوب.
+- في أسئلة reorder و fill_blank، واجهة الطالب تعرض الكلمات المبعثرة أو الفراغات من answer تلقائيًا؛ لا تضع نص answer أو الكلمات المحذوفة في question.
+- قبل إخراج كل سؤال، قارن question مع answer. إذا احتوى question على answer كاملًا أو اقتبس أربع كلمات متتابعة أو أكثر منه، فأعد صياغة question كتلميح دلالي لا يكشف النص.
+- مثال: إذا كانت الإجابة «من حسن إسلام المرء تركه ما لا يعنيه»، فالسؤال «أكمل: من حسن إسلام المرء تركه...» مرفوض. لسؤال الكتابة استخدم تلميحًا مثل «اكتب الحديث الذي يوجّه المسلم إلى حسن اختيار ما يشغله».
 - اكتب نصوص الأسئلة بالعربية الفصحى البسيطة، وأعد العدد المطلوب من الأسئلة بالضبط (لا أكثر ولا أقل).
 - لا تتجاوز حدود النص المُعطى بأي سؤال.`;
 
@@ -72,6 +77,39 @@ function questionKey(type: string, question: string, answer: string): string {
   // Light normalization so whitespace/hamza variants don't duplicate rows.
   const norm = (value: string) => value.replace(/\s+/g, " ").trim();
   return `${type}|${norm(question)}|${norm(answer)}`;
+}
+
+/** Reject question wording that copies the answer or a revealing phrase from it. */
+function revealsAnswer(question: string, answer: string): boolean {
+  const normalizedQuestion = normalizeArabicText(question);
+  const normalizedAnswer = normalizeArabicText(answer);
+  if (!normalizedQuestion || !normalizedAnswer) return false;
+
+  if (normalizedAnswer.length >= 8 && normalizedQuestion.includes(normalizedAnswer)) return true;
+
+  const questionWords = normalizedQuestion.split(" ");
+  const answerWords = normalizedAnswer.split(" ");
+  if (answerWords.length < 4) return false;
+
+  for (let answerIndex = 0; answerIndex <= answerWords.length - 4; answerIndex += 1) {
+    for (let questionIndex = 0; questionIndex <= questionWords.length - 4; questionIndex += 1) {
+      let matchingWords = 0;
+      while (
+        answerWords[answerIndex + matchingWords] === questionWords[questionIndex + matchingWords]
+      ) {
+        matchingWords += 1;
+        if (matchingWords >= 4) return true;
+        if (
+          answerIndex + matchingWords >= answerWords.length ||
+          questionIndex + matchingWords >= questionWords.length
+        ) {
+          break;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -85,15 +123,20 @@ function normalizeQuestions(
   items: z.infer<typeof generatedQuestionSchema>[],
   count: number,
   selectedTypes: readonly z.infer<typeof matnQuizTypeSchema>[],
-): GeneratedMatnQuestion[] {
+): { questions: GeneratedMatnQuestion[]; rejectedAnswerLeaks: number } {
   const out: GeneratedMatnQuestion[] = [];
   const seen = new Set<string>();
+  let rejectedAnswerLeaks = 0;
   for (const item of items) {
     if (!selectedTypes.includes(item.type)) continue;
 
     const question = item.question.trim();
     const answer = item.answer.trim();
     if (question.length < 3 || answer.length === 0) continue;
+    if (revealsAnswer(question, answer)) {
+      rejectedAnswerLeaks += 1;
+      continue;
+    }
 
     let type = item.type;
     let options: string[] | undefined;
@@ -121,7 +164,7 @@ function normalizeQuestions(
     out.push({ question, type, answer, options });
     if (out.length >= count) break;
   }
-  return out;
+  return { questions: out, rejectedAnswerLeaks };
 }
 
 export async function POST(request: Request) {
@@ -190,10 +233,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const questions = normalizeQuestions(generated.questions, questionCount, selectedTypes);
-    if (questions.length === 0) {
+    const normalized = normalizeQuestions(generated.questions, questionCount, selectedTypes);
+    const questions = normalized.questions;
+    if (questions.length < questionCount) {
       return NextResponse.json(
-        { error: "لم يتمكن النموذج من استخراج أسئلة صالحة من هذا النص، حاول بنص مختلف" },
+        {
+          error:
+            normalized.rejectedAnswerLeaks > 0
+              ? "استُبعدت أسئلة لأن صياغتها كشفت الإجابة ولم يكتمل العدد المطلوب. أعد التوليد أو قلل عدد الأسئلة"
+              : "لم يتمكن النموذج من استخراج العدد المطلوب من الأسئلة الصالحة. حاول بنص مختلف",
+        },
         { status: 502 },
       );
     }
