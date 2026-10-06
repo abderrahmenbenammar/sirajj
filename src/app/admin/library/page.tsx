@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import type { FormEvent } from "react";
 import { ImagePlus, LibraryBig } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { uploadFileDirect } from "@/lib/admin-upload";
 import PageHeader from "@/components/admin/PageHeader";
-import { ListSkeleton } from "@/components/admin/AdminSkeleton";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
 import { COVER_TYPES, MAX_COVER_SIZE, type LibraryItem } from "@/components/admin/types";
 
@@ -39,7 +39,8 @@ export default function AdminLibraryPage() {
   }, []);
 
   useEffect(() => {
-    void loadLibrary();
+    const timeoutId = window.setTimeout(() => void loadLibrary(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadLibrary]);
 
   const submitLibrary = async (event: FormEvent) => {
@@ -165,8 +166,8 @@ export default function AdminLibraryPage() {
           <p className="text-sm font-medium text-gray-900 dark:text-white">{t("رفع صورة الغلاف", "Upload cover image")}</p>
           {libraryCoverPreview ? (
             <div className="flex items-start gap-3">
-              <div className="w-20 aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
-                <img src={libraryCoverPreview} alt={t("معاينة الغلاف", "Cover preview")} className="w-full h-full object-cover" />
+              <div className="relative w-20 aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
+                <Image src={libraryCoverPreview} alt={t("معاينة الغلاف", "Cover preview")} fill unoptimized sizes="80px" className="object-cover" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs px-2.5 py-1.5 rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 w-fit">
@@ -222,8 +223,8 @@ export default function AdminLibraryPage() {
                     </select>
                     <div className="flex items-center gap-2">
                       {editCover.preview || (libraryDraft.coverImageUrl && !editCover.removeCover) ? (
-                        <div className="w-14 aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
-                          <img src={editCover.preview ?? libraryDraft.coverImageUrl ?? ""} alt={t("الغلاف الحالي", "Current cover")} className="w-full h-full object-cover" />
+                        <div className="relative w-14 aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
+                          <Image src={editCover.preview ?? libraryDraft.coverImageUrl ?? ""} alt={t("الغلاف الحالي", "Current cover")} fill unoptimized sizes="56px" className="object-cover" />
                         </div>
                       ) : (
                         <div className="w-14 aspect-[3/4] rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 shrink-0">

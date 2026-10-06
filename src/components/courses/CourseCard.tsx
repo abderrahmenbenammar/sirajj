@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useLang } from "@/lib/lang-context";
 import { Clock, User } from "lucide-react";
 import type { ApiCourse } from "@/lib/courses-api";
@@ -18,10 +19,13 @@ export default function CourseCard({ course, locked = false }: { course: ApiCour
         {/* Image */}
         <div className="relative aspect-[16/10] bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30 overflow-hidden">
           {hasImage ? (
-            <img
-              src={course.image}
+            <Image
+              src={course.image ?? ""}
               alt={t(course.title, course.titleEn)}
-              className="absolute inset-0 w-full h-full object-cover"
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="object-cover"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (

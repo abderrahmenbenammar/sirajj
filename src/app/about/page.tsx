@@ -1,7 +1,7 @@
 "use client";
 
 import { useLang } from "@/lib/lang-context";
-import { Target, BookOpen, Users, Globe, Shield, Heart } from "lucide-react";
+import { Target, BookOpen, Users, Shield, Heart } from "lucide-react";
 
 export default function AboutPage() {
   const { t } = useLang();

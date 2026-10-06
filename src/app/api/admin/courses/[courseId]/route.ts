@@ -9,10 +9,6 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 type Context = { params: Promise<{ courseId: string }> };
 
-function asText(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
 // For PATCH only: distinguish "absent" (don't touch) from "present but empty"
 // (clear the nullable field). Returns undefined when the key is missing.
 function patchField(body: Record<string, unknown>, key: string): string | null | undefined {

@@ -3,6 +3,7 @@
 import { useLang } from "@/lib/lang-context";
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, ArrowRight, Mail, CheckCircle } from "lucide-react";
 
 export default function ForgotPasswordPage() {
@@ -34,21 +35,21 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-4">
-            <img
+            <Image
               src="/siraj-logo.png"
               alt={t("سراج", "SIRAJ")}
               width={1254}
               height={1254}
               className="h-12 sm:h-14 w-auto object-contain shrink-0"
             />
-            <img
+            <Image
               src="/siraj-wordmark.png"
               alt=""
               width={2048}
               height={2048}
               className="h-16 sm:h-[4.5rem] aspect-[1284/742] w-auto object-cover object-center shrink-0"
             />
-            <img
+            <Image
               src="/siraj-logo.png"
               alt=""
               width={1254}

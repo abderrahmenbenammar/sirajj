@@ -8,12 +8,13 @@ import type { NextRequest } from "next/server";
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isCourseContent = /^\/courses\/[^/]+(?:\/lessons\/[^/]+)?$/.test(pathname);
+  const isMutoonDashboard = pathname === "/dashboard/mutoon" || pathname.startsWith("/dashboard/mutoon/");
   const isAdmin = pathname.startsWith("/admin");
   const session = await auth();
   const isAuthenticated = Boolean(session?.user);
   const isAdminUser = session?.user?.role === "ADMIN";
 
-  if ((isCourseContent && !isAuthenticated) || (isAdmin && !isAdminUser)) {
+  if (((isCourseContent || isMutoonDashboard) && !isAuthenticated) || (isAdmin && !isAdminUser)) {
     return NextResponse.redirect(new URL(isAdmin ? "/auth/login?admin=1" : "/auth/login", request.url));
   }
 
@@ -21,5 +22,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/courses/:path*", "/admin/:path*"],
+  matcher: ["/courses/:path*", "/admin/:path*", "/dashboard/mutoon/:path*"],
 };

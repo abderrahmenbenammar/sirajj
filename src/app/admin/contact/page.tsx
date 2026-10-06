@@ -30,7 +30,8 @@ export default function AdminContactPage() {
   }, []);
 
   useEffect(() => {
-    void loadContactMessages();
+    const timeoutId = window.setTimeout(() => void loadContactMessages(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadContactMessages]);
 
   const markMessage = async (messageId: string, status: string) => {

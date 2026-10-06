@@ -33,7 +33,8 @@ export default function AdminFaqsPage() {
   }, []);
 
   useEffect(() => {
-    void loadFaqsAdmin();
+    const timeoutId = window.setTimeout(() => void loadFaqsAdmin(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadFaqsAdmin]);
 
   const submitFaq = async (event: FormEvent) => {

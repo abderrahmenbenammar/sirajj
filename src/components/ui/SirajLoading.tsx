@@ -1,6 +1,7 @@
 "use client";
 
 import { useLang } from "@/lib/lang-context";
+import Image from "next/image";
 
 export default function SirajLoading() {
   const { lang } = useLang();
@@ -13,21 +14,21 @@ export default function SirajLoading() {
       className="min-h-[50vh] flex flex-col items-center justify-center gap-5 px-4 py-16"
     >
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <img
+        <Image
           src="/siraj-logo.png"
           alt=""
           width={1254}
           height={1254}
           className="h-9 sm:h-11 w-auto object-contain shrink-0"
         />
-        <img
+        <Image
           src="/siraj-wordmark.png"
           alt=""
           width={2048}
           height={2048}
           className="h-12 sm:h-14 aspect-[1284/742] w-auto object-cover object-center shrink-0"
         />
-        <img
+        <Image
           src="/siraj-logo.png"
           alt=""
           width={1254}

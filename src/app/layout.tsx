@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Naskh_Arabic, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import Providers from "@/components/layout/Providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import PwaInstallPrompt from "@/components/pwa/PwaInstallPrompt";
@@ -8,16 +8,20 @@ import Footer from "@/components/layout/Footer";
 import PushNativeBootstrap from "@/components/PushNativeBootstrap";
 import "./globals.css";
 
-const notoNaskhArabic = Noto_Naskh_Arabic({
+const notoNaskhArabic = localFont({
+  src: [
+    {
+      path: "../lib/certificates/fonts/NotoNaskhArabic-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../lib/certificates/fonts/NotoNaskhArabic-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-noto-naskh",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
   display: "swap",
 });
 
@@ -64,9 +68,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       suppressHydrationWarning
-      className={`${notoNaskhArabic.variable} ${inter.variable}`}
+      className={notoNaskhArabic.variable}
     >
-      <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-[var(--font-noto-naskh),var(--font-inter),sans-serif]">
+      <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-[var(--font-noto-naskh),system-ui,sans-serif]">
         <ServiceWorkerRegister />
         <PwaInstallPrompt />
         <Providers>

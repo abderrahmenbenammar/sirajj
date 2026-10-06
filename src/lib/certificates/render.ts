@@ -6,7 +6,6 @@ import {
   CERT_WIDTH,
   CERT_HEIGHT,
   CERT_ZONES,
-  CERT_INK,
   gradeFor,
   formatScore,
   formatDurationDetailed,
@@ -20,7 +19,6 @@ import {
   COLOR_DATE,
   COLOR_DURATION,
   COLOR_CERT_NUMBER,
-  COLOR_VERIFICATION_LABEL,
   COLOR_QR_FOREGROUND,
   COLOR_QR_BACKGROUND,
 } from "./layout";
@@ -59,18 +57,6 @@ async function loadTemplate() {
 
 function fontFor(weight: 400 | 700): string {
   return weight === 700 ? FONT_BOLD : FONT_REGULAR;
-}
-
-function getColorForZone(zone: CertTextZone): string {
-  // Map zones to their specific colors
-  if (zone === CERT_ZONES.studentName) return COLOR_STUDENT_NAME;
-  if (zone === CERT_ZONES.courseName) return COLOR_COURSE_NAME;
-  if (zone === CERT_ZONES.certNumber) return COLOR_CERT_NUMBER;
-  // Values array zones: scoreText, gradeText, dateText, durationText
-  // We need to determine which value zone this is
-  // The values array in CERT_ZONES has: scoreText, gradeText, dateText, durationText
-  // We can check by position
-  return ""; // Will be overridden per-field in renderCertificateImage
 }
 
 // Invisible Unicode bidi controls (RLM/LRM marks that Node's ar-locale

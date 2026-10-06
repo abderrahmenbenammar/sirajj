@@ -87,7 +87,8 @@ export default function AdminCourseEditorPage() {
   }, []);
 
   useEffect(() => {
-    void loadAll();
+    const timeoutId = window.setTimeout(() => void loadAll(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadAll]);
 
   const course = courses.find((c) => c.id === courseId) ?? null;

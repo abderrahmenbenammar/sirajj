@@ -98,11 +98,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem("siraj-admin-sidebar") === "collapsed") setCollapsed(true);
-    } catch {
-      /* storage unavailable — keep expanded */
-    }
+    const timeoutId = window.setTimeout(() => {
+      try {
+        if (localStorage.getItem("siraj-admin-sidebar") === "collapsed") setCollapsed(true);
+      } catch {
+        /* storage unavailable — keep expanded */
+      }
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const toggleCollapsed = () => {
@@ -123,7 +126,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }, [status, session, router]);
 
   useEffect(() => {
-    setMobileOpen(false);
+    const timeoutId = window.setTimeout(() => setMobileOpen(false), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [pathname]);
 
   if (status === "loading") {

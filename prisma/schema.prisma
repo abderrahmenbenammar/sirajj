@@ -42,6 +42,7 @@ model User {
   deviceTokens      DevicePushToken[]
   sessions          UserSession[]
   resetTokens       PasswordResetToken[]
+  apiRateLimits     ApiRateLimit[]
 
   @@map("users")
 }
@@ -525,6 +526,19 @@ model PasswordResetToken {
 
   @@index([userId], map: "idx_reset_tokens_user_id")
   @@map("password_reset_tokens")
+}
+
+// Durable fixed-window limits for authenticated, cost-bearing API routes.
+model ApiRateLimit {
+  userId       String   @map("user_id") @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route        String   @db.VarChar(64)
+  windowStart  DateTime @map("window_start") @db.Timestamptz(6)
+  requestCount Int      @default(0) @map("request_count")
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@id([userId, route], map: "api_rate_limits_pkey")
+  @@map("api_rate_limits")
 }
 
 model NewsletterSubscriber {

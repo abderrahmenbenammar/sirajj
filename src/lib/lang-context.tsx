@@ -23,9 +23,12 @@ export function LangProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("siraj-lang") as Lang | null;
-    if (saved) setLang(saved);
+    const timeoutId = window.setTimeout(() => {
+      setMounted(true);
+      const saved = localStorage.getItem("siraj-lang") as Lang | null;
+      if (saved) setLang(saved);
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {

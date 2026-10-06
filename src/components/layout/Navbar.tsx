@@ -1,7 +1,7 @@
 "use client";
 
-import { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import { useTheme } from "@/lib/theme-context";
@@ -75,21 +75,21 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 lg:h-18">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-1 sm:gap-1.5 shrink-0" aria-label={t("سراج", "SIRAJ")}>
-              <img
+              <Image
                 src="/siraj-logo.png"
                 alt={t("سراج", "SIRAJ")}
                 width={1254}
                 height={1254}
                 className="h-7 sm:h-9 min-[1200px]:h-10 w-auto object-contain shrink-0"
               />
-              <img
+              <Image
                 src="/siraj-wordmark.png"
                 alt=""
                 width={2048}
                 height={2048}
                 className="h-10 sm:h-12 min-[1200px]:h-14 aspect-[1284/742] w-auto object-cover object-center shrink-0"
               />
-              <img
+              <Image
                 src="/siraj-logo.png"
                 alt=""
                 width={1254}

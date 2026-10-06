@@ -7,6 +7,7 @@
  * (mipmap-anydpi-v26/ic_launcher*.xml) and the background color
  * (#FFFFFF, values/ic_launcher_background.xml) already exist and stay as-is.
  * Re-run after changing the source, then: npx cap sync android && gradlew assembleDebug. */
+/* eslint-disable @typescript-eslint/no-require-imports -- This utility runs as a Node.js CommonJS script. */
 const fs = require("fs");
 const path = require("path");
 const { createCanvas, loadImage } = require("@napi-rs/canvas");
@@ -95,7 +96,7 @@ async function main() {
     });
 
     // Adaptive foreground (transparent; background = @color/ic_launcher_background).
-    await writePng(path.join(dir, "ic_launcher_foreground.png"), foreground, foreground, (ctx, w, h) => {
+    await writePng(path.join(dir, "ic_launcher_foreground.png"), foreground, foreground, (ctx, w) => {
       drawCentered(ctx, img, w, FOREGROUND_LOGO);
     });
   }

@@ -19,13 +19,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("siraj-theme") as Theme | null;
-    if (saved) {
-      setTheme(saved);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
-    }
+    const timeoutId = window.setTimeout(() => {
+      setMounted(true);
+      const saved = localStorage.getItem("siraj-theme") as Theme | null;
+      if (saved) {
+        setTheme(saved);
+      } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        setTheme("dark");
+      }
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {

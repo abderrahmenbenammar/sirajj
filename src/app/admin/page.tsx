@@ -66,7 +66,8 @@ export default function AdminDashboardPage() {
   }, [t, notify]);
 
   useEffect(() => {
-    void load();
+    const timeoutId = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [load]);
 
   const adminName = (session?.user?.name ?? "").split(" ").slice(0, 2).join(" ");

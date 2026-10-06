@@ -30,7 +30,8 @@ export default function AdminNewsletterPage() {
   }, []);
 
   useEffect(() => {
-    void loadNewsletterSubs();
+    const timeoutId = window.setTimeout(() => void loadNewsletterSubs(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadNewsletterSubs]);
 
   return (

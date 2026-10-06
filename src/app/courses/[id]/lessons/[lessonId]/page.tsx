@@ -48,9 +48,11 @@ export default function LessonPage({
 
   useEffect(() => {
     let active = true;
-    setGateStatus("loading");
-    setLessonData(null);
-    setExams([]);
+    const resetTimeoutId = window.setTimeout(() => {
+      setGateStatus("loading");
+      setLessonData(null);
+      setExams([]);
+    }, 0);
 
     fetchCourse(id).then((data) => {
       if (!active) return;
@@ -89,6 +91,7 @@ export default function LessonPage({
 
     return () => {
       active = false;
+      window.clearTimeout(resetTimeoutId);
     };
   }, [id, lessonId, isAuthenticated]);
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
-import { User, Mail, Calendar, BookOpen, Award, ArrowLeft, ArrowRight } from "lucide-react";
+import { User, Mail, Calendar, BookOpen, Award, ArrowLeft } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 interface OverviewCourse {

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { generateObject, zodSchema } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { consumeApiRateLimit } from "@/lib/api-rate-limit";
 import { normalizeArabicText } from "@/lib/text-normalization";
 
 // AI grading can take longer than the default serverless budget (10s).
@@ -9,6 +12,7 @@ export const maxDuration = 30;
 
 const PASS_THRESHOLD = 85;
 const MAX_TEXT_LENGTH = 2000;
+const MAX_AI_GRADES_PER_HOUR = 30;
 
 const gradeResultSchema = z.object({
   isPassed: z
@@ -71,6 +75,20 @@ const SYSTEM_PROMPT = `أنت "مُحفِّظ متون" عادل ودقيق. ق�
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "يجب تسجيل الدخول لاستخدام التصحيح" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true },
+    });
+    if (user?.status !== "ACTIVE") {
+      return NextResponse.json({ error: "الحساب غير نشط" }, { status: 403 });
+    }
+
     const body = await request.json().catch(() => null);
     const studentAnswer = typeof body?.studentAnswer === "string" ? body.studentAnswer : "";
     const correctAnswer = typeof body?.correctAnswer === "string" ? body.correctAnswer : "";
@@ -110,6 +128,21 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "خدمة التصحيح غير مهيأة حاليًا" },
         { status: 503 },
+      );
+    }
+
+    const rateLimit = await consumeApiRateLimit({
+      userId,
+      route: "grade-matn",
+      limit: MAX_AI_GRADES_PER_HOUR,
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "تجاوزت الحد المؤقت للتصحيح. حاول مجددًا بعد قليل" },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
+        },
       );
     }
 

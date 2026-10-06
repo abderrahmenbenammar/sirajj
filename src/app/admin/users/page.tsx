@@ -35,7 +35,8 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    void loadSubscribers();
+    const timeoutId = window.setTimeout(() => void loadSubscribers(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadSubscribers]);
 
   const showSubscriberDetails = async (subscriberId: string) => {

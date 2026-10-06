@@ -25,7 +25,10 @@ function CoursesContent() {
 
   useEffect(() => {
     const fromUrl = searchParams.get("path");
-    if (fromUrl && ["all", ...COURSE_PATHS].includes(fromUrl)) setPath(fromUrl);
+    if (fromUrl && ["all", ...COURSE_PATHS].includes(fromUrl)) {
+      const timeoutId = window.setTimeout(() => setPath(fromUrl), 0);
+      return () => window.clearTimeout(timeoutId);
+    }
   }, [searchParams]);
 
   useEffect(() => {

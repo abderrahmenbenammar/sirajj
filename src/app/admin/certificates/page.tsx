@@ -31,7 +31,8 @@ export default function AdminCertificatesPage() {
   }, [t, notify]);
 
   useEffect(() => {
-    void loadCertificates();
+    const timeoutId = window.setTimeout(() => void loadCertificates(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadCertificates]);
 
   return (

@@ -3,7 +3,7 @@
 import { useLang } from "@/lib/lang-context";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Mail, Phone, MapPin, Send, MessageCircle, HelpCircle, ExternalLink } from "lucide-react";
+import { Mail, Phone, MapPin, Send, HelpCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
 

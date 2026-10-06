@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { resolveCourseVideoDurations, diagnoseCourseDuration } from "@/lib/certificates/videos";
+import { resolveCourseVideoDurations } from "@/lib/certificates/videos";
 import { formatDurationDetailed } from "@/lib/certificates/layout";
 
 type Context = { params: Promise<{ courseId: string }> };

@@ -63,7 +63,8 @@ export default function ExamRunner({ examId, initialDetail, embedded = false, co
 
   useEffect(() => {
     if (initialDetail) return;
-    loadDetail();
+    const timeoutId = window.setTimeout(() => void loadDetail(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [initialDetail, loadDetail]);
 
   const begin = async () => {

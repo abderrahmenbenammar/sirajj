@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { FormEvent } from "react";
 import { BookPlus, Eye, ImagePlus, Plus, Trash2 } from "lucide-react";
@@ -46,7 +47,8 @@ export default function AdminCoursesPage() {
   }, []);
 
   useEffect(() => {
-    void loadCourses();
+    const timeoutId = window.setTimeout(() => void loadCourses(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadCourses]);
 
   const submitCourse = async (event: FormEvent) => {
@@ -154,7 +156,7 @@ export default function AdminCoursesPage() {
               {visible.map((course) => (
                 <div key={course.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                   {course.coverImageUrl ? (
-                    <img src={course.coverImageUrl} alt="" className="w-12 h-16 rounded-lg object-cover shrink-0 border border-gray-200 dark:border-gray-700" />
+                    <Image src={course.coverImageUrl} alt="" width={48} height={64} unoptimized className="w-12 h-16 rounded-lg object-cover shrink-0 border border-gray-200 dark:border-gray-700" />
                   ) : (
                     <span className="w-12 h-16 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 text-gray-400">
                       <BookPlus size={18} />

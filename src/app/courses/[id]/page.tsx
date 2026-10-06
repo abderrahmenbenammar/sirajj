@@ -1,6 +1,7 @@
 "use client";
 
 import { use } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
@@ -9,7 +10,7 @@ import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import { type ExamListItem } from "@/lib/exams-api";
 import { fetchCourseCertificate, issueCertificate, type CourseCertificateState } from "@/lib/certificates-api";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock } from "lucide-react";
+import { Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock } from "lucide-react";
 import { libraryTypeLabel } from "@/lib/library-types";
 import { formatDurationDetailed } from "@/lib/certificates/layout";
 import SirajLoading from "@/components/ui/SirajLoading";
@@ -27,7 +28,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [loadingCourse, setLoadingCourse] = useState(true);
 
   useEffect(() => {
-    setLoadingCourse(true);
+    const timeoutId = window.setTimeout(() => {
+      setLoadingCourse(true);
+      if (!isAuthenticated) setCertState(null);
+    }, 0);
     fetchCourse(id).then((data) => {
       setCourse(data);
       setLoadingCourse(false);
@@ -40,9 +44,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       fetchCourseCertificate(id)
         .then(setCertState)
         .catch(() => undefined);
-    } else {
-      setCertState(null);
     }
+    return () => window.clearTimeout(timeoutId);
   }, [id, isAuthenticated]);
 
   const requestCertificate = async () => {
@@ -107,10 +110,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
         <div className="relative w-full h-48 sm:h-auto sm:aspect-[16/5] overflow-hidden rounded-2xl mb-8 border border-gray-200/60 dark:border-gray-800/60 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30">
           {course.image ? (
-            <img
-              src={course.image}
+            <Image
+              src={course.image ?? ""}
               alt={t(course.title, course.titleEn)}
-              className="absolute inset-0 w-full h-full object-cover"
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 100vw, 1200px"
+              className="object-cover"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
           ) : null}

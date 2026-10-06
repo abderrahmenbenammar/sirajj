@@ -53,7 +53,8 @@ export default function AdminExamsPage() {
   }, []);
 
   useEffect(() => {
-    void loadAll();
+    const timeoutId = window.setTimeout(() => void loadAll(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadAll]);
 
   const loadExams = async () => {

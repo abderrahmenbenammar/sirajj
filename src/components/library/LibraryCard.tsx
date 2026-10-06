@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useLang } from "@/lib/lang-context";
 import Link from "next/link";
 import { BookOpen, FileText, Search, Mic } from "lucide-react";
@@ -37,12 +38,14 @@ export default function LibraryCard({ item }: { item: ApiLibraryItem }) {
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800/60 overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-black/20 hover:-translate-y-0.5">
         <div className={`relative ${cover ? "" : `bg-gradient-to-br ${getColor()} flex items-center justify-center`} ${type === "book" ? "aspect-[3/4]" : "h-32"}`}>
           {cover ? (
-            <img
+            <Image
               src={item.coverImageUrl ?? ""}
               alt={t(item.titleAr, item.titleEn)}
-              loading="lazy"
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 33vw"
               onError={() => setBroken(true)}
-              className="w-full h-full object-cover"
+              className="object-cover"
             />
           ) : (
             <div className="opacity-40">{getIcon()}</div>

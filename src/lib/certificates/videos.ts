@@ -290,8 +290,6 @@ export async function resolveCourseVideoDurations(
   });
   const hasKey = Boolean(process.env.YOUTUBE_API_KEY ?? "");
   const lessonCount = lessons.length;
-  let total = 0;
-  let known = 0;
   const out: Array<{
     id: string;
     titleAr: string;
@@ -303,9 +301,6 @@ export async function resolveCourseVideoDurations(
 
   // Collect all YouTube video IDs that need fetching, grouped by lesson
   const idsToFetch: Map<string, { lessonId: string; videoId: string }[]> = new Map();
-  // Track which lessons have which IDs (some lessons may share the same video)
-  const lessonIdsByVideoId: Map<string, Set<string>> = new Map();
-
   for (const lesson of lessons) {
     const url = (lesson.videoUrl ?? "").trim();
     if (!url) {
@@ -388,7 +383,7 @@ export async function resolveCourseVideoDurations(
   if (!forceRefresh && hasKey) {
     // Only fetch IDs that don't have cache entries
     const idsWithoutCache: string[] = [];
-    for (const [vid, entries] of idsToFetch) {
+    for (const [vid] of idsToFetch) {
       const cached = await prisma.youtubeVideoDuration.findUnique({ where: { videoId: vid } });
       if (!cached) {
         idsWithoutCache.push(vid);
@@ -470,7 +465,6 @@ export async function resolveCourseVideoDurations(
     where: { courseId },
     select: { id: true, titleAr: true, videoUrl: true, videoDurationSeconds: true },
   });
-  const finalDiagnosis: LessonDurationDiagnosis[] = [];
   let totalSeconds2 = 0;
   let knownCount2 = 0;
 

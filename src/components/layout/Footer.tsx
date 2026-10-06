@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useLang } from "@/lib/lang-context";
 import { useState } from "react";
 
@@ -70,21 +71,21 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <Link href="/" className="inline-flex items-center gap-1 sm:gap-1.5 mb-4" aria-label={t("سراج", "SIRAJ")}>
-              <img
+              <Image
                 src="/siraj-logo.png"
                 alt={t("سراج", "SIRAJ")}
                 width={1254}
                 height={1254}
                 className="h-7 sm:h-9 w-auto object-contain shrink-0"
               />
-              <img
+              <Image
                 src="/siraj-wordmark.png"
                 alt=""
                 width={2048}
                 height={2048}
                 className="h-9 sm:h-12 aspect-[1284/742] w-auto object-cover object-center shrink-0"
               />
-              <img
+              <Image
                 src="/siraj-logo.png"
                 alt=""
                 width={1254}

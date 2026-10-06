@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { use, useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
 import { fetchCertificate, type CertificateDetail } from "@/lib/certificates-api";
@@ -43,9 +44,12 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
     <div className="py-12 sm:py-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden">
-          <img
+          <Image
             src={`/api/certificates/${certificate.id}/image`}
             alt={t("صورة الشهادة", "Certificate image")}
+            width={2464}
+            height={1728}
+            unoptimized
             className="w-full h-auto block"
           />
           <div className="relative bg-gradient-to-br from-emerald-50 via-white to-emerald-50 dark:from-emerald-950/20 dark:via-gray-900 dark:to-emerald-950/20 p-8 sm:p-12 text-center border-b border-emerald-100 dark:border-emerald-900/30">
