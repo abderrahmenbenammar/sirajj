@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 export const maxDuration = 60;
 
 const MAX_FULL_TEXT = 20_000;
+const MATN_QUIZ_TYPE_VALUES = ["write", "reorder", "fill_blank", "mcq"] as const;
+const matnQuizTypeSchema = z.enum(MATN_QUIZ_TYPE_VALUES);
 
 const inputSchema = z.object({
   matnId: z.string().trim().min(1, "المتن مطلوب"),
@@ -18,11 +20,26 @@ const inputSchema = z.object({
     .min(50, "النص قصير جدًا (50 حرفًا على الأقل)")
     .max(MAX_FULL_TEXT, "النص طويل جدًا (الحد 20000 حرف)"),
   questionCount: z.number().int().min(3).max(16).optional().default(8),
+  selectedTypes: z
+    .array(matnQuizTypeSchema)
+    .min(1, "اختر نوعًا واحدًا على الأقل")
+    .max(MATN_QUIZ_TYPE_VALUES.length)
+    .refine((types) => new Set(types).size === types.length, "لا تكرر أنواع الأسئلة")
+    .optional()
+    .default([...MATN_QUIZ_TYPE_VALUES]),
+}).superRefine(({ questionCount, selectedTypes }, context) => {
+  if (questionCount < selectedTypes.length) {
+    context.addIssue({
+      code: "custom",
+      path: ["questionCount"],
+      message: "عدد الأسئلة يجب ألا يقل عن عدد الأنواع المحددة",
+    });
+  }
 });
 
 const generatedQuestionSchema = z.object({
   question: z.string().min(3).max(500),
-  type: z.enum(["write", "reorder", "fill_blank", "mcq"]),
+  type: matnQuizTypeSchema,
   answer: z.string().min(1).max(4000),
   options: z.array(z.string().min(1).max(1000)).max(8).optional(),
 });
@@ -36,7 +53,7 @@ const SYSTEM_PROMPT = `أنت "مولّد أسئلة التسميع" — تُخ�
 
 تحليل النص:
 - اقرأ المتن كاملًا واستخرج مقاطعه الأساسية ومفاهيمه وعباراته المفتاحية (شروط، أحكام، مصطلحات).
-- وزّن الأسئلة بالتساوي بين الأنواع الأربعة قدر الإمكان:
+- وزّع الأسئلة بالتساوي على الأنواع التي يحددها المشرف في الطلب، ولا تستخدم أي نوع خارج القائمة المحددة.
 
 نوع السؤال ودوره:
 1) reorder: عبارة قصيرة أو مقطع قصير من المتن يُبعثر كلماته ويُعاد ترتيبه. الإجابة = العبارة كاملة بترتيبها الصحيح.
@@ -67,10 +84,13 @@ function questionKey(type: string, question: string, answer: string): string {
 function normalizeQuestions(
   items: z.infer<typeof generatedQuestionSchema>[],
   count: number,
+  selectedTypes: readonly z.infer<typeof matnQuizTypeSchema>[],
 ): GeneratedMatnQuestion[] {
   const out: GeneratedMatnQuestion[] = [];
   const seen = new Set<string>();
   for (const item of items) {
+    if (!selectedTypes.includes(item.type)) continue;
+
     const question = item.question.trim();
     const answer = item.answer.trim();
     if (question.length < 3 || answer.length === 0) continue;
@@ -87,6 +107,7 @@ function normalizeQuestions(
       }
       if (!opts.includes(answer)) opts.unshift(answer);
       if (opts.length < 3) {
+        if (!selectedTypes.includes("write")) continue;
         type = "write"; // not enough distractors -> free writing is honest
         options = undefined;
       } else {
@@ -116,7 +137,7 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const { matnId, fullText, questionCount } = parsed.data;
+    const { matnId, fullText, questionCount, selectedTypes } = parsed.data;
 
     const matn = await prisma.matn.findUnique({
       where: { id: matnId },
@@ -151,7 +172,7 @@ export async function POST(request: Request) {
           model: google(modelName),
           schema: zodSchema(generationSchema),
           system: SYSTEM_PROMPT,
-          prompt: `عنوان المتن: ${matn.title}\nعدد الأسئلة المطلوب: ${questionCount}\n\nنص المتن:\n${fullText}\n\nولّد ${questionCount} أسئلة متنوعة (write / reorder / fill_blank / mcq) متوازنة من هذا المتن.`,
+          prompt: `عنوان المتن: ${matn.title}\nعدد الأسئلة المطلوب: ${questionCount}\nالأنواع المحددة فقط: ${selectedTypes.join(" / ")}\n\nنص المتن:\n${fullText}\n\nولّد ${questionCount} سؤالًا من هذا المتن باستخدام الأنواع المحددة فقط، ووزّعها بينها بالتساوي. يجب أن يظهر كل نوع محدد مرة واحدة على الأقل.`,
           maxRetries: modelName === modelChain[0] ? 3 : 1,
           abortSignal: AbortSignal.timeout(remaining),
         });
@@ -169,10 +190,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const questions = normalizeQuestions(generated.questions, questionCount);
+    const questions = normalizeQuestions(generated.questions, questionCount, selectedTypes);
     if (questions.length === 0) {
       return NextResponse.json(
         { error: "لم يتمكن النموذج من استخراج أسئلة صالحة من هذا النص، حاول بنص مختلف" },
+        { status: 502 },
+      );
+    }
+
+    const missingTypes = selectedTypes.filter(
+      (type) => !questions.some((question) => question.type === type),
+    );
+    if (missingTypes.length > 0) {
+      return NextResponse.json(
+        { error: "لم ينشئ النموذج سؤالًا لكل الأنواع المحددة. قلّل الأنواع أو حاول مجددًا" },
         { status: 502 },
       );
     }

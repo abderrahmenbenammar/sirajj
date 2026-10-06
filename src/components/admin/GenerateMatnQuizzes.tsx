@@ -4,7 +4,12 @@ import { useState, useTransition } from "react";
 import { Loader2, Save, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
-import { isMatnQuizType, optionsToText, parseOptionsText } from "@/components/admin/QuizTypeFields";
+import {
+  isMatnQuizType,
+  MATN_QUIZ_TYPES,
+  optionsToText,
+  parseOptionsText,
+} from "@/components/admin/QuizTypeFields";
 import { saveMatnQuizzes } from "@/actions/matn-actions";
 import type { MatnQuizType } from "@/actions/matn-actions";
 
@@ -18,6 +23,12 @@ type DraftQuestion = {
 
 const COUNT_OPTIONS = [4, 6, 8, 12, 16];
 const MIN_TEXT_LENGTH = 50;
+const TYPE_OPTIONS: { value: MatnQuizType; ar: string; en: string }[] = [
+  { value: "write", ar: "كتابة حرة", en: "Free writing" },
+  { value: "reorder", ar: "ترتيب الكلمات", en: "Word reorder" },
+  { value: "fill_blank", ar: "إكمال الفراغات", en: "Fill in the blanks" },
+  { value: "mcq", ar: "اختيار من متعدد", en: "Multiple choice" },
+];
 
 type Mode = "generate" | "save" | null;
 
@@ -32,19 +43,20 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
   const [open, setOpen] = useState(false);
   const [fullText, setFullText] = useState(initialText ?? "");
   const [count, setCount] = useState(8);
+  const [selectedTypes, setSelectedTypes] = useState<MatnQuizType[]>([...MATN_QUIZ_TYPES]);
   const [drafts, setDrafts] = useState<DraftQuestion[]>([]);
   const [mode, setMode] = useState<Mode>(null);
   const [isPending, startTransition] = useTransition();
 
   const generate = () => {
-    if (fullText.trim().length < MIN_TEXT_LENGTH || isPending) return;
+    if (fullText.trim().length < MIN_TEXT_LENGTH || selectedTypes.length === 0 || isPending) return;
     setMode("generate");
     startTransition(async () => {
       try {
         const res = await fetch("/api/admin/generate-matn-quizzes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ matnId, fullText, questionCount: count }),
+          body: JSON.stringify({ matnId, fullText, questionCount: count, selectedTypes }),
           cache: "no-store",
         });
         const data = await res.json().catch(() => null);
@@ -176,6 +188,50 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
             className="admin-input"
           />
 
+          <fieldset disabled={isPending} className="mt-3">
+            <legend className="mb-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+              {t("أنواع الأسئلة المطلوبة", "Question types to include")}
+            </legend>
+            <label className="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-800 dark:border-violet-900 dark:bg-gray-900 dark:text-violet-300">
+              <input
+                type="checkbox"
+                checked={selectedTypes.length === MATN_QUIZ_TYPES.length}
+                onChange={(event) =>
+                  setSelectedTypes(event.target.checked ? [...MATN_QUIZ_TYPES] : [])
+                }
+                className="h-4 w-4 accent-violet-600"
+              />
+              {t("تحديد جميع الأنواع", "Select all types")}
+            </label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {TYPE_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(option.value)}
+                    onChange={(event) =>
+                      setSelectedTypes((current) =>
+                        event.target.checked
+                          ? [...current, option.value]
+                          : current.filter((type) => type !== option.value),
+                      )
+                    }
+                    className="h-4 w-4 accent-violet-600"
+                  />
+                  {t(option.ar, option.en)}
+                </label>
+              ))}
+            </div>
+            {selectedTypes.length === 0 && (
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                {t("اختر نوعًا واحدًا على الأقل.", "Select at least one question type.")}
+              </p>
+            )}
+          </fieldset>
+
           <div className="mt-2 flex items-center gap-2">
             <label htmlFor={`ai-count-${matnId}`} className="text-xs font-medium text-gray-700 dark:text-gray-300">
               {t("عدد الأسئلة", "Question count")}
@@ -302,7 +358,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
             <button
               type="button"
               onClick={generate}
-              disabled={isPending || fullText.trim().length < MIN_TEXT_LENGTH}
+              disabled={isPending || fullText.trim().length < MIN_TEXT_LENGTH || selectedTypes.length === 0}
               className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {mode === "generate" && isPending ? (
