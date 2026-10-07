@@ -34,7 +34,7 @@ import { computeFinalScore } from "./score";
 
 const FONT_REGULAR = "SirajNaskh";
 const FONT_BOLD = "SirajNaskhBold";
-const TEMPLATE_REL = path.join("src", "lib", "certificates", "template-2464x1728.jpg");
+const TEMPLATE_REL = path.join("src", "lib", "certificates", "template-art-2464x1728.jpg");
 const REGULAR_REL = path.join("src", "lib", "certificates", "fonts", "NotoNaskhArabic-Regular.ttf");
 const BOLD_REL = path.join("src", "lib", "certificates", "fonts", "NotoNaskhArabic-Bold.ttf");
 
@@ -85,6 +85,32 @@ function fitFontSize(
   const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent || zone.fontSize;
   const ratio = Math.min(zone.w / w, zone.h / h, 1);
   return Math.max(zone.minFontSize, Math.floor(zone.fontSize * ratio));
+}
+
+function drawStaticText(
+  ctx: ReturnType<ReturnType<typeof createCanvas>["getContext"]>,
+  text: string,
+  options: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    fontSize: number;
+    minFontSize: number;
+    weight: 400 | 700;
+    color: string | CanvasGradient;
+    align?: "center" | "right";
+  },
+) {
+  const zone = { ...options, weight: options.weight };
+  const size = fitFontSize(ctx, text, zone);
+  ctx.font = `${options.weight} ${size}px "${fontFor(options.weight)}"`;
+  ctx.direction = "rtl";
+  ctx.textAlign = options.align ?? "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = options.color;
+  const x = options.align === "right" ? options.x + options.w : options.x + options.w / 2;
+  ctx.fillText(text, x, options.y + options.h / 2);
 }
 
 export interface CertificateRenderData {
@@ -157,16 +183,51 @@ export async function renderCertificateImage(data: CertificateRenderData): Promi
   const canvas = createCanvas(CERT_WIDTH, CERT_HEIGHT);
   const ctx = canvas.getContext("2d");
   ctx.drawImage(template, 0, 0, CERT_WIDTH, CERT_HEIGHT);
-  // Align "رمز التحقق" with the QR's vertical center (was 22px left).
-  // Cover the original label in the template and redraw it centered at QR.
-  ctx.fillStyle = "#FEFAF7";
-  ctx.fillRect(295, 1488, 210, 50);
-  ctx.fillStyle = "#000000";
-  ctx.font = `400 26px "${fontFor(400)}"`;
-  ctx.direction = "rtl";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("رمز التحقق", 323 + 95, 1513);
+
+  drawStaticText(ctx, "منصة سراج التعليمية", {
+    x: 840, y: 303, w: 784, h: 96, fontSize: 70, minFontSize: 60,
+    weight: 700, color: "#080808",
+  });
+
+  const titleGradient = ctx.createLinearGradient(650, 0, 1810, 0);
+  titleGradient.addColorStop(0, "#073b3b");
+  titleGradient.addColorStop(0.55, "#087466");
+  titleGradient.addColorStop(1, "#08ad61");
+  drawStaticText(ctx, "شهادة إتمام دورة", {
+    x: 600, y: 437, w: 1264, h: 190, fontSize: 190, minFontSize: 128,
+    weight: 700, color: titleGradient,
+  });
+
+  drawStaticText(ctx, "تشهد منصة سراج بأن", {
+    x: 770, y: 625, w: 924, h: 150, fontSize: 72, minFontSize: 58,
+    weight: 700, color: "#080808",
+  });
+  drawStaticText(ctx, "قد أتم بنجاح دورة", {
+    x: 840, y: 915, w: 784, h: 150, fontSize: 80, minFontSize: 64,
+    weight: 700, color: "#080808",
+  });
+  drawStaticText(ctx, "وأتم متطلبات الدورة واجتاز التقييم بنجاح.", {
+    x: 650, y: 1157, w: 1164, h: 150, fontSize: 72, minFontSize: 58,
+    weight: 700, color: "#080808",
+  });
+
+  const labels = ["الدرجة:", "التقييم:", "تاريخ الإتمام:", "مدة الدورة:"];
+  for (const [index, label] of labels.entries()) {
+    const zone = CERT_ZONES.values[index];
+    drawStaticText(ctx, label, {
+      x: 1280, y: zone.y, w: 212, h: zone.h, fontSize: 42, minFontSize: 36,
+      weight: 700, color: "#080808", align: "right",
+    });
+  }
+
+  drawStaticText(ctx, "رمز التحقق", {
+    x: 303, y: 1488, w: 230, h: 50, fontSize: 28, minFontSize: 24,
+    weight: 700, color: "#000000",
+  });
+  drawStaticText(ctx, "لا تعد هذه الشهادة تزكية ولا شهادة علمية", {
+    x: 650, y: 1590, w: 1164, h: 38, fontSize: 24, minFontSize: 20,
+    weight: 400, color: "#292929",
+  });
 
   const values = [data.scoreText, data.gradeText, data.dateText, data.durationText];
   const placed: PlacedText[] = [

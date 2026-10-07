@@ -52,7 +52,7 @@ export interface CertificatePdfTextData {
   dateText: string;
   durationText: string;
   code: string;
-  verifyUrl: string;
+  verifyUrl?: string;
 }
 
 let fontsRegistered = false;
@@ -105,6 +105,7 @@ function drawText(
   },
 ) {
   const text = clean(textValue);
+  if (!text.trim()) return;
   const bold = options.weight === 700;
   const size = fitFontSize(context, text, {
     width: options.width,
@@ -129,36 +130,27 @@ function drawText(
  */
 export async function certificateDataToPdf(data: CertificatePdfTextData): Promise<Buffer> {
   ensureFonts();
-  const [template, qrDataUrl] = await Promise.all([
+  const [template, qrImage] = await Promise.all([
     loadTemplate(),
-    QRCode.toDataURL(data.verifyUrl, {
-      width: 456,
-      margin: 2,
-      errorCorrectionLevel: "M",
-      color: { dark: COLOR_QR_FOREGROUND, light: COLOR_QR_BACKGROUND },
-    }),
+    data.verifyUrl
+      ? QRCode.toDataURL(data.verifyUrl, {
+          width: 456,
+          margin: 2,
+          errorCorrectionLevel: "M",
+          color: { dark: COLOR_QR_FOREGROUND, light: COLOR_QR_BACKGROUND },
+        }).then((qrDataUrl) => loadImage(Buffer.from(qrDataUrl.split(",")[1], "base64")))
+      : Promise.resolve(null),
   ]);
-  const qrImage = await loadImage(Buffer.from(qrDataUrl.split(",")[1], "base64"));
 
-  const document = new PDFDocument({ title: `Siraj certificate ${data.code}` });
+  const document = new PDFDocument({
+    title: data.code ? `Siraj certificate ${data.code}` : "Siraj certificate template",
+  });
   const context = document.beginPage(PAGE_WIDTH_PT, PAGE_HEIGHT_PT) as SKRSContext2D;
   const scale = PAGE_WIDTH_PT / CERT_WIDTH;
   const offsetY = (PAGE_HEIGHT_PT - CERT_HEIGHT * scale) / scale;
   context.scale(scale, scale);
   context.translate(0, offsetY);
   context.drawImage(template, 0, 0, CERT_WIDTH, CERT_HEIGHT);
-
-  // Typed logotype between the unchanged lantern marks.
-  drawText(context, "سراج", {
-    x: 1095,
-    y: 132,
-    width: 274,
-    height: 170,
-    fontSize: 112,
-    minFontSize: 100,
-    weight: 700,
-    color: "#056653",
-  });
 
   drawText(context, "منصة سراج التعليمية", {
     x: 840,
@@ -167,6 +159,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 96,
     fontSize: 70,
     minFontSize: 60,
+    weight: 700,
     color: "#080808",
   });
 
@@ -185,13 +178,14 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     color: titleGradient,
   });
 
-  drawText(context, "تشهد منصة سراج بأن الطالب", {
+  drawText(context, "تشهد منصة سراج بأن", {
     x: 770,
     y: 625,
     width: 924,
     height: 150,
     fontSize: 72,
     minFontSize: 58,
+    weight: 700,
     color: "#080808",
   });
 
@@ -213,6 +207,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 150,
     fontSize: 80,
     minFontSize: 64,
+    weight: 700,
     color: "#080808",
   });
 
@@ -234,6 +229,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 150,
     fontSize: 72,
     minFontSize: 58,
+    weight: 700,
     color: "#080808",
   });
 
@@ -259,6 +255,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
       height: zone.h,
       fontSize: 42,
       minFontSize: 36,
+      weight: 700,
       color: "#080808",
       align: "right",
     });
@@ -271,6 +268,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 50,
     fontSize: 28,
     minFontSize: 24,
+    weight: 700,
     color: "#000000",
   });
   drawText(context, data.code, {
@@ -285,8 +283,32 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     direction: "ltr",
   });
 
-  context.direction = "ltr";
-  context.drawImage(qrImage, CERT_ZONES.qr.x, CERT_ZONES.qr.y, CERT_ZONES.qr.size, CERT_ZONES.qr.size);
+  drawText(context, "لا تعد هذه الشهادة تزكية ولا شهادة علمية", {
+    x: 650,
+    y: 1590,
+    width: 1164,
+    height: 38,
+    fontSize: 24,
+    minFontSize: 20,
+    color: "#292929",
+  });
+
+  if (qrImage) {
+    context.direction = "ltr";
+    context.drawImage(qrImage, CERT_ZONES.qr.x, CERT_ZONES.qr.y, CERT_ZONES.qr.size, CERT_ZONES.qr.size);
+  }
   document.endPage();
   return document.close();
+}
+
+export function certificateTemplateToPdf(): Promise<Buffer> {
+  return certificateDataToPdf({
+    studentName: "",
+    courseTitle: "",
+    scoreText: "",
+    gradeText: "",
+    dateText: "",
+    durationText: "",
+    code: "",
+  });
 }
