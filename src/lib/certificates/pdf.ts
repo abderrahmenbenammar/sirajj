@@ -1,11 +1,32 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { readFileSync } from "node:fs";
+import { GlobalFonts, PDFDocument, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
+import QRCode from "qrcode";
 import path from "node:path";
-import { deflateSync } from "node:zlib";
+import {
+  CERT_HEIGHT,
+  CERT_WIDTH,
+  CERT_ZONES,
+  COLOR_CERT_NUMBER,
+  COLOR_COURSE_NAME,
+  COLOR_DATE,
+  COLOR_DURATION,
+  COLOR_EVALUATION,
+  COLOR_GRADE,
+  COLOR_QR_BACKGROUND,
+  COLOR_QR_FOREGROUND,
+  COLOR_STUDENT_NAME,
+} from "./layout";
 
-const A4_LANDSCAPE_WIDTH_PT = 841.89;
-const A4_LANDSCAPE_HEIGHT_PT = 595.28;
-const PDF_TEXT_FONT_SIZE_PT = 8;
+const PAGE_WIDTH_PT = 841.89;
+const PAGE_HEIGHT_PT = 595.28;
+const FONT_REGULAR = "SirajCertificateNaskh";
+const FONT_BOLD = "SirajCertificateNaskhBold";
+const TEMPLATE_PATH = path.join(
+  process.cwd(),
+  "src",
+  "lib",
+  "certificates",
+  "template-art-2464x1728.jpg",
+);
 const REGULAR_FONT_PATH = path.join(
   process.cwd(),
   "src",
@@ -13,6 +34,14 @@ const REGULAR_FONT_PATH = path.join(
   "certificates",
   "fonts",
   "NotoNaskhArabic-Regular.ttf",
+);
+const BOLD_FONT_PATH = path.join(
+  process.cwd(),
+  "src",
+  "lib",
+  "certificates",
+  "fonts",
+  "NotoNaskhArabic-Bold.ttf",
 );
 
 export interface CertificatePdfTextData {
@@ -23,187 +52,241 @@ export interface CertificatePdfTextData {
   dateText: string;
   durationText: string;
   code: string;
+  verifyUrl: string;
 }
 
-interface PdfTextRun {
-  text: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+let fontsRegistered = false;
+let templateImage: Awaited<ReturnType<typeof loadImage>> | null = null;
+
+function ensureFonts() {
+  if (fontsRegistered) return;
+  GlobalFonts.registerFromPath(REGULAR_FONT_PATH, FONT_REGULAR);
+  GlobalFonts.registerFromPath(BOLD_FONT_PATH, FONT_BOLD);
+  fontsRegistered = true;
 }
 
-function certificateTextRuns(data: CertificatePdfTextData): PdfTextRun[] {
-  const clean = (text: string) =>
-    text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "");
-
-  return [
-    { text: "سراج", x: 950, y: 120, width: 564, height: 120 },
-    { text: "منصة سراج التعليمية", x: 700, y: 260, width: 1064, height: 80 },
-    { text: "شهادة إتمام دورة", x: 500, y: 390, width: 1464, height: 110 },
-    { text: "تشهد منصة سراج بأن الطالب", x: 600, y: 510, width: 1264, height: 90 },
-    { text: data.studentName, x: 482, y: 717, width: 1500, height: 240 },
-    { text: "قد أتم بنجاح دورة", x: 700, y: 955, width: 1064, height: 90 },
-    { text: data.courseTitle, x: 82, y: 1015, width: 2300, height: 182 },
-    { text: "وأتم متطلبات الدورة واجتاز التقييم بنجاح.", x: 450, y: 1200, width: 1564, height: 90 },
-    { text: `الدرجة: ${data.scoreText}`, x: 965, y: 1313, width: 650, height: 47 },
-    { text: `التقييم: ${data.gradeText}`, x: 965, y: 1389, width: 650, height: 47 },
-    { text: `تاريخ الإتمام: ${clean(data.dateText)}`, x: 965, y: 1465, width: 650, height: 47 },
-    { text: `مدة الدورة: ${data.durationText}`, x: 965, y: 1542, width: 650, height: 47 },
-    { text: "رمز التحقق", x: 300, y: 1488, width: 230, height: 50 },
-    { text: data.code, x: 218, y: 1575, width: 400, height: 35 },
-  ];
+async function loadTemplate() {
+  if (!templateImage) templateImage = await loadImage(TEMPLATE_PATH);
+  return templateImage;
 }
 
-function utf16Hex(text: string): string {
-  let hex = "";
-  for (let index = 0; index < text.length; index += 1) {
-    hex += text.charCodeAt(index).toString(16).padStart(4, "0");
-  }
-  return hex.toUpperCase();
+function clean(text: string): string {
+  return text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "");
 }
 
-function createToUnicodeCMap(textRuns: PdfTextRun[]): Buffer {
-  const codeUnits = new Set<number>();
-  for (const run of textRuns) {
-    for (let index = 0; index < run.text.length; index += 1) {
-      codeUnits.add(run.text.charCodeAt(index));
-    }
-  }
+function fitFontSize(
+  context: SKRSContext2D,
+  text: string,
+  box: { width: number; height: number; fontSize: number; minFontSize: number; bold?: boolean },
+) {
+  const weight = box.bold ? 700 : 400;
+  context.font = `${weight} ${box.fontSize}px "${box.bold ? FONT_BOLD : FONT_REGULAR}"`;
+  const metrics = context.measureText(text);
+  const width = metrics.width || 1;
+  const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent || box.fontSize;
+  const ratio = Math.min(box.width / width, box.height / height, 1);
+  return Math.max(box.minFontSize, Math.floor(box.fontSize * ratio));
+}
 
-  const mappings = [...codeUnits].map((codeUnit) => {
-    const code = codeUnit.toString(16).padStart(4, "0").toUpperCase();
-    return `<${code}> <${code}>`;
+function drawText(
+  context: SKRSContext2D,
+  textValue: string,
+  options: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    fontSize: number;
+    minFontSize?: number;
+    weight?: 400 | 700;
+    color: string | CanvasGradient;
+    align?: "center" | "right";
+    direction?: "rtl" | "ltr";
+  },
+) {
+  const text = clean(textValue);
+  const bold = options.weight === 700;
+  const size = fitFontSize(context, text, {
+    width: options.width,
+    height: options.height,
+    fontSize: options.fontSize,
+    minFontSize: options.minFontSize ?? Math.min(options.fontSize, 20),
+    bold,
   });
-  const mappingBlocks: string[] = [];
-  for (let index = 0; index < mappings.length; index += 100) {
-    const block = mappings.slice(index, index + 100);
-    mappingBlocks.push(`${block.length} beginbfchar\n${block.join("\n")}\nendbfchar`);
-  }
-
-  return Buffer.from(
-    [
-      "/CIDInit /ProcSet findresource begin",
-      "12 dict begin",
-      "begincmap",
-      "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def",
-      "/CMapName /SirajCertificateUnicode def",
-      "/CMapType 2 def",
-      "1 begincodespacerange",
-      "<0000> <FFFF>",
-      "endcodespacerange",
-      ...mappingBlocks,
-      "endcmap",
-      "CMapName currentdict /CMap defineresource pop",
-      "end",
-      "end",
-    ].join("\n"),
-    "ascii",
-  );
+  context.font = `${bold ? 700 : 400} ${size}px "${bold ? FONT_BOLD : FONT_REGULAR}"`;
+  context.fillStyle = options.color;
+  context.direction = options.direction ?? "rtl";
+  context.textAlign = options.align ?? "center";
+  context.textBaseline = "middle";
+  const x = options.align === "right" ? options.x + options.width : options.x + options.width / 2;
+  context.fillText(text, x, options.y + options.height / 2);
 }
 
 /**
- * Places the exact rendered certificate image into a print-ready PDF page.
- * The PNG is decoded and embedded as lossless RGB pixels, so text, QR, and
- * template stay visually identical to the on-platform certificate.
+ * Creates a landscape A4 PDF with visible, selectable Arabic text. The
+ * certificate's decorative artwork remains a high-resolution image; every
+ * printed heading, label, and student value is drawn as PDF text.
  */
-export async function certificatePngToPdf(
-  png: Buffer,
-  textData: CertificatePdfTextData,
-): Promise<Buffer> {
-  const image = await loadImage(png);
-  const canvas = createCanvas(image.width, image.height);
-  const context = canvas.getContext("2d");
-  context.drawImage(image, 0, 0);
+export async function certificateDataToPdf(data: CertificatePdfTextData): Promise<Buffer> {
+  ensureFonts();
+  const [template, qrDataUrl] = await Promise.all([
+    loadTemplate(),
+    QRCode.toDataURL(data.verifyUrl, {
+      width: 456,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: { dark: COLOR_QR_FOREGROUND, light: COLOR_QR_BACKGROUND },
+    }),
+  ]);
+  const qrImage = await loadImage(Buffer.from(qrDataUrl.split(",")[1], "base64"));
 
-  const rgba = context.getImageData(0, 0, image.width, image.height).data;
-  const rgb = Buffer.allocUnsafe(image.width * image.height * 3);
-  for (let source = 0, target = 0; source < rgba.length; source += 4, target += 3) {
-    rgb[target] = rgba[source];
-    rgb[target + 1] = rgba[source + 1];
-    rgb[target + 2] = rgba[source + 2];
-  }
+  const document = new PDFDocument({ title: `Siraj certificate ${data.code}` });
+  const context = document.beginPage(PAGE_WIDTH_PT, PAGE_HEIGHT_PT) as SKRSContext2D;
+  const scale = PAGE_WIDTH_PT / CERT_WIDTH;
+  const offsetY = (PAGE_HEIGHT_PT - CERT_HEIGHT * scale) / scale;
+  context.scale(scale, scale);
+  context.translate(0, offsetY);
+  context.drawImage(template, 0, 0, CERT_WIDTH, CERT_HEIGHT);
 
-  const imageData = deflateSync(rgb);
-  const scale = A4_LANDSCAPE_WIDTH_PT / image.width;
-  const drawWidth = A4_LANDSCAPE_WIDTH_PT;
-  const drawHeight = image.height * scale;
-  const offsetY = (A4_LANDSCAPE_HEIGHT_PT - drawHeight) / 2;
-  const textRuns = certificateTextRuns(textData);
-  const textCommands = textRuns.map((run) => {
-    const cleanText = run.text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "");
-    const textWidth = run.width * scale;
-    const horizontalScale = (textWidth / (Math.max(cleanText.length, 1) * PDF_TEXT_FONT_SIZE_PT)) * 100;
-    const x = run.x * scale;
-    const y = A4_LANDSCAPE_HEIGHT_PT - (run.y + run.height / 2) * scale;
-    return `/Span << /ActualText <FEFF${utf16Hex(cleanText)}> >> BDC\nBT /SirajText ${PDF_TEXT_FONT_SIZE_PT} Tf 3 Tr ${horizontalScale} Tz 1 0 0 1 ${x} ${y} Tm <${utf16Hex(cleanText)}> Tj ET\nEMC\n`;
+  // Typed logotype between the unchanged lantern marks.
+  drawText(context, "سراج", {
+    x: 1095,
+    y: 132,
+    width: 274,
+    height: 170,
+    fontSize: 112,
+    minFontSize: 100,
+    weight: 700,
+    color: "#056653",
   });
-  const content = Buffer.from(
-    `q\n${drawWidth} 0 0 ${drawHeight} 0 ${offsetY} cm\n/Certificate Do\nQ\n${textCommands.join("")}`,
-    "ascii",
-  );
-  const cmap = createToUnicodeCMap(textRuns);
-  const font = readFileSync(REGULAR_FONT_PATH);
-  const compressedFont = deflateSync(font);
 
-  const objects = [
-    Buffer.from("<< /Type /Catalog /Pages 2 0 R >>", "ascii"),
-    Buffer.from("<< /Type /Pages /Kids [3 0 R] /Count 1 >>", "ascii"),
-    Buffer.from(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4_LANDSCAPE_WIDTH_PT} ${A4_LANDSCAPE_HEIGHT_PT}] /Resources << /XObject << /Certificate 4 0 R >> /Font << /SirajText 6 0 R >> >> /Contents 5 0 R >>`,
-      "ascii",
-    ),
-    Buffer.concat([
-      Buffer.from(
-        `<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ${imageData.length} >>\nstream\n`,
-        "ascii",
-      ),
-      imageData,
-      Buffer.from("\nendstream", "ascii"),
-    ]),
-    Buffer.concat([
-      Buffer.from(`<< /Length ${content.length} >>\nstream\n`, "ascii"),
-      content,
-      Buffer.from("endstream", "ascii"),
-    ]),
-    Buffer.from("<< /Type /Font /Subtype /Type0 /BaseFont /SirajNaskhArabic /Encoding /Identity-H /DescendantFonts [7 0 R] /ToUnicode 9 0 R >>", "ascii"),
-    Buffer.from("<< /Type /Font /Subtype /CIDFontType2 /BaseFont /SirajNaskhArabic /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 8 0 R /DW 1000 /CIDToGIDMap /Identity >>", "ascii"),
-    Buffer.from("<< /Type /FontDescriptor /FontName /SirajNaskhArabic /Flags 4 /FontBBox [-1000 -500 3000 2000] /ItalicAngle 0 /Ascent 1000 /Descent -500 /CapHeight 700 /StemV 80 /FontFile2 10 0 R >>", "ascii"),
-    Buffer.concat([
-      Buffer.from(`<< /Length ${cmap.length} >>\nstream\n`, "ascii"),
-      cmap,
-      Buffer.from("\nendstream", "ascii"),
-    ]),
-    Buffer.concat([
-      Buffer.from(`<< /Length ${compressedFont.length} /Length1 ${font.length} /Filter /FlateDecode >>\nstream\n`, "ascii"),
-      compressedFont,
-      Buffer.from("\nendstream", "ascii"),
-    ]),
-  ];
+  drawText(context, "منصة سراج التعليمية", {
+    x: 840,
+    y: 303,
+    width: 784,
+    height: 96,
+    fontSize: 70,
+    minFontSize: 60,
+    color: "#080808",
+  });
 
-  const chunks: Buffer[] = [Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a])];
-  const offsets = [0];
-  let length = chunks[0].length;
+  const titleGradient = context.createLinearGradient(650, 0, 1810, 0);
+  titleGradient.addColorStop(0, "#073b3b");
+  titleGradient.addColorStop(0.55, "#087466");
+  titleGradient.addColorStop(1, "#08ad61");
+  drawText(context, "شهادة إتمام دورة", {
+    x: 600,
+    y: 437,
+    width: 1264,
+    height: 190,
+    fontSize: 190,
+    minFontSize: 128,
+    weight: 700,
+    color: titleGradient,
+  });
 
-  for (let index = 0; index < objects.length; index += 1) {
-    offsets.push(length);
-    const object = Buffer.concat([
-      Buffer.from(`${index + 1} 0 obj\n`, "ascii"),
-      objects[index],
-      Buffer.from("\nendobj\n", "ascii"),
-    ]);
-    chunks.push(object);
-    length += object.length;
+  drawText(context, "تشهد منصة سراج بأن الطالب", {
+    x: 770,
+    y: 625,
+    width: 924,
+    height: 150,
+    fontSize: 72,
+    minFontSize: 58,
+    color: "#080808",
+  });
+
+  drawText(context, data.studentName, {
+    x: CERT_ZONES.studentName.x,
+    y: CERT_ZONES.studentName.y,
+    width: CERT_ZONES.studentName.w,
+    height: CERT_ZONES.studentName.h,
+    fontSize: CERT_ZONES.studentName.fontSize,
+    minFontSize: CERT_ZONES.studentName.minFontSize,
+    weight: CERT_ZONES.studentName.weight,
+    color: COLOR_STUDENT_NAME,
+  });
+
+  drawText(context, "قد أتم بنجاح دورة", {
+    x: 840,
+    y: 915,
+    width: 784,
+    height: 150,
+    fontSize: 80,
+    minFontSize: 64,
+    color: "#080808",
+  });
+
+  drawText(context, data.courseTitle, {
+    x: CERT_ZONES.courseName.x,
+    y: CERT_ZONES.courseName.y,
+    width: CERT_ZONES.courseName.w,
+    height: CERT_ZONES.courseName.h,
+    fontSize: CERT_ZONES.courseName.fontSize,
+    minFontSize: CERT_ZONES.courseName.minFontSize,
+    weight: CERT_ZONES.courseName.weight,
+    color: COLOR_COURSE_NAME,
+  });
+
+  drawText(context, "وأتم متطلبات الدورة واجتاز التقييم بنجاح.", {
+    x: 650,
+    y: 1157,
+    width: 1164,
+    height: 150,
+    fontSize: 72,
+    minFontSize: 58,
+    color: "#080808",
+  });
+
+  const labels = ["الدرجة:", "التقييم:", "تاريخ الإتمام:", "مدة الدورة:"];
+  const values = [data.scoreText, data.gradeText, data.dateText, data.durationText];
+  const valueColors = [COLOR_GRADE, COLOR_EVALUATION, COLOR_DATE, COLOR_DURATION];
+  for (let index = 0; index < CERT_ZONES.values.length; index += 1) {
+    const zone = CERT_ZONES.values[index];
+    drawText(context, values[index], {
+      x: zone.x,
+      y: zone.y,
+      width: index < 2 ? Math.min(zone.w, 390) : zone.w,
+      height: zone.h,
+      fontSize: 42,
+      minFontSize: 20,
+      color: valueColors[index],
+      align: "right",
+    });
+    drawText(context, labels[index], {
+      x: 1280,
+      y: zone.y,
+      width: 212,
+      height: zone.h,
+      fontSize: 42,
+      minFontSize: 36,
+      color: "#080808",
+      align: "right",
+    });
   }
 
-  const xrefOffset = length;
-  const xref = [
-    `xref\n0 ${objects.length + 1}\n`,
-    "0000000000 65535 f \n",
-    ...offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`),
-    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`,
-  ].join("");
-  chunks.push(Buffer.from(xref, "ascii"));
+  drawText(context, "رمز التحقق", {
+    x: 303,
+    y: 1488,
+    width: 230,
+    height: 50,
+    fontSize: 28,
+    minFontSize: 24,
+    color: "#000000",
+  });
+  drawText(context, data.code, {
+    x: CERT_ZONES.certNumber.x,
+    y: CERT_ZONES.certNumber.y,
+    width: CERT_ZONES.certNumber.w,
+    height: 48,
+    fontSize: CERT_ZONES.certNumber.fontSize,
+    minFontSize: CERT_ZONES.certNumber.minFontSize,
+    weight: 700,
+    color: COLOR_CERT_NUMBER,
+    direction: "ltr",
+  });
 
-  return Buffer.concat(chunks);
+  context.direction = "ltr";
+  context.drawImage(qrImage, CERT_ZONES.qr.x, CERT_ZONES.qr.y, CERT_ZONES.qr.size, CERT_ZONES.qr.size);
+  document.endPage();
+  return document.close();
 }
