@@ -123,9 +123,9 @@ export default function CertificatesPage() {
                     >
                       {t("عرض الشهادة", "View certificate")}
                     </Link>
-                    <a href={`/api/certificates/${cert.id}/image`} download={`siraj-certificate-${cert.certificateCode}.png`} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors">
+                    <a href={`/api/certificates/${cert.id}/pdf`} download={`siraj-certificate-${cert.certificateCode}.pdf`} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors">
                       <Download size={14} />
-                      {t("تحميل الشهادة", "Download Certificate")}
+                      {t("تحميل الشهادة PDF", "Download Certificate PDF")}
                     </a>
                   </div>
                 </div>
