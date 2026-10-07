@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { renderCertificateById } from "@/lib/certificates/render";
+import { getCertificateRenderData, renderCertificateImage } from "@/lib/certificates/render";
 import { certificatePngToPdf } from "@/lib/certificates/pdf";
 
 export const runtime = "nodejs";
@@ -29,10 +29,11 @@ export async function GET(_request: Request, { params }: Context) {
   }
 
   try {
-    const png = await renderCertificateById(id);
-    if (!png) return NextResponse.json({ error: "الشهادة غير موجودة" }, { status: 404 });
+    const renderData = await getCertificateRenderData(id);
+    if (!renderData) return NextResponse.json({ error: "الشهادة غير موجودة" }, { status: 404 });
 
-    const pdf = await certificatePngToPdf(png);
+    const png = await renderCertificateImage(renderData);
+    const pdf = await certificatePngToPdf(png, renderData);
     const safeCode = certificate.certificateCode.replace(/[^A-Za-z0-9_-]/g, "");
     return new Response(new Uint8Array(pdf), {
       headers: {
