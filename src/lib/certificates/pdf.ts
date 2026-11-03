@@ -98,7 +98,7 @@ function drawText(
     height: number;
     fontSize: number;
     minFontSize?: number;
-    weight?: 400 | 700;
+    weight?: 400 | 500 | 700;
     color: string | CanvasGradient;
     align?: "center" | "right";
     direction?: "rtl" | "ltr";
@@ -120,7 +120,13 @@ function drawText(
   context.textAlign = options.align ?? "center";
   context.textBaseline = "middle";
   const x = options.align === "right" ? options.x + options.width : options.x + options.width / 2;
-  context.fillText(text, x, options.y + options.height / 2);
+  const y = options.y + options.height / 2;
+  if (options.weight === 500) {
+    context.lineWidth = 0.75;
+    context.strokeStyle = options.color;
+    context.strokeText(text, x, y);
+  }
+  context.fillText(text, x, y);
 }
 
 /**
@@ -159,7 +165,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 96,
     fontSize: 70,
     minFontSize: 60,
-    weight: 700,
+    weight: 500,
     color: "#080808",
   });
 
@@ -185,7 +191,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 150,
     fontSize: 72,
     minFontSize: 58,
-    weight: 700,
+    weight: 500,
     color: "#080808",
   });
 
@@ -207,7 +213,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 150,
     fontSize: 80,
     minFontSize: 64,
-    weight: 700,
+    weight: 500,
     color: "#080808",
   });
 
@@ -229,7 +235,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 150,
     fontSize: 72,
     minFontSize: 58,
-    weight: 700,
+    weight: 500,
     color: "#080808",
   });
 
@@ -255,7 +261,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
       height: zone.h,
       fontSize: 42,
       minFontSize: 36,
-      weight: 700,
+      weight: 500,
       color: "#080808",
       align: "right",
     });
@@ -268,7 +274,7 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
     height: 50,
     fontSize: 28,
     minFontSize: 24,
-    weight: 700,
+    weight: 500,
     color: "#000000",
   });
   drawText(context, data.code, {
@@ -284,9 +290,9 @@ export async function certificateDataToPdf(data: CertificatePdfTextData): Promis
   });
 
   drawText(context, "لا تعد هذه الشهادة تزكية ولا شهادة علمية", {
-    x: 650,
+    x: 1845,
     y: 1590,
-    width: 1164,
+    width: 500,
     height: 38,
     fontSize: 24,
     minFontSize: 20,

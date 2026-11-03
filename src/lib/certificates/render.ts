@@ -55,7 +55,7 @@ async function loadTemplate() {
   return templateImage;
 }
 
-function fontFor(weight: 400 | 700): string {
+function fontFor(weight: 400 | 500 | 700): string {
   return weight === 700 ? FONT_BOLD : FONT_REGULAR;
 }
 
@@ -77,9 +77,10 @@ function stripBidiControls(text: string): string {
 function fitFontSize(
   ctx: ReturnType<ReturnType<typeof createCanvas>["getContext"]>,
   text: string,
-  zone: { w: number; h: number; fontSize: number; minFontSize: number; weight: 400 | 700 }
+  zone: { w: number; h: number; fontSize: number; minFontSize: number; weight: 400 | 500 | 700 }
 ): number {
-  ctx.font = `${zone.weight} ${zone.fontSize}px "${fontFor(zone.weight)}"`;
+  const weight = zone.weight === 700 ? 700 : 400;
+  ctx.font = `${weight} ${zone.fontSize}px "${fontFor(zone.weight)}"`;
   const m = ctx.measureText(text);
   const w = m.width || 1;
   const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent || zone.fontSize;
@@ -97,20 +98,26 @@ function drawStaticText(
     h: number;
     fontSize: number;
     minFontSize: number;
-    weight: 400 | 700;
+    weight: 400 | 500 | 700;
     color: string | CanvasGradient;
     align?: "center" | "right";
   },
 ) {
   const zone = { ...options, weight: options.weight };
   const size = fitFontSize(ctx, text, zone);
-  ctx.font = `${options.weight} ${size}px "${fontFor(options.weight)}"`;
+  ctx.font = `${options.weight === 700 ? 700 : 400} ${size}px "${fontFor(options.weight)}"`;
   ctx.direction = "rtl";
   ctx.textAlign = options.align ?? "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = options.color;
   const x = options.align === "right" ? options.x + options.w : options.x + options.w / 2;
-  ctx.fillText(text, x, options.y + options.h / 2);
+  const y = options.y + options.h / 2;
+  if (options.weight === 500) {
+    ctx.lineWidth = 0.75;
+    ctx.strokeStyle = options.color;
+    ctx.strokeText(text, x, y);
+  }
+  ctx.fillText(text, x, y);
 }
 
 export interface CertificateRenderData {
@@ -186,7 +193,7 @@ export async function renderCertificateImage(data: CertificateRenderData): Promi
 
   drawStaticText(ctx, "منصة سراج التعليمية", {
     x: 840, y: 303, w: 784, h: 96, fontSize: 70, minFontSize: 60,
-    weight: 700, color: "#080808",
+    weight: 500, color: "#080808",
   });
 
   const titleGradient = ctx.createLinearGradient(650, 0, 1810, 0);
@@ -200,15 +207,15 @@ export async function renderCertificateImage(data: CertificateRenderData): Promi
 
   drawStaticText(ctx, "تشهد منصة سراج بأن", {
     x: 770, y: 625, w: 924, h: 150, fontSize: 72, minFontSize: 58,
-    weight: 700, color: "#080808",
+    weight: 500, color: "#080808",
   });
   drawStaticText(ctx, "قد أتم بنجاح دورة", {
     x: 840, y: 915, w: 784, h: 150, fontSize: 80, minFontSize: 64,
-    weight: 700, color: "#080808",
+    weight: 500, color: "#080808",
   });
   drawStaticText(ctx, "وأتم متطلبات الدورة واجتاز التقييم بنجاح.", {
     x: 650, y: 1157, w: 1164, h: 150, fontSize: 72, minFontSize: 58,
-    weight: 700, color: "#080808",
+    weight: 500, color: "#080808",
   });
 
   const labels = ["الدرجة:", "التقييم:", "تاريخ الإتمام:", "مدة الدورة:"];
@@ -216,16 +223,16 @@ export async function renderCertificateImage(data: CertificateRenderData): Promi
     const zone = CERT_ZONES.values[index];
     drawStaticText(ctx, label, {
       x: 1280, y: zone.y, w: 212, h: zone.h, fontSize: 42, minFontSize: 36,
-      weight: 700, color: "#080808", align: "right",
+      weight: 500, color: "#080808", align: "right",
     });
   }
 
   drawStaticText(ctx, "رمز التحقق", {
     x: 303, y: 1488, w: 230, h: 50, fontSize: 28, minFontSize: 24,
-    weight: 700, color: "#000000",
+    weight: 500, color: "#000000",
   });
   drawStaticText(ctx, "لا تعد هذه الشهادة تزكية ولا شهادة علمية", {
-    x: 650, y: 1590, w: 1164, h: 38, fontSize: 24, minFontSize: 20,
+    x: 1845, y: 1590, w: 500, h: 38, fontSize: 24, minFontSize: 20,
     weight: 400, color: "#292929",
   });
 
