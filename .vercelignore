@@ -1,0 +1,19 @@
+# Files excluded from Vercel deployments (CLI and Git).
+# Keeps uploads lean and guarantees local secrets never leave this machine.
+node_modules
+.next
+.git
+.vscode
+.vercel
+.env
+.env.*
+!.env.example
+output
+tmp
+android
+ios
+public/videos
+public/uploads
+*.tsbuildinfo
+next-env.d.ts
+*.log
