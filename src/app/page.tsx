@@ -60,8 +60,7 @@ export default function HomePage() {
           </div>
 
           <h1
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight"
-            style={{ fontFamily: "'Noto Naskh Arabic', serif" }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight font-maghribi"
           >
             {t("رحلتك في طلب العلم", "Your Journey in Seeking Knowledge")}
             <br />
