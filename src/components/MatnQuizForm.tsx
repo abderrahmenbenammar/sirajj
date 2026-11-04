@@ -260,9 +260,14 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
+          if (typeof data?.details === "string") {
+            console.error("Server Error Details:", data.details);
+          }
           setError(
-            typeof data?.error === "string"
-              ? data.error
+            typeof data?.details === "string"
+              ? `${typeof data?.error === "string" ? data.error : t("تعذر التصحيح حاليًا", "Grading failed")}: ${data.details}`
+              : typeof data?.error === "string"
+                ? data.error
               : t("تعذر التصحيح حاليًا، حاول مجددًا", "Grading failed, try again"),
           );
           return;

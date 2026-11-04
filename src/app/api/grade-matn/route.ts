@@ -7,7 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { consumeApiRateLimit } from "@/lib/api-rate-limit";
 import { normalizeArabicText } from "@/lib/text-normalization";
 
-// AI grading can take longer than the default serverless budget (10s).
+// This route uses Prisma through Auth.js and the rate limiter, so it must run
+// on Node.js rather than the deprecated Edge runtime.
+export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const PASS_THRESHOLD = 85;
@@ -163,6 +165,7 @@ export async function POST(request: Request) {
     // JSON instead of a platform-level timeout.
     const deadline = Date.now() + 24_000;
     let object: GradeMatnResult | null = null;
+    let lastError: unknown = null;
 
     for (const modelName of modelChain) {
       const remaining = deadline - Date.now();
@@ -183,6 +186,7 @@ export async function POST(request: Request) {
         break;
       } catch (error) {
         // Log the failed attempt (with which model) and fail over.
+        lastError = error;
         console.error("GEMINI_GRADING_ERROR:", { modelName, error });
       }
     }
@@ -190,8 +194,12 @@ export async function POST(request: Request) {
     if (!object) {
       // Every model in the chain failed -> graceful JSON instead of a crash.
       return NextResponse.json(
-        { ok: false, error: "تعذر الاتصال بخدمة التصحيح الذكية، حاول مجددًا" },
-        { status: 502 },
+        {
+          ok: false,
+          error: "تعذر الاتصال بخدمة التصحيح الذكية",
+          details: getErrorMessage(lastError),
+        },
+        { status: 500 },
       );
     }
 
@@ -209,5 +217,15 @@ export async function POST(request: Request) {
       { ok: false, error: "تعذر التصحيح حاليًا، حاول مجددًا" },
       { status: 500 },
     );
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
   }
 }
