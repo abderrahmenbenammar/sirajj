@@ -3,6 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+  --font-sans: var(--font-samir-maghribi), var(--font-noto-naskh), system-ui, sans-serif;
+  --font-maghribi: var(--font-samir-maghribi), var(--font-noto-naskh), system-ui, sans-serif;
   --color-primary-50: #ecfdf5;
   --color-primary-100: #d1fae5;
   --color-primary-200: #a7f3d0;
@@ -169,4 +171,3 @@ html:not(.dark) .border-gray-200\/60:not(.theme-dark-surface *) {
 @utility safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-

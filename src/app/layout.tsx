@@ -25,6 +25,14 @@ const notoNaskhArabic = localFont({
   display: "swap",
 });
 
+const samirMaghribi = localFont({
+  src: "../../public/fonts/Samir.Khouaja.Maghribi.ttf",
+  weight: "400",
+  style: "normal",
+  variable: "--font-samir-maghribi",
+  display: "swap",
+});
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -68,9 +76,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       suppressHydrationWarning
-      className={notoNaskhArabic.variable}
+      className={`${notoNaskhArabic.variable} ${samirMaghribi.variable}`}
     >
-      <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-[var(--font-noto-naskh),system-ui,sans-serif]">
+      <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-sans">
         <ServiceWorkerRegister />
         <Providers>
           <PushNativeBootstrap />
