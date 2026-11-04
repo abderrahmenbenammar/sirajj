@@ -276,7 +276,12 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
         }));
         setResult({ ...graded, score, isPassed });
       } catch {
-        setError(t("تعذر الاتصال بالخادم", "Could not reach the server"));
+        setError(
+          t(
+            "تعذر الاتصال بخدمة التصحيح الذكية، حاول مجددًا",
+            "Could not reach the smart grading service, try again",
+          ),
+        );
       } finally {
         setIsGrading(false);
       }

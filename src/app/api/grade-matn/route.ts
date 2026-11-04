@@ -125,8 +125,11 @@ export async function POST(request: Request) {
     }
 
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      console.warn(
+        "GEMINI_GRADING_CONFIG_ERROR: GOOGLE_GENERATIVE_AI_API_KEY is missing",
+      );
       return NextResponse.json(
-        { error: "خدمة التصحيح غير مهيأة حاليًا" },
+        { ok: false, error: "خدمة التصحيح غير مهيأة حاليًا" },
         { status: 503 },
       );
     }
@@ -181,14 +184,14 @@ export async function POST(request: Request) {
         break;
       } catch (error) {
         // Log the failed attempt (with which model) and fail over.
-        console.error("Grade Matn Error:", modelName, error);
+        console.error("GEMINI_GRADING_ERROR:", { modelName, error });
       }
     }
 
     if (!object) {
       // Every model in the chain failed -> graceful JSON instead of a crash.
       return NextResponse.json(
-        { error: "تعذر الاتصال بخدمة التصحيح الذكية، حاول مجددًا" },
+        { ok: false, error: "تعذر الاتصال بخدمة التصحيح الذكية، حاول مجددًا" },
         { status: 502 },
       );
     }
@@ -202,9 +205,9 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Grade Matn Error:", error);
+    console.error("GEMINI_GRADING_ERROR:", error);
     return NextResponse.json(
-      { error: "تعذر التصحيح حاليًا، حاول مجددًا" },
+      { ok: false, error: "تعذر التصحيح حاليًا، حاول مجددًا" },
       { status: 500 },
     );
   }
