@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateObject, zodSchema } from "ai";
-import { google } from "@ai-sdk/google";
+import { createGoogle } from "@ai-sdk/google";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -124,9 +124,11 @@ export async function POST(request: Request) {
       return NextResponse.json(perfect);
     }
 
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    const apiKey =
+      process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!apiKey) {
       console.warn(
-        "GEMINI_GRADING_CONFIG_ERROR: GOOGLE_GENERATIVE_AI_API_KEY is missing",
+        "GEMINI_GRADING_CONFIG_ERROR: GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY is missing",
       );
       return NextResponse.json(
         { ok: false, error: "خدمة التصحيح غير مهيأة حاليًا" },
@@ -149,11 +151,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Model failover chain: primary first, then fallbacks on any failure
-    // (retired model, quota, transient network errors).
-    // NOTE: gemini-2.0-flash and gemini-1.5-flash are 404-retired by Google,
-    // so the fallback is gemini-3.5-flash-lite (Google's supported replacement).
-    const DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+    const googleProvider = createGoogle({ apiKey });
+    const DEFAULT_MODELS = ["gemini-3.8-flash"];
     const override = (process.env.GRADE_MATN_MODEL_CHAIN ?? "")
       .split(",")
       .map((name) => name.trim())
@@ -170,7 +169,7 @@ export async function POST(request: Request) {
       if (remaining <= 500) break;
       try {
         const generated = await generateObject({
-          model: google(modelName),
+          model: googleProvider(modelName),
           schema: zodSchema(gradeResultSchema),
           system: SYSTEM_PROMPT,
           prompt: `النص الصحيح:\n${cleanCorrect}\n\nإجابة الطالب:\n${cleanStudent}\n\nقيّم حفظ الطالب وأعد النتيجة.`,
