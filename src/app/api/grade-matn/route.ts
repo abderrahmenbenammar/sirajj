@@ -161,15 +161,15 @@ export async function POST(request: Request) {
       .filter(Boolean);
     const modelChain = override.length > 0 ? override : DEFAULT_MODELS;
 
-    // Hard budget under maxDuration=30 so exhausted attempts still return our
-    // JSON instead of a platform-level timeout.
-    const deadline = Date.now() + 24_000;
+    // No abort signal, deadline, or Promise.race wraps the SDK call: grading
+    // must finish on the server even if the client disconnects (request.signal
+    // is deliberately never passed through). A manual timeout here only ever
+    // cancelled the SDK's internal retry delay — surfaced as "Delay was
+    // aborted". The platform's maxDuration above is the only hard cap.
     let object: GradeMatnResult | null = null;
     let lastError: unknown = null;
 
     for (const modelName of modelChain) {
-      const remaining = deadline - Date.now();
-      if (remaining <= 500) break;
       try {
         const generated = await generateObject({
           model: googleProvider(modelName),
@@ -180,7 +180,6 @@ export async function POST(request: Request) {
           // permanent errors (404 dead model, 400) are not retried and fall
           // through to the next model instantly.
           maxRetries: modelName === modelChain[0] ? 3 : 1,
-          abortSignal: AbortSignal.timeout(remaining),
         });
         object = generated.object;
         break;

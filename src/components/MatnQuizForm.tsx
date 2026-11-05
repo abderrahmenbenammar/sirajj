@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, SyntheticEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, GripVertical, ListChecks, Loader2, RotateCcw, Sparkles, XCircle } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
@@ -120,6 +120,10 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
+  // Synchronous double-submit guard: the `isGrading` state update is async, so
+  // a fast double-click could start a second fetch before the re-render
+  // disables the button. The ref flips in the same tick as the click.
+  const gradingRef = useRef(false);
 
   // Scroll every new card into view; focus the textarea only for free-writing
   // questions (the structured types have no single primary input).
@@ -226,7 +230,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
 
   const checkAnswer = () => {
     const text = getSubmittedText();
-    if (text.length === 0 || isGrading || isGraded) return;
+    if (text.length === 0 || isGrading || isGraded || gradingRef.current) return;
 
     // Instant client-side verification for the structured types: an exact
     // match (after Arabic normalization) is a guaranteed 100 with zero
@@ -247,11 +251,14 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
       return;
     }
 
+    gradingRef.current = true;
     setIsGrading(true);
     setError(null);
 
     void (async () => {
       try {
+        // Natural await: no AbortController, no setTimeout/manual timeout —
+        // nothing here may cancel this request while the server grades.
         const res = await fetch("/api/grade-matn", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -288,6 +295,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
           ),
         );
       } finally {
+        gradingRef.current = false;
         setIsGrading(false);
       }
     })();
@@ -307,7 +315,10 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
     setError(null);
   };
 
-  const primaryAction = () => {
+  const primaryAction = (event?: SyntheticEvent) => {
+    // Absolute first line: never let the activation reload or navigate the
+    // page — a reload aborts the in-flight fetch to /api/grade-matn.
+    event?.preventDefault();
     if (isGraded) goNext();
     else checkAnswer();
   };
