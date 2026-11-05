@@ -10,7 +10,12 @@ import { normalizeArabicText } from "@/lib/text-normalization";
 // This route uses Prisma through Auth.js and the rate limiter, so it must run
 // on Node.js rather than the deprecated Edge runtime.
 export const runtime = "nodejs";
-export const maxDuration = 30;
+// Hobby plan allows up to 300s. Sized for the measured worst case: a single
+// attempt against an overloaded model took ~150s, so the fallback model must
+// still fit and our handler must return its own JSON. Below this cap Vercel
+// kills the invocation with a non-JSON platform error, which the frontend can
+// only surface as the generic "تعذر التصحيح حاليًا" message.
+export const maxDuration = 300;
 
 const PASS_THRESHOLD = 85;
 const MAX_TEXT_LENGTH = 2000;
@@ -154,7 +159,12 @@ export async function POST(request: Request) {
     }
 
     const googleProvider = createGoogle({ apiKey });
-    const DEFAULT_MODELS = ["gemini-3.8-flash"];
+    // Failover chain: primary first, then fallback. Both must stay in the
+    // chain — Google often overloads a single model ("high demand"/503) while
+    // the other keeps serving (measured 2026-11-05: gemini-3.8-flash failed
+    // with 503/high-demand for minutes while gemini-3.5-flash-lite answered
+    // the same grading call in ~1.3s).
+    const DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
     const override = (process.env.GRADE_MATN_MODEL_CHAIN ?? "")
       .split(",")
       .map((name) => name.trim())
@@ -176,10 +186,13 @@ export async function POST(request: Request) {
           schema: zodSchema(gradeResultSchema),
           system: SYSTEM_PROMPT,
           prompt: `النص الصحيح:\n${cleanCorrect}\n\nإجابة الطالب:\n${cleanStudent}\n\nقيّم حفظ الطالب وأعد النتيجة.`,
-          // SDK retries transient failures (429/5xx/network) with backoff;
-          // permanent errors (404 dead model, 400) are not retried and fall
-          // through to the next model instantly.
-          maxRetries: modelName === modelChain[0] ? 3 : 1,
+          // No SDK retries: a retry against a degraded model multiplies its
+          // slow failure (measured ~150s EACH) and blows past maxDuration,
+          // so Vercel kills the function with a non-JSON error. The chain
+          // itself is the retry — a failed model falls through to the next
+          // one instantly (permanent errors like 404/400 are not retried
+          // by the SDK either).
+          maxRetries: 0,
         });
         object = generated.object;
         break;
