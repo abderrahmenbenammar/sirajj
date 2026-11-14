@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Loader2, Save, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
@@ -47,9 +47,15 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
   const [drafts, setDrafts] = useState<DraftQuestion[]>([]);
   const [mode, setMode] = useState<Mode>(null);
   const [isPending, startTransition] = useTransition();
+  // Synchronous double-submit guard: `isPending` updates async, so a fast
+  // double-click could fire a second generation before the button disables.
+  // The ref flips in the same tick as the click (mirrors MatnQuizForm).
+  const generatingRef = useRef(false);
 
   const generate = () => {
+    if (generatingRef.current) return;
     if (fullText.trim().length < MIN_TEXT_LENGTH || selectedTypes.length === 0 || isPending) return;
+    generatingRef.current = true;
     setMode("generate");
     startTransition(async () => {
       try {
@@ -61,9 +67,15 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
+          // Show the server's specific Arabic message (and its sanitized
+          // details when the model itself failed) instead of a generic one.
+          const serverError = typeof data?.error === "string" ? data.error : "";
+          const details = typeof data?.details === "string" ? data.details.trim() : "";
           notify(
-            typeof data?.error === "string"
-              ? data.error
+            serverError
+              ? details
+                ? `${serverError} — ${details.slice(0, 180)}`
+                : serverError
               : t("تعذر توليد الأسئلة، حاول مجددًا", "Could not generate questions, try again"),
             "error",
           );
@@ -95,6 +107,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
       } catch {
         notify(t("تعذر الاتصال بالخادم", "Could not reach the server"), "error");
       } finally {
+        generatingRef.current = false;
         setMode(null);
       }
     });

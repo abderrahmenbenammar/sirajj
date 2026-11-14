@@ -1,13 +1,32 @@
 import { NextResponse } from "next/server";
-import { generateObject, zodSchema } from "ai";
-import { google } from "@ai-sdk/google";
+import { generateObject, zodSchema, NoObjectGeneratedError } from "ai";
+import { createGoogle } from "@ai-sdk/google";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import { hasQuestionQualityIssue } from "@/lib/question-quality";
 
-// Structured generation of a full question set can exceed the default budget.
-export const maxDuration = 60;
+// Prisma + Auth.js run here, so the Node.js runtime is required (same as the
+// working /api/grade-matn route).
+export const runtime = "nodejs";
+// Budget must stay under maxDuration so the handler ALWAYS returns its own
+// JSON: two generation attempts (18s + 8s) + review (8s) + auth/DB overhead
+// fit inside 26s of work, leaving margin below the 30s platform cap. Above
+// the cap Vercel kills the invocation with a non-JSON 504 that the frontend
+// can only show as the generic "تعذر الاتصال بخدمة التوليد الذكي".
+export const maxDuration = 30;
+
+// Overall work budget inside maxDuration (auth/DB/response margin: 4s).
+const DEADLINE_BUDGET_MS = 26_000;
+// Per-attempt safety windows. A model that stalls on Google's side (measured
+// 2026-11-14: gemini-3.8-flash hung 50s for THIS exact generation call) must
+// be cut off so the healthy model still gets its turn before the platform cap.
+// These cancel only a stalled connection — never an SDK retry delay, because
+// maxRetries is 0 (that combination is what caused the old "Delay was
+// aborted" bug: retry delays aborted by a route-level timeout).
+const GEN_ATTEMPT_TIMEOUT_MS = 18_000;
+const FALLBACK_ATTEMPT_TIMEOUT_MS = 8_000;
+const REVIEW_TIMEOUT_MS = 8_000;
 
 const MAX_FULL_TEXT = 20_000;
 const MATN_QUIZ_TYPE_VALUES = ["write", "reorder", "fill_blank", "mcq"] as const;
@@ -73,12 +92,13 @@ const SYSTEM_PROMPT = `أنت "مولّد أسئلة التسميع" — تُخ�
 
 معايير تصميم السؤال (صفر تسريب — ألزامية لكل سؤال):
 1) منع التسريب اللفظي: لا تضع في question المفردات المميزة للإجابة، ولا حكمها، ولا صياغتها الحرفيّة أو ما يعادلها لفظًا. إذا ظهرت الكلمة المفتاحية في السؤال، فالمستمع يخمّن ولا يتذكّر.
-2) منع الأسئلة الإيحائية: يُمنع افتتاح السؤال بـ«هل ...؟» متى كانت صياغته تلمّح إلى الجواب (مثل «هل يُعدّ كذا من نواقض كذا؟»). حوّله إلى سؤال تحليلي أو استذكاري مباشر.
-3) الأنماط الذكية للمتون الشرعية — اختر الأنسب لكل سؤال:
-   - استنباط الحكم أو الركن: اسأل عن الحكم أو الشرط أو الركن أو الناقض الخاص بحالة معيّنة دون تسميتها في السؤال (مثل: «ما الحكم المترتب على تعمّد ترك ركنٍ من أركان الصلاة كما قرّره المصنّف؟»).
-   - التمييز والفروق: اطلب التمييز بين مفاهيم متقاربة أو بيان الضابط الذي ذكره المصنّف الفارق بينهما.
-   - التطبيق والتمثيل: قدّم تعريفًا أو واقعة موجزة بصياغتك، واطلب اسم المفهوم أو حكمه كما في المتن.
+2) منع الأسئلة الإيحائية: لا تبدأ أي سؤال بـ«هل ...؟» متى كانت صياغته تلمّح إلى الجواب (مثل «هل يُعدّ كذا من نواقض كذا؟»)، ولا تستعمل صياغةً تُلمّح لـ«نعم/لا» أو تفترض الحكم. حوّل كل مثلها إلى سؤال تحليلي أو استذكاري مباشر يلزم التعلّم بالمعرفة لا بالتخمين.
+3) الأنماط الذكية للمتون الشرعية — اختر الأنسب لكل سؤال، من هذه الأربعة حصريًا:
+   - استنباط الحكم أو الشرط أو الركن: اسأل عن الحكم أو الشرط أو الركن أو الناقض الخاص بحالة معيّنة دون تسميتها في السؤال (مثل: «ما الحكم المترتب على تعمّد ترك ركنٍ من أركان الصلاة كما قرّره المصنّف؟»).
+   - التمييز بين المتشابهات: اطلب التمييز بين مفاهيم متقاربة أو بيان الضابط الفارق الذي ذكره المصنّف.
+   - التطبيق على مسألة مختصرة: قدّم تعريفًا أو واقعة موجزة بصياغتك، واطلب اسم المفهوم أو حكمه كما في المتن.
    - الاستحضار الموجّه: عند اختبار الحفظ، اطلب العدّة أو التفصيل كاملاً («اذكر الشروط الثلاثة التي اشترطها المصنّف لـ...») دون إطعام نصف كل فقرة في السؤال.
+   - تنويع إلزامي: وزّع الأسئلة على ثلاثة أنماط مختلفة على الأقل داخل المجموعة الواحدة، ولا تكرر النمط نفسه في كل الأسئلة.
 4) اقتران الإجابة: يبقى كل سؤال مقترنًا بـ answer النصي المرجعي حتى يُصحَّح دلاليًا؛ لا تغيّر الإجابة، ولا تجعل السؤال يتخطّى ما ورد في النص.
 
 قواعد صارمة:
@@ -109,6 +129,37 @@ function questionKey(type: string, question: string, answer: string): string {
   // Light normalization so whitespace/hamza variants don't duplicate rows.
   const norm = (value: string) => value.replace(/\s+/g, " ").trim();
   return `${type}|${norm(question)}|${norm(answer)}`;
+}
+
+/** Human-readable message from any thrown value (shared shape with grade-matn). */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+/**
+ * Salvage structured output when the model wrapped its JSON in markdown
+ * fences (```json ... ```), which is the one parse failure generateObject
+ * cannot retry away. Strips the fences, parses, and validates against the
+ * same schema before anything is trusted.
+ */
+function salvageGeneratedQuestions(error: unknown): z.infer<typeof generationSchema> | null {
+  if (!NoObjectGeneratedError.isInstance(error) || !error.text) return null;
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(error.text);
+  const raw = (fenced ? fenced[1] : error.text).trim();
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    const validated = generationSchema.safeParse(parsed);
+    return validated.success ? validated.data : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Reject question wording that copies the answer or a revealing phrase from it. */
@@ -189,6 +240,7 @@ function normalizeQuestions(
 async function reviewQuestions(
   questions: GeneratedMatnQuestion[],
   modelName: string,
+  googleProvider: ReturnType<typeof createGoogle>,
   deadline: number,
 ): Promise<GeneratedMatnQuestion[]> {
   if (questions.length === 0) return questions;
@@ -198,18 +250,23 @@ async function reviewQuestions(
     type: question.type,
     question: question.question,
     answer: question.answer,
+    // Machine flag: the lexical gate already proved this stem copies its
+    // answer. Handed to the reviewer so flagged stems get rewritten for sure.
+    machineFlagged: hasQuestionQualityIssue(question.question, question.answer),
   }));
 
   const revisedQuestions = new Map<number, string>();
-  const remaining = deadline - Date.now();
+  const remaining = Math.min(deadline - Date.now(), REVIEW_TIMEOUT_MS);
   if (remaining > 1_000) {
     try {
       const result = await generateObject({
-        model: google(modelName),
+        model: googleProvider(modelName),
         schema: zodSchema(questionRevisionSchema),
         system: QUESTION_REVIEW_PROMPT,
-        prompt: `راجع كل الأسئلة التالية من متن واحد، وأعد صياغة أي سؤال يكشف إجابته أو يبدأ بـ«هل» إيحائيًا أو يقتبس مفردات الإجابة، ولا تُخرج revision للأسئلة السليمة. أعِد كتابة السؤال فقط، مع الحفظ على نوعه وصلته بالمتن.\n\nالأسئلة:\n${JSON.stringify(reviewPayload)}`,
-        maxRetries: 1,
+        prompt: `راجع كل الأسئلة التالية من متن واحد. الأسئلة المعلّمة machineFlagged=true كشفتها بوابة آلية بأنها تنقل مفردات إجابتها أو اقتبسها؛ أعد صياغتها إجباريًا بلغة تلميحية لا تنقل أي مفردة من الإجابة. أما الأسئلة machineFlagged=false فلا تُخرج لها revision إلا إذا رأيت فيها تسريبًا أو سؤال «هل» إيحائيًا. أعِد كتابة السؤال فقط، مع الحفظ على نوعه وصلته بالمتن.\n\nالأسئلة:\n${JSON.stringify(reviewPayload)}`,
+        // Never retry, and never let the abort signal touch a retry delay
+        // (maxRetries 0 above) — this window only cuts a stalled review call.
+        maxRetries: 0,
         abortSignal: AbortSignal.timeout(remaining),
       });
       for (const revision of result.object.revisions) {
@@ -222,7 +279,8 @@ async function reviewQuestions(
         }
       }
     } catch (error) {
-      console.error("Generate Matn Question Review Error:", modelName, error);
+      // Review is best-effort: the lexical gate below still repairs stems.
+      console.error("GEMINI_GENERATION_ERROR: question review failed", { modelName, error });
     }
   }
 
@@ -259,61 +317,112 @@ export async function POST(request: Request) {
     });
     if (!matn) return NextResponse.json({ error: "المتن غير موجود" }, { status: 404 });
 
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    // Same trimmed key resolution as /api/grade-matn (both env names).
+    const apiKey = (
+      process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || ""
+    ).trim();
+    if (!apiKey) {
+      console.warn(
+        "GEMINI_GENERATION_CONFIG_ERROR: GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY is missing",
+      );
       return NextResponse.json(
         { error: "خدمة التوليد الذكي غير مهيأة حاليًا" },
         { status: 503 },
       );
     }
+    const googleProvider = createGoogle({ apiKey });
 
-    // Same failover strategy as grade-matn/transcribe.
-    const DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+    // Same failover strategy as grade-matn: the model that reliably answers
+    // goes FIRST. gemini-3.8-flash currently stalls on Google's side (repro
+    // 2026-11-14: it hung this very generation call for the full 50s budget,
+    // so the old config never reached the healthy model and always returned
+    // the 502 below). Restore 3.8 first without a redeploy via
+    // GENERATE_MATN_QUIZZES_MODEL_CHAIN=gemini-3.8-flash,gemini-3.5-flash-lite.
+    const DEFAULT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"];
     const override = (process.env.GENERATE_MATN_QUIZZES_MODEL_CHAIN ?? "")
       .split(",")
       .map((name) => name.trim())
       .filter(Boolean);
     const modelChain = override.length > 0 ? override : DEFAULT_MODELS;
 
-    // Hard budget under maxDuration=60 so exhausted attempts still return JSON.
-    const deadline = Date.now() + 50_000;
+    // Hard budget under maxDuration=30 so exhausted attempts still return JSON.
+    const deadline = Date.now() + DEADLINE_BUDGET_MS;
     let generated: z.infer<typeof generationSchema> | null = null;
     let generatedWithModel = modelChain[0];
+    let lastError: unknown = null;
 
-    for (const modelName of modelChain) {
+    for (const [index, modelName] of modelChain.entries()) {
       const remaining = deadline - Date.now();
       if (remaining <= 500) break;
+      const attemptCap = Math.min(
+        remaining,
+        index === 0 ? GEN_ATTEMPT_TIMEOUT_MS : FALLBACK_ATTEMPT_TIMEOUT_MS,
+      );
       try {
         const result = await generateObject({
-          model: google(modelName),
+          model: googleProvider(modelName),
           schema: zodSchema(generationSchema),
           system: SYSTEM_PROMPT,
           prompt: `عنوان المتن: ${matn.title}\nعدد الأسئلة المطلوب: ${questionCount}\nالأنواع المحددة فقط: ${selectedTypes.join(" / ")}\n\nنص المتن:\n${fullText}\n\nولّد ${questionCount} سؤالًا من هذا المتن باستخدام الأنواع المحددة فقط، ووزّعها بينها بالتساوي. يجب أن يظهر كل نوع محدد مرة واحدة على الأقل.`,
-          maxRetries: modelName === modelChain[0] ? 3 : 1,
-          abortSignal: AbortSignal.timeout(remaining),
+          // No SDK retries (same as grade-matn): a retry against a stalled
+          // model multiplies its wait and blows past maxDuration, and the
+          // abort signal must never be able to cancel a retry delay.
+          maxRetries: 0,
+          abortSignal: AbortSignal.timeout(attemptCap),
         });
         generated = result.object;
         generatedWithModel = modelName;
         break;
       } catch (error) {
-        console.error("Generate Matn Quizzes Error:", modelName, error);
+        lastError = error;
+        // Model produced text but wrapped/invalid JSON -> strip fences & parse.
+        const salvaged = salvageGeneratedQuestions(error);
+        if (salvaged) {
+          generated = salvaged;
+          generatedWithModel = modelName;
+          break;
+        }
+        console.error("GEMINI_GENERATION_ERROR:", { modelName, error });
       }
     }
 
     if (!generated) {
+      // Every model in the chain failed -> graceful JSON with sanitized details
+      // instead of masking everything behind a generic network message.
       return NextResponse.json(
-        { error: "تعذر الاتصال بخدمة التوليد الذكي، حاول مجددًا" },
+        {
+          error: "تعذر الاتصال بخدمة التوليد الذكي، حاول مجددًا",
+          details: getErrorMessage(lastError),
+        },
         { status: 502 },
       );
     }
 
-    let questions = normalizeQuestions(generated.questions, questionCount, selectedTypes);
+    // Validate structure explicitly before returning anything to the client.
+    const validatedGeneration = generationSchema.safeParse(generated);
+    if (!validatedGeneration.success) {
+      console.error(
+        "GEMINI_GENERATION_ERROR: invalid structure",
+        validatedGeneration.error.issues,
+      );
+      return NextResponse.json(
+        { error: "أعاد النموذج بيانات غير صالحة، حاول مجددًا" },
+        { status: 502 },
+      );
+    }
+
+    let questions = normalizeQuestions(
+      validatedGeneration.data.questions,
+      questionCount,
+      selectedTypes,
+    );
     if (questions.length === 0) {
       return NextResponse.json(
         { error: "لم يتمكن النموذج من استخراج أسئلة صالحة من هذا النص، حاول بنص مختلف" },
         { status: 502 },
       );
     }
-    questions = await reviewQuestions(questions, generatedWithModel, deadline);
+    questions = await reviewQuestions(questions, generatedWithModel, googleProvider, deadline);
 
     const missingTypes = selectedTypes.filter(
       (type) => !questions.some((question) => question.type === type),
@@ -327,7 +436,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ questions });
   } catch (error) {
-    console.error("Generate Matn Quizzes Error:", error);
+    console.error("GEMINI_GENERATION_ERROR:", error);
     return NextResponse.json(
       { error: "تعذر توليد الأسئلة حاليًا، حاول مجددًا" },
       { status: 500 },

@@ -6,7 +6,12 @@ export async function requireAdmin() {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
-    return { session: null, user: null, response: NextResponse.json({ error: "غير مصرح" }, { status: 403 }) };
+    // Not logged in at all -> 401 (distinct from a logged-in non-admin).
+    return {
+      session: null,
+      user: null,
+      response: NextResponse.json({ error: "يجب تسجيل الدخول" }, { status: 401 }),
+    };
   }
   // Fresh database check on every call: the JWT role is only a hint.
   // Demoted or disabled users lose admin API access immediately,
