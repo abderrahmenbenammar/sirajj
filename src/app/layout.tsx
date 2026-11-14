@@ -25,11 +25,14 @@ const notoNaskhArabic = localFont({
   display: "swap",
 });
 
-const samirMaghribi = localFont({
-  src: "../../public/fonts/Samir.Khouaja.Maghribi.ttf",
+const maghribiFont = localFont({
+  src: "../../public/fonts/Maghribi-Font.ttf",
   weight: "400",
   style: "normal",
-  variable: "--font-samir-maghribi",
+  // Deliberately NOT named "--font-maghribi": that name is the Tailwind theme
+  // key (--font-maghribi -> the font-maghribi utility in globals.css), and
+  // reusing it here would make the custom property self-referencing.
+  variable: "--font-maghribi-file",
   display: "swap",
 });
 
@@ -76,7 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       suppressHydrationWarning
-      className={`${notoNaskhArabic.variable} ${samirMaghribi.variable}`}
+      className={`${notoNaskhArabic.variable} ${maghribiFont.variable}`}
     >
       <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-sans">
         <ServiceWorkerRegister />
