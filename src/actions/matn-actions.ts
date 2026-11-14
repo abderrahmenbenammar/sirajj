@@ -5,8 +5,14 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { hasQuestionQualityIssue } from "@/lib/question-quality";
 
 export type MatnActionResult = { ok: true; id: string } | { ok: false; error: string };
+
+// Shared rejection for stems that leak their answer (quoted wording, or a
+// leading "هل ..." phrasing) — enforced on every manual/bulk quiz mutation.
+const QUESTION_QUALITY_ERROR =
+  "السؤال يكشف إجابةَه: لا تُكرَّر مفردات الإجابة داخل السؤال، ولا يبدأ السؤال بـ«هل» الإيحائي. أعِد صياغته كسؤال استذكاري أو تحليلي.";
 
 const matnSchema = z.object({
   title: z.string().trim().min(3, "عنوان المتن قصير جدًا").max(200, "عنوان المتن طويل جدًا"),
@@ -107,6 +113,9 @@ export async function createMatnQuiz(input: {
 
   const parsed = matnQuizSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+  if (hasQuestionQualityIssue(parsed.data.question, parsed.data.correctAnswer)) {
+    return { ok: false, error: QUESTION_QUALITY_ERROR };
+  }
 
   try {
     const matn = await prisma.matn.findUnique({
@@ -235,6 +244,9 @@ export async function updateMatnQuiz(
 
   const parsed = matnQuizUpdateSchema.safeParse(data);
   if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+  if (hasQuestionQualityIssue(parsed.data.question, parsed.data.correctAnswer)) {
+    return { ok: false, error: QUESTION_QUALITY_ERROR };
+  }
 
   try {
     const existing = await prisma.matnQuiz.findUnique({
@@ -326,6 +338,14 @@ export async function saveMatnQuizzes(input: {
 
   const parsed = saveQuizzesSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: validationError(parsed.error) };
+  // The generate route already repairs stems, but the admin can also save a
+  // hand-edited payload — the gate must hold on this path too.
+  const leaking = parsed.data.questions.findIndex((item) =>
+    hasQuestionQualityIssue(item.question, item.correctAnswer),
+  );
+  if (leaking >= 0) {
+    return { ok: false, error: `السؤال رقم ${leaking + 1}: ${QUESTION_QUALITY_ERROR}` };
+  }
 
   try {
     const matn = await prisma.matn.findUnique({

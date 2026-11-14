@@ -4,7 +4,7 @@ import { google } from "@ai-sdk/google";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
-import { normalizeArabicText } from "@/lib/text-normalization";
+import { hasQuestionQualityIssue } from "@/lib/question-quality";
 
 // Structured generation of a full question set can exceed the default budget.
 export const maxDuration = 60;
@@ -71,6 +71,16 @@ const SYSTEM_PROMPT = `أنت "مولّد أسئلة التسميع" — تُخ�
 3) mcq: اطرح سؤالًا محايدًا عن المعنى أو الحكم. أضف 4 خيارات: الإجابة الصحيحة هي answer حرفيًا + 3 مشتتات معقولة، وضع الإجابة الصحيحة في الخيارات فقط، لا في question.
 4) write: اطلب كتابة المقطع عبر وصف معناه أو موضوعه، من دون اقتباس بدايته أو ذكر كلماته المفتاحية التي تكشفه.
 
+معايير تصميم السؤال (صفر تسريب — ألزامية لكل سؤال):
+1) منع التسريب اللفظي: لا تضع في question المفردات المميزة للإجابة، ولا حكمها، ولا صياغتها الحرفيّة أو ما يعادلها لفظًا. إذا ظهرت الكلمة المفتاحية في السؤال، فالمستمع يخمّن ولا يتذكّر.
+2) منع الأسئلة الإيحائية: يُمنع افتتاح السؤال بـ«هل ...؟» متى كانت صياغته تلمّح إلى الجواب (مثل «هل يُعدّ كذا من نواقض كذا؟»). حوّله إلى سؤال تحليلي أو استذكاري مباشر.
+3) الأنماط الذكية للمتون الشرعية — اختر الأنسب لكل سؤال:
+   - استنباط الحكم أو الركن: اسأل عن الحكم أو الشرط أو الركن أو الناقض الخاص بحالة معيّنة دون تسميتها في السؤال (مثل: «ما الحكم المترتب على تعمّد ترك ركنٍ من أركان الصلاة كما قرّره المصنّف؟»).
+   - التمييز والفروق: اطلب التمييز بين مفاهيم متقاربة أو بيان الضابط الذي ذكره المصنّف الفارق بينهما.
+   - التطبيق والتمثيل: قدّم تعريفًا أو واقعة موجزة بصياغتك، واطلب اسم المفهوم أو حكمه كما في المتن.
+   - الاستحضار الموجّه: عند اختبار الحفظ، اطلب العدّة أو التفصيل كاملاً («اذكر الشروط الثلاثة التي اشترطها المصنّف لـ...») دون إطعام نصف كل فقرة في السؤال.
+4) اقتران الإجابة: يبقى كل سؤال مقترنًا بـ answer النصي المرجعي حتى يُصحَّح دلاليًا؛ لا تغيّر الإجابة، ولا تجعل السؤال يتخطّى ما ورد في النص.
+
 قواعد صارمة:
 - كل إجابة (answer) مأخوذة من النص المُعطى نفسه — لا تخترع ولا تلخّص ولا تغيّر صياغة المتن في الإجابة.
 - answer هو النص المرجعي الكامل. لا تكرر answer في question، ولا تضع فيه بدايته أو جملةً مرادفةً تكشف النص المطلوب.
@@ -80,17 +90,19 @@ const SYSTEM_PROMPT = `أنت "مولّد أسئلة التسميع" — تُخ�
 - اكتب نصوص الأسئلة بالعربية الفصحى البسيطة، وأعد العدد المطلوب من الأسئلة بالضبط (لا أكثر ولا أقل).
 - لا تتجاوز حدود النص المُعطى بأي سؤال.`;
 
-const QUESTION_REVIEW_PROMPT = `أنت مراجع تربوي دقيق لأسئلة حفظ المتون. أعد كتابة نصوص الأسئلة المشار إليها فقط، واترك الإجابات والأنواع والخيارات كما هي.
+const QUESTION_REVIEW_PROMPT = `أنت مراجع تربوي دقيق لأسئلة حفظ المتون. أعد كتابة نصوص الأسئلة التي تحتوي مشكلة فقط، واترك الإجابات والأنواع والخيارات كما هي. لا تُخرج revision لسؤال سليم.
 
-قواعد المراجعة:
-- لا تكشف answer داخل question، ولا تقتبس منه أربع كلمات متتابعة، ولا تضع تلميحًا يجعل الإجابة منسوخة أو ظاهرة.
+قواعد المراجعة (لا يُقبل سؤال إلا بعد تحقّقها كلها):
+- لا تكشف answer داخل question، ولا تكرر مفرداته المميزة أو حكمه، ولا تقتبس منه أربع كلمات متتابعة أو أكثر، ولا تضع تلميحًا يجعل الإجابة منسوخة أو ظاهرة.
+- لا تبدأ السؤال بـ«هل» إذا كانت الصياغة تلمّح إلى الجواب؛ حوّله إلى سؤال تحليلي مباشر (استنباط الحكم أو الركن، أو التمييز والفروق، أو التطبيق والتمثيل، أو الاستحضار الموجّه).
+- استخدم أنماطًا ذكية مناسبة للمتون: استنباط الحكم أو الركن، التمييز والفروق بين مفاهيم متقاربة، التطبيق والتمثيل بواقعة موجزة، الاستحضار الموجّه لطلب العدّة أو التفصيل دون إطعام بدايته.
 - write: اسأل عن المقطع من خلال موضوعه أو معناه دون اقتباس ألفاظه أو بدايته.
 - mcq: اسأل عن المعنى أو الحكم، واترك الإجابة الصحيحة ضمن الخيارات فقط.
 - reorder: واجهة الطالب تعرض الكلمات مبعثرة من answer؛ اجعل السؤال توجيهًا قصيرًا فقط.
 - fill_blank: واجهة الطالب تنشئ الفراغات من answer؛ اجعل السؤال توجيهًا أو سياقًا قصيرًا لا يعيد كلمات النص.
-- حافظ على صلة السؤال بالمتن، واجعله عربيًا واضحًا وطبيعيًا، ومتنوّعًا لا آليًا أو عامًا ما أمكن.
-- أعد مراجعة كل صياغة قبل إخراجها. إذا لم تستطع كتابة تلميح آمن، استخدم سؤالًا تعليميًا عامًا مناسبًا للنوع بدل نقل الإجابة.
-- أخرج revision لكل index مطلوب، ولا تُعد الإجابة أو أي حقل آخر.`;
+- حافظ على صلة السؤال بالمتن، واجعله عربيًا فصيحًا واضحًا ومتنوّعًا لا آليًا أو عامًا ما أمكن.
+- أعد مراجعة كل صياغة قبل إخراجها. إذا لم تستطع كتابة سؤال آمن، حوّله إلى سؤال توجيهي عام مناسب للنوع بدل نقل الإجابة.
+- أخرج revision لكل index مشكل فقط، ولا تُعد الإجابة أو أي حقل آخر.`;
 
 /** Cheap idempotency key shared with the saveMatnQuizzes action. */
 function questionKey(type: string, question: string, answer: string): string {
@@ -100,37 +112,8 @@ function questionKey(type: string, question: string, answer: string): string {
 }
 
 /** Reject question wording that copies the answer or a revealing phrase from it. */
-function revealsAnswer(question: string, answer: string): boolean {
-  const normalizedQuestion = normalizeArabicText(question);
-  const normalizedAnswer = normalizeArabicText(answer);
-  if (!normalizedQuestion || !normalizedAnswer) return false;
-
-  if (normalizedAnswer.length >= 8 && normalizedQuestion.includes(normalizedAnswer)) return true;
-
-  const questionWords = normalizedQuestion.split(" ");
-  const answerWords = normalizedAnswer.split(" ");
-  if (answerWords.length < 4) return false;
-
-  for (let answerIndex = 0; answerIndex <= answerWords.length - 4; answerIndex += 1) {
-    for (let questionIndex = 0; questionIndex <= questionWords.length - 4; questionIndex += 1) {
-      let matchingWords = 0;
-      while (
-        answerWords[answerIndex + matchingWords] === questionWords[questionIndex + matchingWords]
-      ) {
-        matchingWords += 1;
-        if (matchingWords >= 4) return true;
-        if (
-          answerIndex + matchingWords >= answerWords.length ||
-          questionIndex + matchingWords >= questionWords.length
-        ) {
-          break;
-        }
-      }
-    }
-  }
-
-  return false;
-}
+// The lexical gate now lives in @/lib/question-quality (shared with the
+// manual admin actions) and is consumed as hasQuestionQualityIssue below.
 
 function fallbackQuestion(type: z.infer<typeof matnQuizTypeSchema>): string {
   switch (type) {
@@ -195,22 +178,27 @@ function normalizeQuestions(
   return out;
 }
 
-/** Internally repair answer-revealing wording; never ask the admin to clean it up. */
+/**
+ * Semantic review pass over EVERY generated question (not only machine-flagged
+ * ones): the lexical gate can miss semantic leakage ("هل يُعدّ ... من ...؟" or
+ * a hint that paraphrases the ruling), so the model reads all stems and only
+ * returns revisions for the ones it judges revealing. Machine flags remain the
+ * safety net — any question still failing the gate after revision falls back
+ * to a neutral stem.
+ */
 async function reviewQuestions(
   questions: GeneratedMatnQuestion[],
   modelName: string,
   deadline: number,
 ): Promise<GeneratedMatnQuestion[]> {
-  const leakingQuestions = questions
-    .map((question, index) => ({
-      index,
-      type: question.type,
-      question: question.question,
-      answer: question.answer,
-    }))
-    .filter((item) => revealsAnswer(item.question, item.answer));
+  if (questions.length === 0) return questions;
 
-  if (leakingQuestions.length === 0) return questions;
+  const reviewPayload = questions.map((question, index) => ({
+    index,
+    type: question.type,
+    question: question.question,
+    answer: question.answer,
+  }));
 
   const revisedQuestions = new Map<number, string>();
   const remaining = deadline - Date.now();
@@ -220,12 +208,18 @@ async function reviewQuestions(
         model: google(modelName),
         schema: zodSchema(questionRevisionSchema),
         system: QUESTION_REVIEW_PROMPT,
-        prompt: `راجع وأعد صياغة السؤال المشار إليه في كل عنصر. حافظ على نوعه وهدفه، ولا تذكر الإجابة في نص السؤال.\n\nالأسئلة التي تحتاج مراجعة:\n${JSON.stringify(leakingQuestions)}`,
+        prompt: `راجع كل الأسئلة التالية من متن واحد، وأعد صياغة أي سؤال يكشف إجابته أو يبدأ بـ«هل» إيحائيًا أو يقتبس مفردات الإجابة، ولا تُخرج revision للأسئلة السليمة. أعِد كتابة السؤال فقط، مع الحفظ على نوعه وصلته بالمتن.\n\nالأسئلة:\n${JSON.stringify(reviewPayload)}`,
         maxRetries: 1,
         abortSignal: AbortSignal.timeout(remaining),
       });
       for (const revision of result.object.revisions) {
-        revisedQuestions.set(revision.index, revision.question.trim());
+        const question = questions[revision.index];
+        const text = revision.question.trim();
+        // Accept only a real, safe rewrite: never let a bad revision replace
+        // a good stem (or reintroduce leakage the gate can detect).
+        if (question && text.length >= 3 && !hasQuestionQualityIssue(text, question.answer)) {
+          revisedQuestions.set(revision.index, text);
+        }
       }
     } catch (error) {
       console.error("Generate Matn Question Review Error:", modelName, error);
@@ -233,12 +227,14 @@ async function reviewQuestions(
   }
 
   return questions.map((question, index) => {
-    if (!revealsAnswer(question.question, question.answer)) return question;
     const revision = revisedQuestions.get(index);
-    if (revision && !revealsAnswer(revision, question.answer)) {
+    if (revision && revision !== question.question) {
       return { ...question, question: revision };
     }
-    return { ...question, question: fallbackQuestion(question.type) };
+    if (hasQuestionQualityIssue(question.question, question.answer)) {
+      return { ...question, question: fallbackQuestion(question.type) };
+    }
+    return question;
   });
 }
 
