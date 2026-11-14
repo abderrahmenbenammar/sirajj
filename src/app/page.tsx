@@ -54,13 +54,13 @@ export default function HomePage() {
           <div className="absolute top-20 -start-20 w-72 h-72 bg-emerald-100/30 dark:bg-emerald-900/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 text-sm font-medium rounded-full mb-8 border border-emerald-200/50 dark:border-emerald-800/50">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 text-base font-normal rounded-full mb-8 border border-emerald-200/50 dark:border-emerald-800/50">
             <Sparkles size={14} />
             {t("أكاديمية تعليمية إسلامية متكاملة", "A comprehensive Islamic learning academy")}
           </div>
 
           <h1
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight font-maghribi"
+            className="text-4xl sm:text-5xl lg:text-6xl font-normal tracking-wide leading-[1.4] text-gray-900 dark:text-white mb-6 font-maghribi"
           >
             {t("رحلتك في طلب العلم", "Your Journey in Seeking Knowledge")}
             <br />
@@ -69,7 +69,7 @@ export default function HomePage() {
             </span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-10 leading-relaxed">
+          <p className="max-w-2xl mx-auto text-xl sm:text-2xl text-gray-600 dark:text-gray-400 mb-10 leading-loose">
             {t(
               "منصة تعليمية شاملة للعلوم الشرعية تقدم دورات متنوعة ومكتبة رقمية غنية بأقلام العلماء والباحثين.",
               "A comprehensive platform for Islamic sciences offering diverse courses and a rich digital library from scholars and researchers."
@@ -79,14 +79,14 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-lg rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
             >
               {t("استكشف الدورات", "Explore Courses")}
               {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
             </Link>
             <Link
               href="/library"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium text-lg rounded-xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 hover:-translate-y-0.5"
             >
               <BookOpen size={18} />
               {t("تصفح المكتبة", "Browse Library")}
@@ -108,8 +108,8 @@ export default function HomePage() {
                 <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 mb-3">
                   {stat.icon}
                 </div>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{stat.label}</div>
+                <div className="text-3xl font-medium text-gray-900 dark:text-white">{stat.value}</div>
+                <div className="text-base text-gray-500 dark:text-gray-400 mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -121,7 +121,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-12">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
+              <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 dark:text-white mb-3">
                 {t("الدورات المميزة", "Featured Courses")}
               </h2>
               <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -163,7 +163,7 @@ export default function HomePage() {
       <section className="py-20 sm:py-24 bg-white dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
+            <h2 className="text-3xl sm:text-4xl font-medium text-gray-900 dark:text-white mb-3">
               {t("المكتبة الرقمية", "Digital Library")}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto">
@@ -184,8 +184,8 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
                   {tab.icon}
                 </div>
-                <span className="text-2xl font-bold text-gray-900 dark:text-white">{tab.count}</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{tab.label}</span>
+                <span className="text-2xl font-medium text-gray-900 dark:text-white">{tab.count}</span>
+                <span className="text-base text-gray-500 dark:text-gray-400">{tab.label}</span>
               </Link>
             ))}
           </div>
@@ -207,7 +207,7 @@ export default function HomePage() {
               >
                 {t("ابدأ رحلتك في طلب العلم اليوم", "Start Your Knowledge Journey Today")}
               </h2>
-              <p className="text-white/95 text-lg mb-8 max-w-xl mx-auto">
+              <p className="text-white/95 text-xl leading-relaxed mb-8 max-w-xl mx-auto">
                 {t(
                   "انضم إلى آلاف الطلاب المتخصصين في العلوم الشرعية واحصل على وصول كامل لدوراتنا ومكتبتنا.",
                   "Join thousands of students specializing in Islamic sciences and get full access to our courses and library."
@@ -216,14 +216,14 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/auth/register"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-emerald-700 font-semibold rounded-xl hover:bg-emerald-50 transition-all duration-200 shadow-lg hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-emerald-700 font-medium text-lg rounded-xl hover:bg-emerald-50 transition-all duration-200 shadow-lg hover:-translate-y-0.5"
                 >
                   {t("سجل مجاناً", "Register Free")}
                   {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
                 </Link>
                 <Link
                   href="/about"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-500/20 text-white font-semibold rounded-xl hover:bg-emerald-500/30 border border-emerald-400/30 transition-all duration-200"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-500/20 text-white font-medium text-lg rounded-xl hover:bg-emerald-500/30 border border-emerald-400/30 transition-all duration-200"
                 >
                   {t("تعرف علينا أكثر", "Learn More About Us")}
                 </Link>
