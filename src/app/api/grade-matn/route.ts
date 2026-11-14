@@ -10,16 +10,22 @@ import { normalizeArabicText } from "@/lib/text-normalization";
 // This route uses Prisma through Auth.js and the rate limiter, so it must run
 // on Node.js rather than the deprecated Edge runtime.
 export const runtime = "nodejs";
-// Hobby plan allows up to 300s. Sized for the measured worst case: a single
-// attempt against an overloaded model took ~150s, so the fallback model must
-// still fit and our handler must return its own JSON. Below this cap Vercel
-// kills the invocation with a non-JSON platform error, which the frontend can
-// only surface as the generic "تعذر التصحيح حاليًا" message.
-export const maxDuration = 300;
+// Two attempts x ATTEMPT_TIMEOUT_MS (30s each) + auth/DB overhead fit well
+// inside 90s, so the handler always returns its own JSON. If this cap were
+// exceeded, Vercel would kill the invocation with a non-JSON platform error
+// that the frontend can only surface as the generic "تعذر التصحيح حاليًا".
+// (Hobby plan itself allows up to 300s — 90s is a deliberate choice.)
+export const maxDuration = 90;
 
 const PASS_THRESHOLD = 85;
 const MAX_TEXT_LENGTH = 2000;
 const MAX_AI_GRADES_PER_HOUR = 30;
+// Safety window for ONE model attempt. A model that stalls on Google's side
+// (measured 2026-11-14: gemini-3.8-flash hung for 303s without answering)
+// must be cut off well before maxDuration so the failover model still gets
+// its turn. Normal answers arrive in 1-15s, so 30s only ever cuts a
+// genuinely stalled connection.
+const ATTEMPT_TIMEOUT_MS = 30_000;
 
 const gradeResultSchema = z.object({
   isPassed: z
@@ -159,23 +165,27 @@ export async function POST(request: Request) {
     }
 
     const googleProvider = createGoogle({ apiKey });
-    // Failover chain: primary first, then fallback. Both must stay in the
-    // chain — Google often overloads a single model ("high demand"/503) while
-    // the other keeps serving (measured 2026-11-05: gemini-3.8-flash failed
-    // with 503/high-demand for minutes while gemini-3.5-flash-lite answered
-    // the same grading call in ~1.3s).
-    const DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+    // Failover chain: the model that reliably answers goes FIRST. As of
+    // 2026-11-14 gemini-3.8-flash stalls for minutes on Google's side
+    // (persistent "high demand"/503 incident since 2026-11-02 reported on
+    // the Google AI forum) while gemini-3.5-flash-lite answers the exact
+    // same grading call in ~1.3s. Once Google recovers 3.8-flash, restore
+    // it to first place without a redeploy by setting
+    // GRADE_MATN_MODEL_CHAIN=gemini-3.8-flash,gemini-3.5-flash-lite.
+    const DEFAULT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"];
     const override = (process.env.GRADE_MATN_MODEL_CHAIN ?? "")
       .split(",")
       .map((name) => name.trim())
       .filter(Boolean);
     const modelChain = override.length > 0 ? override : DEFAULT_MODELS;
 
-    // No abort signal, deadline, or Promise.race wraps the SDK call: grading
-    // must finish on the server even if the client disconnects (request.signal
-    // is deliberately never passed through). A manual timeout here only ever
-    // cancelled the SDK's internal retry delay — surfaced as "Delay was
-    // aborted". The platform's maxDuration above is the only hard cap.
+    // request.signal is deliberately never passed through, so grading still
+    // finishes when the client disconnects. Each attempt below gets its own
+    // AbortSignal.timeout: it only ever interrupts a STALLED connection (the
+    // failover loop then treats it like any other per-model failure), which
+    // cannot recreate the old "Delay was aborted" bug — that bug came from
+    // cancelling the SDK's internal RETRY delays, and maxRetries is 0 now,
+    // so there are no retry delays left to cancel.
     let object: GradeMatnResult | null = null;
     let lastError: unknown = null;
 
@@ -186,13 +196,12 @@ export async function POST(request: Request) {
           schema: zodSchema(gradeResultSchema),
           system: SYSTEM_PROMPT,
           prompt: `النص الصحيح:\n${cleanCorrect}\n\nإجابة الطالب:\n${cleanStudent}\n\nقيّم حفظ الطالب وأعد النتيجة.`,
-          // No SDK retries: a retry against a degraded model multiplies its
-          // slow failure (measured ~150s EACH) and blows past maxDuration,
-          // so Vercel kills the function with a non-JSON error. The chain
-          // itself is the retry — a failed model falls through to the next
-          // one instantly (permanent errors like 404/400 are not retried
-          // by the SDK either).
+          // No SDK retries: a retry against a stalled model multiplies its
+          // wait and blows past maxDuration, so Vercel would kill the
+          // function with a non-JSON error. The chain itself is the retry —
+          // a failed/timed-out model falls through to the next one instantly.
           maxRetries: 0,
+          abortSignal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
         });
         object = generated.object;
         break;
