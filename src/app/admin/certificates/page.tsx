@@ -74,11 +74,11 @@ export default function AdminCertificatesPage() {
                   <span className="block text-gray-900 dark:text-white truncate">
                     {cert.student.fullName} · {cert.course.titleAr}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {cert.certificateCode} · {new Date(cert.issueDate).toLocaleDateString("ar")}
                   </span>
                 </div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{cert.student.email}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{cert.student.email}</span>
               </div>
             ))}
           </div>

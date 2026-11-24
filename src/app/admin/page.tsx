@@ -171,7 +171,7 @@ export default function AdminDashboardPage() {
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-gray-900 dark:text-white">{t("آخر الدورات", "Latest courses")}</h2>
-                <Link href="/admin/courses" className="text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
+                <Link href="/admin/courses" className="text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
                   {t("عرض الكل", "View all")}
                 </Link>
               </div>
@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
                       className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
                     >
                       <span className="text-sm text-gray-900 dark:text-white truncate">{course.titleAr}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                      <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">
                         {course.lessons?.length ?? 0} {t("دروس", "lessons")}
                       </span>
                     </Link>
@@ -206,7 +206,7 @@ export default function AdminDashboardPage() {
                       className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
                     >
                       <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{item.text}</span>
-                      <span className="text-xs text-gray-400 shrink-0">{new Date(item.date).toLocaleDateString("ar")}</span>
+                      <span className="text-sm text-gray-400 shrink-0">{new Date(item.date).toLocaleDateString("ar")}</span>
                     </Link>
                   ))}
                 </div>

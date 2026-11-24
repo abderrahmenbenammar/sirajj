@@ -172,7 +172,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
         >
           <Wand2 size={14} />
           {t("إنشاء الأسئلة تلقائيًا بالذكاء الاصطناعي 🪄", "Auto-generate questions with AI 🪄")}
@@ -184,7 +184,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
             {t("إنشاء الأسئلة تلقائيًا بالذكاء الاصطناعي 🪄", "Auto-generate questions with AI 🪄")}
           </p>
 
-          <label htmlFor={`ai-fulltext-${matnId}`} className="mb-1 mt-3 block text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`ai-fulltext-${matnId}`} className="mb-1 mt-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t("نص المتن كاملًا", "Full matn text")}
           </label>
           <textarea
@@ -202,10 +202,10 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
           />
 
           <fieldset disabled={isPending} className="mt-3">
-            <legend className="mb-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+            <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
               {t("أنواع الأسئلة المطلوبة", "Question types to include")}
             </legend>
-            <label className="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-800 dark:border-violet-900 dark:bg-gray-900 dark:text-violet-300">
+            <label className="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm font-semibold text-violet-800 dark:border-violet-900 dark:bg-gray-900 dark:text-violet-300">
               <input
                 type="checkbox"
                 checked={selectedTypes.length === MATN_QUIZ_TYPES.length}
@@ -220,7 +220,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
               {TYPE_OPTIONS.map((option) => (
                 <label
                   key={option.value}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                 >
                   <input
                     type="checkbox"
@@ -239,14 +239,14 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
               ))}
             </div>
             {selectedTypes.length === 0 && (
-              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+              <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
                 {t("اختر نوعًا واحدًا على الأقل.", "Select at least one question type.")}
               </p>
             )}
           </fieldset>
 
           <div className="mt-2 flex items-center gap-2">
-            <label htmlFor={`ai-count-${matnId}`} className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor={`ai-count-${matnId}`} className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {t("عدد الأسئلة", "Question count")}
             </label>
             <select
@@ -293,7 +293,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
 
           {drafts.length > 0 && !isPending && (
             <div className="mt-3">
-              <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
+              <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
                 {t(`معاينة الأسئلة (${drafts.length}) — عدّل أو احذف قبل الحفظ:`, `Question preview (${drafts.length}) — edit or delete before saving:`)}
               </p>
               <ol className="mt-2 space-y-3">
@@ -303,14 +303,14 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
                     className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-xs font-extrabold text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-sm font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
                         {index + 1}
                       </span>
                       <select
                         aria-label={t("نوع السؤال", "Question type")}
                         value={draft.type}
                         onChange={(event) => changeType(draft, event.target.value as MatnQuizType)}
-                        className="admin-input w-auto py-1 text-xs"
+                        className="admin-input w-auto py-1 text-sm"
                       >
                         <option value="write">{t("كتابة حرية", "Free writing")}</option>
                         <option value="reorder">{t("ترتيب الكلمات", "Word reorder")}</option>
@@ -353,7 +353,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
                           placeholder={t("الخيارات — خيار واحد في كل سطر", "Options — one per line")}
                           className="admin-input mt-2"
                         />
-                        <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                           {t(
                             "أضف الإجابة الصحيحة ضمن الخيارات (4 خيارات مفضلة).",
                             "Include the correct answer among the options (4 options preferred).",
@@ -372,7 +372,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
               type="button"
               onClick={generate}
               disabled={isPending || fullText.trim().length < MIN_TEXT_LENGTH || selectedTypes.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {mode === "generate" && isPending ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -386,7 +386,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
               <button
                 type="button"
                 onClick={saveAll}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700"
               >
                 <Save size={14} />
                 {t(`حفظ الكل في قاعدة البيانات (${drafts.length})`, `Save all to database (${drafts.length})`)}
@@ -400,7 +400,7 @@ export default function GenerateMatnQuizzes({ matnId, initialText }: { matnId: s
                 setDrafts([]);
               }}
               disabled={isPending}
-              className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 disabled:opacity-50"
+              className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 disabled:opacity-50"
             >
               {t("إغلاق", "Close")}
             </button>

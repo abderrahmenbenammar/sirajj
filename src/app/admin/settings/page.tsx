@@ -49,7 +49,7 @@ export default function AdminSettingsPage() {
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
         <h2 className="font-bold text-gray-900 dark:text-white mb-2">{t("المسارات التعليمية", "Learning paths")}</h2>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           {t("المسارات الثلاثة ثابتة ولا يمكن تعديلها أو إضافتها.", "The three paths are fixed and can't be edited or extended.")}
         </p>
         {loading ? (
@@ -66,9 +66,9 @@ export default function AdminSettingsPage() {
             {COURSE_PATHS.map((key) => (
               <div key={key} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm">
                 <span className="flex-1 text-gray-900 dark:text-white">
-                  {t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)} <span className="text-xs text-gray-400" dir="ltr">{key}</span>
+                  {t(COURSE_PATH_LABELS[key].ar, COURSE_PATH_LABELS[key].en)} <span className="text-sm text-gray-400" dir="ltr">{key}</span>
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
                   {courses.filter((course) => course.path === key).length} {t("دورات", "courses")}
                 </span>
               </div>

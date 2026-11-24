@@ -240,7 +240,7 @@ export default function PwaInstallPrompt(): React.JSX.Element | null {
             <h2 id="pwa-install-title" className="truncate text-sm font-bold">
               {t("ثبّت تطبيق سراج", "Install SIRAJ")}
             </h2>
-            <p className="truncate text-xs text-emerald-100">
+            <p className="truncate text-sm text-emerald-100">
               {t("وصول أسرع إلى دروسك", "A quicker way to reach your lessons")}
             </p>
           </div>

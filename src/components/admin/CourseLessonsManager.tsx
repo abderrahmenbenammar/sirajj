@@ -159,9 +159,9 @@ export default function CourseLessonsManager({
         <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <Film size={16} className="text-emerald-600 dark:text-emerald-400" />
           {t("دروس الدورة", "Course lessons")}
-          <span className="text-xs font-normal text-gray-500 dark:text-gray-400">({items.length})</span>
+          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">({items.length})</span>
         </h4>
-        {saving && <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">{t("جارٍ حفظ الترتيب...", "Saving order...")}</span>}
+        {saving && <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{t("جارٍ حفظ الترتيب...", "Saving order...")}</span>}
       </div>
 
       {items.length === 0 ? (
@@ -200,31 +200,31 @@ export default function CourseLessonsManager({
                     </span>
                   </SirajTooltip>
 
-                  <span className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                  <span className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-sm font-bold">
                     {index + 1}
                   </span>
 
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{lesson.titleAr}</p>
-                    {lesson.titleEn && <p className="text-xs text-gray-500 dark:text-gray-400 truncate" dir="ltr">{lesson.titleEn}</p>}
+                    {lesson.titleEn && <p className="text-sm text-gray-500 dark:text-gray-400 truncate" dir="ltr">{lesson.titleEn}</p>}
                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      <span className="inline-flex items-center gap-1 text-sm px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                         <Film size={11} />
                         {videoLabel(lesson.videoUrl, t)}
                       </span>
                       {typeof lesson.videoDurationSeconds === "number" ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-1 text-sm px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400">
                           <Clock size={11} />
                           {formatShort(lesson.videoDurationSeconds)}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400">
+                        <span className="inline-flex items-center gap-1 text-sm px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400">
                           <Clock size={11} />
                           {t("بلا مدة", "No length")}
                         </span>
                       )}
                       {linked.length > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400">
+                        <span className="inline-flex items-center gap-1 text-sm px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400">
                           <GraduationCap size={11} />
                           {linked.length > 1 ? `${t("اختبارات", "Exams")} (${linked.length})` : t("اختبار", "Exam")}
                         </span>
@@ -251,7 +251,7 @@ export default function CourseLessonsManager({
         </ul>
       )}
 
-      <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+      <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
         {t("اسحب وأفلت لإعادة ترتيب الدروس — يُحفظ الترتيب تلقائيًا.", "Drag and drop to reorder lessons — the order is saved automatically.")}
       </p>
 

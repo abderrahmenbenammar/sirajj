@@ -66,7 +66,7 @@ export default function DurationEditor({
           <strong>{formatDurationDetailed(parsed)}</strong>
         )}
       </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
         {t("اترك الحقلين فارغين لتصبح المدة غير محددة.", "Leave both fields empty for an unspecified duration.")}
       </p>
     </div>

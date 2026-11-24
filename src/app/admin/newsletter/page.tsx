@@ -58,7 +58,7 @@ export default function AdminNewsletterPage() {
                 <span className="text-gray-900 dark:text-white truncate" dir="ltr">
                   {sub.email}
                 </span>
-                <span className="text-xs text-gray-400 shrink-0">{new Date(sub.subscribedAt).toLocaleDateString("ar")}</span>
+                <span className="text-sm text-gray-400 shrink-0">{new Date(sub.subscribedAt).toLocaleDateString("ar")}</span>
               </div>
             ))}
           </div>

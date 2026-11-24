@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-start text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                    <tr className="text-start text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
                       <th className="p-3 text-start">{t("الاسم", "Name")}</th>
                       <th className="p-3 text-start">{t("البريد", "Email")}</th>
                       <th className="p-3 text-start">{t("التسجيل", "Joined")}</th>
@@ -138,12 +138,12 @@ export default function AdminUsersPage() {
                         <td className="p-3">{new Date(subscriber.createdAt).toLocaleDateString("ar")}</td>
                         <td className="p-3">{subscriber._count.courseProgress}</td>
                         <td className="p-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-lg ${subscriber.role === "ADMIN" ? "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
+                          <span className={`text-sm px-2 py-0.5 rounded-lg ${subscriber.role === "ADMIN" ? "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
                             {subscriber.role}
                           </span>
                         </td>
                         <td className="p-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-lg ${subscriber.status === "ACTIVE" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"}`}>
+                          <span className={`text-sm px-2 py-0.5 rounded-lg ${subscriber.status === "ACTIVE" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"}`}>
                             {subscriber.status}
                           </span>
                         </td>
@@ -151,26 +151,26 @@ export default function AdminUsersPage() {
                           <div className="flex items-center gap-1">
                             {subscriber.role === "ADMIN" ? (
                               <SirajTooltip label={t("تحويل المشترك إلى دور طالب", "Convert the subscriber to a student role")} side="top">
-                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { role: "STUDENT" }, t("تحويل لطالب؟", "Convert to Student?"))} className="px-2 py-1 text-xs rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { role: "STUDENT" }, t("تحويل لطالب؟", "Convert to Student?"))} className="px-2 py-1 text-sm rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
                                   {t("تحويل لطالب", "Convert to Student")}
                                 </button>
                               </SirajTooltip>
                             ) : (
                               <SirajTooltip label={t("منح المشترك صلاحيات المشرف", "Grant the subscriber admin permissions")} side="top">
-                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { role: "ADMIN" }, t("ترقية لمشرف؟", "Promote to Admin?"))} className="px-2 py-1 text-xs rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30">
+                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { role: "ADMIN" }, t("ترقية لمشرف؟", "Promote to Admin?"))} className="px-2 py-1 text-sm rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30">
                                   {t("ترقية لمشرف", "Promote to Admin")}
                                 </button>
                               </SirajTooltip>
                             )}
                             {subscriber.status === "ACTIVE" ? (
                               <SirajTooltip label={t("منع هذا الحساب من تسجيل الدخول (يمكن التفعيل لاحقاً)", "Prevent this account from signing in (can re-enable later)")} side="top">
-                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { status: "DISABLED" }, t("تعطيل هذا الحساب؟", "Disable this account?"))} className="px-2 py-1 text-xs rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { status: "DISABLED" }, t("تعطيل هذا الحساب؟", "Disable this account?"))} className="px-2 py-1 text-sm rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                                   {t("تعطيل", "Disable")}
                                 </button>
                               </SirajTooltip>
                             ) : (
                               <SirajTooltip label={t("إعادة تفعيل تسجيل الدخول لهذا الحساب", "Re-enable sign-in for this account")} side="top">
-                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { status: "ACTIVE" }, t("تفعيل هذا الحساب؟", "Enable this account?"))} className="px-2 py-1 text-xs rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                                <button type="button" onClick={() => void updateSubscriber(subscriber.id, { status: "ACTIVE" }, t("تفعيل هذا الحساب؟", "Enable this account?"))} className="px-2 py-1 text-sm rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                                   {t("تفعيل", "Enable")}
                                 </button>
                               </SirajTooltip>
@@ -202,15 +202,15 @@ export default function AdminUsersPage() {
               </div>
               <div className="grid sm:grid-cols-3 gap-3 mb-6 text-sm">
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                  <span className="block text-xs text-gray-500 mb-1">{t("تاريخ التسجيل", "Joined")}</span>
+                  <span className="block text-sm text-gray-500 mb-1">{t("تاريخ التسجيل", "Joined")}</span>
                   {new Date(selectedSubscriber.createdAt).toLocaleDateString("ar")}
                 </div>
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                  <span className="block text-xs text-gray-500 mb-1">{t("المزوّد", "Provider")}</span>
+                  <span className="block text-sm text-gray-500 mb-1">{t("المزوّد", "Provider")}</span>
                   {selectedSubscriber.authProvider}
                 </div>
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                  <span className="block text-xs text-gray-500 mb-1">{t("الدروس المكتملة", "Completed lessons")}</span>
+                  <span className="block text-sm text-gray-500 mb-1">{t("الدروس المكتملة", "Completed lessons")}</span>
                   {selectedSubscriber.lessonCompletions.length}
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function AdminUsersPage() {
                   {selectedSubscriber.courseProgress.map((entry) => (
                     <div key={entry.course.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm">
                       <span className="text-gray-900 dark:text-white">{entry.course.titleAr}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
                         {entry.status} · {String(entry.completionPercentage)}%
                       </span>
                     </div>

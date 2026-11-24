@@ -400,7 +400,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
             <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25">
               <Sparkles size={28} />
             </span>
-            <h2 className="mt-5 text-xl font-extrabold text-gray-900 dark:text-white">
+            <h2 className="mt-5 text-xl font-medium text-gray-900 dark:text-white">
               {title || t("التسميع", "Recitation")}
             </h2>
             <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-base font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300">
@@ -432,7 +432,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
             className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-md dark:border-gray-800 dark:bg-gray-900 sm:p-6"
           >
             <div className="flex items-start gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-sm font-extrabold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-sm font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                 {currentIndex + 1}
               </span>
               <div className="min-w-0">
@@ -591,7 +591,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                         }`}
                       >
                         <span
-                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold ${
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-sm font-medium ${
                             selected
                               ? "bg-emerald-600 text-white"
                               : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
@@ -644,7 +644,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                       ? t("أحسنت! تم اجتياز الحفظ", "Passed — well done!")
                       : t("راجع إجابتك وصححها", "Review and correct your answer")}
                   </span>
-                  <span className="ms-auto text-2xl font-extrabold tabular-nums text-gray-900 dark:text-white">
+                  <span className="ms-auto text-2xl font-medium tabular-nums text-gray-900 dark:text-white">
                     <span dir="ltr">{result.score}%</span>
                   </span>
                 </div>
@@ -733,7 +733,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                     ? t("أحسنت! تم اجتياز الاختبار", "Passed — well done!")
                     : t("تحتاج مراجعة بعض الإجابات", "Some answers need review")}
                 </span>
-                <span className="text-2xl font-extrabold tabular-nums text-gray-900 dark:text-white">
+                <span className="text-2xl font-medium tabular-nums text-gray-900 dark:text-white">
                   <span dir="ltr">{overallScore}%</span>
                 </span>
               </div>
@@ -753,7 +753,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                     }`}
                   >
                     <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-medium ${
                         passed
                           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                           : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"

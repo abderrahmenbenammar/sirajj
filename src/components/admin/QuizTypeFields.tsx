@@ -56,7 +56,7 @@ export default function QuizTypeFields({
     <div>
       <label
         htmlFor={`${idPrefix}-type`}
-        className="mb-1 mt-2 block text-xs font-medium text-gray-700 dark:text-gray-300"
+        className="mb-1 mt-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         {t("نوع السؤال", "Question type")}
       </label>
@@ -77,7 +77,7 @@ export default function QuizTypeFields({
         <>
           <label
             htmlFor={`${idPrefix}-options`}
-            className="mb-1 mt-2 block text-xs font-medium text-gray-700 dark:text-gray-300"
+            className="mb-1 mt-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             {t("الخيارات — خيار واحد في كل سطر", "Options — one per line")}
           </label>
@@ -94,7 +94,7 @@ export default function QuizTypeFields({
             )}
             className="admin-input"
           />
-          <p className="mt-1 text-[11px] leading-5 text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
             {t(
               "يفضَّل أن تكون الإجابة الصحيحة واحدة من الخيارات؛ إن غابت تُضاف تلقائيًا.",
               "The correct answer should be one of the options; it is added automatically if missing.",
@@ -104,7 +104,7 @@ export default function QuizTypeFields({
       )}
 
       {type === "reorder" && (
-        <p className="mt-1 text-[11px] leading-5 text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
           {t(
             "ستُعرض كلمات النص الصحيح مبعثرة، والطالب يرتّبها بنقر.",
             "The words of the correct text will be shown scrambled; students tap them in order.",
@@ -113,7 +113,7 @@ export default function QuizTypeFields({
       )}
 
       {type === "fill_blank" && (
-        <p className="mt-1 text-[11px] leading-5 text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
           {t(
             "ستُحذف كلمات مفتاحية من النص تلقائيًا ليكملها الطالب.",
             "Key words will be automatically removed from the text for students to complete.",

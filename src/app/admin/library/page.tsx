@@ -170,11 +170,11 @@ export default function AdminLibraryPage() {
                 <Image src={libraryCoverPreview} alt={t("معاينة الغلاف", "Cover preview")} fill unoptimized sizes="80px" className="object-cover" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs px-2.5 py-1.5 rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 w-fit">
+                <label className="text-sm px-2.5 py-1.5 rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 w-fit">
                   {t("استبدال الصورة", "Replace image")}
                   <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => pickLibraryCover(e.target.files?.[0] ?? null)} />
                 </label>
-                <button type="button" onClick={() => pickLibraryCover(null)} className="text-xs px-2.5 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 w-fit">
+                <button type="button" onClick={() => pickLibraryCover(null)} className="text-sm px-2.5 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 w-fit">
                   {t("حذف الصورة", "Remove image")}
                 </button>
               </div>
@@ -232,7 +232,7 @@ export default function AdminLibraryPage() {
                         </div>
                       )}
                       <div className="flex flex-col gap-1">
-                        <label className="text-xs px-2 py-1 rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 w-fit">
+                        <label className="text-sm px-2 py-1 rounded-lg cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 w-fit">
                           {t(editCover.preview ? "استبدال الصورة" : "اختر صورة", editCover.preview ? "Replace image" : "Choose image")}
                           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => pickEditCover(e.target.files?.[0] ?? null)} />
                         </label>
@@ -240,7 +240,7 @@ export default function AdminLibraryPage() {
                           <button
                             type="button"
                             onClick={() => setEditCover((prev) => { if (prev.preview) URL.revokeObjectURL(prev.preview); return { file: null, preview: null, removeCover: true }; })}
-                            className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 w-fit"
+                            className="text-sm px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 w-fit"
                           >
                             {t("حذف الصورة", "Remove image")}
                           </button>
@@ -248,10 +248,10 @@ export default function AdminLibraryPage() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <button type="button" onClick={() => void saveLibraryEdit(item.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                      <button type="button" onClick={() => void saveLibraryEdit(item.id)} className="text-sm px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                         {t("حفظ", "Save")}
                       </button>
-                      <button type="button" onClick={() => { setEditingLibraryId(""); setEditCover({ file: null, preview: null, removeCover: false }); }} className="text-xs px-2 py-1 text-gray-500">
+                      <button type="button" onClick={() => { setEditingLibraryId(""); setEditCover({ file: null, preview: null, removeCover: false }); }} className="text-sm px-2 py-1 text-gray-500">
                         {t("إلغاء", "Cancel")}
                       </button>
                     </div>
@@ -259,7 +259,7 @@ export default function AdminLibraryPage() {
                 ) : (
                   <>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{item.titleAr}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {item.type} {item.authorName ? `· ${item.authorName}` : ""}
                     </p>
                     <div className="flex gap-1 mt-2">
@@ -270,11 +270,11 @@ export default function AdminLibraryPage() {
                           setEditCover({ file: null, preview: null, removeCover: false });
                           setLibraryDraft({ titleAr: item.titleAr, authorName: item.authorName ?? "", type: item.type, contentUrl: item.contentUrl, coverImageUrl: item.coverImageUrl ?? null });
                         }}
-                        className="text-xs px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="text-sm px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         {t("تعديل", "Edit")}
                       </button>
-                      <button type="button" onClick={() => void deleteLibraryItem(item.id)} className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                      <button type="button" onClick={() => void deleteLibraryItem(item.id)} className="text-sm px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                         {t("حذف", "Delete")}
                       </button>
                     </div>

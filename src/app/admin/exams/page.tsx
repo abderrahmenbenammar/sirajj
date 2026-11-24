@@ -269,13 +269,13 @@ export default function AdminExamsPage() {
               </span>
               <div>
                 <h2 className="font-bold text-gray-900 dark:text-white">{t("إضافة اختبار جديد", "Create a new exam")}</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t("املأ بيانات الاختبار ثم أضف الأسئلة والخيارات وحدد الإجابة الصحيحة لكل سؤال.", "Fill in the exam data, then add questions and options and mark the correct answer for each question.")}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t("املأ بيانات الاختبار ثم أضف الأسئلة والخيارات وحدد الإجابة الصحيحة لكل سؤال.", "Fill in the exam data, then add questions and options and mark the correct answer for each question.")}</p>
               </div>
             </div>
 
             <div className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs">1</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-sm">1</span>
                 {t("بيانات الاختبار", "Exam details")}
               </h3>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -300,7 +300,7 @@ export default function AdminExamsPage() {
 
             <div className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs">2</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-sm">2</span>
                 {t("الأسئلة والخيارات", "Questions and options")}
               </h3>
               <div className="space-y-3">
@@ -323,7 +323,7 @@ export default function AdminExamsPage() {
 
             <div className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-xs">3</span>
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white text-sm">3</span>
                 {t("الملخص والحفظ", "Summary and save")}
               </h3>
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3">
@@ -363,7 +363,7 @@ export default function AdminExamsPage() {
                   <div key={exam.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                     <button type="button" onClick={() => void loadExamDetail(exam.id)} className="min-w-0 text-start flex-1">
                       <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">{exam.titleAr}</span>
-                      <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <span className="block text-sm text-gray-500 dark:text-gray-400 truncate">
                         {exam.courseTitleAr}
                         {exam.lesson ? ` · ${exam.lesson.titleAr}` : ""} · {exam.questionCount} {t("أسئلة", "questions")} · {t("العلامة الكاملة", "Total mark")}: {exam.totalPoints} ·{" "}
                         {exam.available ? t("متاح", "Available") : t("غير مكتمل", "Incomplete")} · {exam.attemptCount} {t("محاولات", "attempts")}
@@ -414,10 +414,10 @@ export default function AdminExamsPage() {
                           <input value={questionDraft.questionTextEn} onChange={(e) => setQuestionDraft({ ...questionDraft, questionTextEn: e.target.value })} className="admin-input" />
                           <input type="number" min="1" value={questionDraft.points} onChange={(e) => setQuestionDraft({ ...questionDraft, points: e.target.value })} className="admin-input" />
                           <div className="flex gap-1">
-                            <button type="button" onClick={() => void saveQuestionEdit(question.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                            <button type="button" onClick={() => void saveQuestionEdit(question.id)} className="text-sm px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                               {t("حفظ", "Save")}
                             </button>
-                            <button type="button" onClick={() => setEditingQuestionId("")} className="text-xs px-2 py-1 text-gray-500">
+                            <button type="button" onClick={() => setEditingQuestionId("")} className="text-sm px-2 py-1 text-gray-500">
                               {t("إلغاء", "Cancel")}
                             </button>
                           </div>
@@ -432,11 +432,11 @@ export default function AdminExamsPage() {
                                 setEditingQuestionId(question.id);
                                 setQuestionDraft({ questionTextAr: question.questionTextAr, questionTextEn: question.questionTextEn, points: String(question.points) });
                               }}
-                              className="text-xs px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              className="text-sm px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
                               {t("تعديل", "Edit")}
                             </button>
-                            <button type="button" onClick={() => void deleteQuestion(question.id)} className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                            <button type="button" onClick={() => void deleteQuestion(question.id)} className="text-sm px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                               {t("حذف", "Delete")}
                             </button>
                           </span>
@@ -444,14 +444,14 @@ export default function AdminExamsPage() {
                       )}
                       <div className="mt-2 space-y-1.5">
                         {question.options.map((option) => (
-                          <div key={option.id} className="flex items-center gap-2 text-xs">
+                          <div key={option.id} className="flex items-center gap-2 text-sm">
                             {editingOptionId === option.id ? (
                               <>
                                 <input value={optionDraft} onChange={(e) => setOptionDraft(e.target.value)} className="admin-input flex-1 py-1" />
-                                <button type="button" onClick={() => void saveOptionEdit(option.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                                <button type="button" onClick={() => void saveOptionEdit(option.id)} className="text-sm px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                                   {t("حفظ", "Save")}
                                 </button>
-                                <button type="button" onClick={() => setEditingOptionId("")} className="text-xs px-2 py-1 text-gray-500">
+                                <button type="button" onClick={() => setEditingOptionId("")} className="text-sm px-2 py-1 text-gray-500">
                                   {t("إلغاء", "Cancel")}
                                 </button>
                               </>
@@ -466,11 +466,11 @@ export default function AdminExamsPage() {
                                     setEditingOptionId(option.id);
                                     setOptionDraft(option.optionTextAr);
                                   }}
-                                  className="text-xs px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  className="text-sm px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
                                   {t("تعديل", "Edit")}
                                 </button>
-                                <button type="button" onClick={() => void deleteOption(option.id)} className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                                <button type="button" onClick={() => void deleteOption(option.id)} className="text-sm px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                                   {t("حذف", "Delete")}
                                 </button>
                               </>

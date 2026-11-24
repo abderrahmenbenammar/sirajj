@@ -75,24 +75,24 @@ export default function CourseReferencesPicker({ value, onChange }: CourseRefere
     <div className="space-y-3">
       {/* Selected references */}
       <div>
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1.5">
           {t(`المراجع المختارة (${selected.length})`, `Selected references (${selected.length})`)}
         </p>
         {selected.length === 0 ? (
-          <p className="text-xs text-gray-400 dark:text-gray-500">{t("لا توجد مراجع مختارة بعد.", "No references selected yet.")}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t("لا توجد مراجع مختارة بعد.", "No references selected yet.")}</p>
         ) : (
           <ul className="space-y-1.5">
             {selected.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2">
                 <div className="min-w-0">
-                  <span className={`text-xs px-2 py-0.5 rounded-lg inline-block mb-1 ${TYPE_BADGE[item.type] ?? TYPE_BADGE.book}`}>
+                  <span className={`text-sm px-2 py-0.5 rounded-lg inline-block mb-1 ${TYPE_BADGE[item.type] ?? TYPE_BADGE.book}`}>
                     {t(libraryTypeLabel(item.type).ar, libraryTypeLabel(item.type).en)}
                   </span>
                   <p className="text-sm text-gray-900 dark:text-white truncate">
                     {item.titleAr}
                     {item.titleEn && <span className="text-gray-400"> · {item.titleEn}</span>}
                   </p>
-                  {item.authorName && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.authorName}</p>}
+                  {item.authorName && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{item.authorName}</p>}
                 </div>
                 <button
                   type="button"
@@ -137,7 +137,7 @@ export default function CourseReferencesPicker({ value, onChange }: CourseRefere
                     </span>
                     <span className="min-w-0">
                       <span className="block text-gray-900 dark:text-white truncate">{item.titleAr}{item.titleEn && <span className="text-gray-400"> · {item.titleEn}</span>}</span>
-                      <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      <span className="block text-sm text-gray-500 dark:text-gray-400">
                         {t(libraryTypeLabel(item.type).ar, libraryTypeLabel(item.type).en)}
                         {item.authorName ? ` · ${item.authorName}` : ""}
                       </span>

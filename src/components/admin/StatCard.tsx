@@ -21,7 +21,7 @@ export default function StatCard({
       <div className="min-w-0">
         <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{title}</p>
         <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-        {hint && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">{hint}</p>}
+        {hint && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">{hint}</p>}
       </div>
       <span className="shrink-0 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
         <Icon size={20} />

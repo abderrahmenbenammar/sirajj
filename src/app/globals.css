@@ -19,29 +19,36 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Base typography scale (SIRAJ — readability / low-vision accessibility)
+ * Base typography scale (SIRAJ — aggressive readability boost)
  * ---------------------------------------------------------------------------
- * The platform font (Maghribi-Font.ttf) is single-weight with a compact
- * x-height, so we raise the root size above the 16px default: 17.5px on
- * mobile, 19.5px on desktop (>=768px). Every rem-based Tailwind size scales
- * with it (text-base becomes ~17.5/19.5px), which enlarges body copy, cards,
- * nav links and forms site-wide without touching each component.
+ * Maghribi-Font.ttf has tall calligraphic ascenders/descenders, so the core
+ * glyph body reads ~40% smaller than standard fonts at the same px size.
+ * We push the root well above the 16px default so the whole rem scale jumps
+ * globally: 20px mobile (<768px), 22px tablet (>=768px), 24px desktop
+ * (>=1024px) — making text-base = 24px, text-sm = 21px, text-lg = 27px.
+ * Weights stay font-normal/font-medium so the thick strokes stay crisp.
  */
 @layer base {
   html {
     scroll-behavior: smooth;
-    font-size: 17.5px;
+    font-size: 20px;
   }
 
   @media (min-width: 768px) {
     html {
-      font-size: 19.5px;
+      font-size: 22px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 24px;
     }
   }
 
   body {
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    line-height: 1.85;
+    line-height: 1.9;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -50,7 +57,7 @@
 /* Dark-mode contrast lift (SIRAJ — readability / low-vision accessibility)
  * Mirrors the light-mode block below. Kept OUTSIDE @layer base on purpose:
  * unlayered rules beat Tailwind's utility layer, so these override the
- * .text-gray-*/.text-slate-* utilities they target. Elements that already
+ * .text-gray-* and .text-slate-* utilities they target. Elements that already
  * carry their own dark:text-* override (e.g. deliberately dim empty-state
  * icons) are excluded via the [class*="dark:text-"] guard. */
 .dark :is(.text-slate-400, .text-slate-500):not([class*="dark:text-"]) {

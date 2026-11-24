@@ -105,10 +105,10 @@ export default function AdminFaqsPage() {
                     <textarea value={faqDraft.answerAr} onChange={(e) => setFaqDraft({ ...faqDraft, answerAr: e.target.value })} className="admin-input" />
                     <input type="number" min="0" value={faqDraft.orderIndex} onChange={(e) => setFaqDraft({ ...faqDraft, orderIndex: e.target.value })} className="admin-input" />
                     <div className="flex gap-1">
-                      <button type="button" onClick={() => void saveFaqEdit(faq.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                      <button type="button" onClick={() => void saveFaqEdit(faq.id)} className="text-sm px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                         {t("حفظ", "Save")}
                       </button>
-                      <button type="button" onClick={() => setEditingFaqId("")} className="text-xs px-2 py-1 text-gray-500">
+                      <button type="button" onClick={() => setEditingFaqId("")} className="text-sm px-2 py-1 text-gray-500">
                         {t("إلغاء", "Cancel")}
                       </button>
                     </div>
@@ -123,11 +123,11 @@ export default function AdminFaqsPage() {
                           setEditingFaqId(faq.id);
                           setFaqDraft({ questionAr: faq.questionAr, answerAr: faq.answerAr, orderIndex: String(faq.orderIndex) });
                         }}
-                        className="text-xs px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="text-sm px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         {t("تعديل", "Edit")}
                       </button>
-                      <button type="button" onClick={() => void deleteFaq(faq.id)} className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                      <button type="button" onClick={() => void deleteFaq(faq.id)} className="text-sm px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                         {t("حذف", "Delete")}
                       </button>
                     </span>

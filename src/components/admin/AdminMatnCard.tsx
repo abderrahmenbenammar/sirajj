@@ -219,7 +219,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <HelpCircle size={13} />
             {matn.quizCount} {matn.quizCount === 1 ? "سؤال" : "أسئلة"}
           </span>
@@ -258,7 +258,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
           onSubmit={submitMatnEdit}
           className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/60"
         >
-          <label htmlFor={`matn-edit-title-${matn.id}`} className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`matn-edit-title-${matn.id}`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t("عنوان المتن", "Matn title")}
           </label>
           <input
@@ -271,7 +271,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
             onChange={(e) => setMatnTitle(e.target.value)}
             className="admin-input"
           />
-          <label htmlFor={`matn-edit-description-${matn.id}`} className="mb-1 mt-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`matn-edit-description-${matn.id}`} className="mb-1 mt-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t("نص المتن", "Matn text")}
           </label>
           <textarea
@@ -299,7 +299,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
               type="button"
               disabled={matnPending}
               onClick={() => setMatnEditing(false)}
-              className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400"
+              className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400"
             >
               {t("إلغاء", "Cancel")}
             </button>
@@ -344,7 +344,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
                   </SirajTooltip>
                 </div>
               </div>
-              <p className="mt-1 line-clamp-2 text-xs leading-6 text-gray-600 dark:text-gray-300">
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
                 {quiz.correctAnswer}
               </p>
 
@@ -353,7 +353,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
                   onSubmit={(event) => submitQuizEdit(event, quiz)}
                   className="mt-2 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900"
                 >
-                  <label htmlFor={`quiz-edit-question-${quiz.id}`} className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor={`quiz-edit-question-${quiz.id}`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t("السؤال/المقطع", "Question / passage")}
                   </label>
                   <input
@@ -366,7 +366,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
                     onChange={(e) => setQuizQuestion(e.target.value)}
                     className="admin-input"
                   />
-                  <label htmlFor={`quiz-edit-answer-${quiz.id}`} className="mb-1 mt-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor={`quiz-edit-answer-${quiz.id}`} className="mb-1 mt-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t("النص الصحيح", "Correct text")}
                   </label>
                   <textarea
@@ -399,7 +399,7 @@ export default function AdminMatnCard({ matn }: { matn: AdminMatn }) {
                       type="button"
                       disabled={quizPending}
                       onClick={() => setEditingQuizId(null)}
-                      className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400"
+                      className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400"
                     >
                       {t("إلغاء", "Cancel")}
                     </button>

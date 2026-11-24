@@ -292,8 +292,8 @@ export default function AdminCourseEditorPage() {
             }`}
           >
             {t(item.ar, item.en)}
-            {item.key === "content" && <span className="ms-1.5 text-xs opacity-80">({course.lessons.length})</span>}
-            {item.key === "exams" && <span className="ms-1.5 text-xs opacity-80">({courseExams.length})</span>}
+            {item.key === "content" && <span className="ms-1.5 text-sm opacity-80">({course.lessons.length})</span>}
+            {item.key === "exams" && <span className="ms-1.5 text-sm opacity-80">({courseExams.length})</span>}
           </button>
         ))}
       </div>
@@ -308,7 +308,7 @@ export default function AdminCourseEditorPage() {
             <span className="text-gray-600 dark:text-gray-300">
               {t("المدة الحالية", "Current duration")}: <strong>{formatDurationDetailed(course.durationSeconds ?? null)}</strong>
             </span>
-            <button type="button" disabled={calculatingDuration} onClick={() => void calculateCourseDuration(course.id)} className="text-xs px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 disabled:opacity-40">
+            <button type="button" disabled={calculatingDuration} onClick={() => void calculateCourseDuration(course.id)} className="text-sm px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 disabled:opacity-40">
               {calculatingDuration ? t("جارٍ الحساب…", "Calculating…") : t("حساب مدة الدورة", "Calculate course duration")}
             </button>
           </div>
@@ -330,7 +330,7 @@ export default function AdminCourseEditorPage() {
           <textarea placeholder={t("الوصف بالإنجليزية", "English description")} value={editForm.shortDescriptionEn} onChange={(e) => setEditForm({ ...editForm, shortDescriptionEn: e.target.value })} className="admin-input min-h-20" />
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
+              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
               <select required value={editForm.path} onChange={(e) => setEditForm({ ...editForm, path: e.target.value })} className="admin-input">
                 {COURSE_PATHS.map((key) => (
                   <option key={key} value={key}>
@@ -340,7 +340,7 @@ export default function AdminCourseEditorPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المعلم", "Instructor")}</label>
+              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المعلم", "Instructor")}</label>
               <div className="grid grid-cols-2 gap-2">
                 <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={editForm.instructorNameAr} onChange={(e) => setEditForm({ ...editForm, instructorNameAr: e.target.value })} className="admin-input" />
                 <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={editForm.instructorNameEn} onChange={(e) => setEditForm({ ...editForm, instructorNameEn: e.target.value })} className="admin-input" />
@@ -415,12 +415,12 @@ export default function AdminCourseEditorPage() {
             <div className="space-y-2">
               {courseExams.map((exam, index) => (
                 <div key={exam.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                  <span className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                  <span className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-sm font-bold">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{exam.titleAr}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                       {exam.lesson ? exam.lesson.titleAr : t("بدون درس مرتبط", "No linked lesson")} · {exam.questionCount} {t("أسئلة", "questions")} ·{" "}
                       {exam.available ? t("متاح", "Available") : t("غير مكتمل", "Incomplete")}
                     </p>
@@ -442,11 +442,11 @@ export default function AdminCourseEditorPage() {
           </h2>
           <div className="grid sm:grid-cols-2 gap-3 mb-4">
             <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("شهادات صادرة لهذه الدورة", "Certificates issued for this course")}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("شهادات صادرة لهذه الدورة", "Certificates issued for this course")}</p>
               <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{courseCerts.length}</p>
             </div>
             <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("محاولات الاختبارات", "Exam attempts")}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("محاولات الاختبارات", "Exam attempts")}</p>
               <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{totalAttempts}</p>
             </div>
           </div>
@@ -456,9 +456,9 @@ export default function AdminCourseEditorPage() {
                 <div key={cert.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm">
                   <div className="min-w-0">
                     <span className="block text-gray-900 dark:text-white truncate">{cert.student.fullName}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{cert.certificateCode} · {new Date(cert.issueDate).toLocaleDateString("ar")}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{cert.certificateCode} · {new Date(cert.issueDate).toLocaleDateString("ar")}</span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{cert.student.email}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{cert.student.email}</span>
                 </div>
               ))}
             </div>
@@ -473,21 +473,21 @@ export default function AdminCourseEditorPage() {
           <h2 className="font-bold text-gray-900 dark:text-white">{t("إعدادات الدورة", "Course settings")}</h2>
           <div className="grid sm:grid-cols-3 gap-3 text-sm">
             <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-              <span className="block text-xs text-gray-500 mb-1">{t("المسار", "Path")}</span>
+              <span className="block text-sm text-gray-500 mb-1">{t("المسار", "Path")}</span>
               <span className="text-gray-900 dark:text-white">{t(COURSE_PATH_LABELS[course.path as keyof typeof COURSE_PATH_LABELS]?.ar ?? course.path, COURSE_PATH_LABELS[course.path as keyof typeof COURSE_PATH_LABELS]?.en ?? course.path)}</span>
             </div>
             <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-              <span className="block text-xs text-gray-500 mb-1">{t("الدروس", "Lessons")}</span>
+              <span className="block text-sm text-gray-500 mb-1">{t("الدروس", "Lessons")}</span>
               <span className="text-gray-900 dark:text-white">{course.lessons.length}</span>
             </div>
             <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-              <span className="block text-xs text-gray-500 mb-1">{t("الاختبارات", "Exams")}</span>
+              <span className="block text-sm text-gray-500 mb-1">{t("الاختبارات", "Exams")}</span>
               <span className="text-gray-900 dark:text-white">{courseExams.length}</span>
             </div>
           </div>
           <div className="rounded-xl border border-red-200 dark:border-red-900/50 p-4">
             <h3 className="text-sm font-bold text-red-700 dark:text-red-400 mb-1">{t("منطقة الخطر", "Danger zone")}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t("حذف الدورة يزيل كل محتواها ودروسها واختباراتها.", "Deleting the course removes all of its content, lessons and exams.")}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t("حذف الدورة يزيل كل محتواها ودروسها واختباراتها.", "Deleting the course removes all of its content, lessons and exams.")}</p>
             <button
               type="button"
               onClick={() => void deleteCourse()}

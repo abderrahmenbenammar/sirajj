@@ -71,8 +71,8 @@ export default function Navbar() {
   return (
     <>
       <nav className="safe-top fixed top-0 inset-x-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-300/70 dark:border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-18">
+        <div className="max-w-[92rem] mx-auto px-4 lg:px-8">
+          <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-1 sm:gap-1.5 shrink-0" aria-label={t("سراج", "SIRAJ")}>
               <Image
@@ -80,33 +80,34 @@ export default function Navbar() {
                 alt={t("سراج", "SIRAJ")}
                 width={1254}
                 height={1254}
-                className="h-7 sm:h-9 min-[1200px]:h-10 w-auto object-contain shrink-0"
+                className="h-7 sm:h-8 lg:hidden w-auto object-contain shrink-0"
               />
               <Image
                 src="/siraj-wordmark.png"
                 alt=""
                 width={2048}
                 height={2048}
-                className="h-10 sm:h-12 min-[1200px]:h-14 aspect-[1284/742] w-auto object-cover object-center shrink-0"
+                className="h-9 sm:h-10 lg:h-12 aspect-[1284/742] w-auto object-cover object-center shrink-0"
               />
               <Image
                 src="/siraj-logo.png"
                 alt=""
                 width={1254}
                 height={1254}
-                className="h-7 sm:h-9 min-[1200px]:h-10 w-auto object-contain shrink-0"
+                className="h-7 sm:h-8 lg:hidden w-auto object-contain shrink-0"
               />
             </Link>
 
-            {/* Desktop Nav — single row, readable base size, no squeezed labels */}
-            <div className="hidden lg:flex items-center gap-4 whitespace-nowrap">
+            {/* Desktop Nav — single row at xl+ (root 24px needs ~1216px of room;
+                below xl the hamburger drawer carries these links) */}
+            <div className="hidden xl:flex items-center gap-2 whitespace-nowrap">
               {navLinks.map((link) => {
                 const isActive = link.matchPrefix ? pathname.startsWith(link.href) : pathname === link.href;
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`px-3 py-2 rounded-lg text-base font-medium whitespace-nowrap transition-all duration-200 ${
+                    className={`px-2.5 py-2 rounded-lg text-base font-medium whitespace-nowrap transition-all duration-200 ${
                       isActive
                         ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50"
                         : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50"
@@ -119,7 +120,7 @@ export default function Navbar() {
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 shrink-0">
               {/* Search */}
               <SirajTooltip label={t("البحث في الدورات والمكتبة", "Search courses and library")} side="bottom">
                 <button
@@ -170,7 +171,7 @@ export default function Navbar() {
                       <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
                         <User size={14} className="text-emerald-700 dark:text-emerald-400" />
                       </div>
-                      <span className="hidden sm:block text-base font-medium whitespace-nowrap text-gray-700 dark:text-gray-300 max-w-28 truncate">
+                      <span className="hidden sm:block text-base font-medium whitespace-nowrap text-gray-700 dark:text-gray-300 max-w-20 truncate">
                         {user?.name?.split(" ").slice(0, 2).join(" ")}
                       </span>
                     </button>
@@ -223,7 +224,7 @@ export default function Navbar() {
               <SirajTooltip label={t("فتح/إغلاق القائمة", "Open or close the menu")} side="bottom">
                 <button
                   onClick={() => setMobileOpen(!mobileOpen)}
-                  className="lg:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="xl:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   aria-label={t("القائمة", "Menu")}
                 >
                   {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -235,7 +236,7 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+          <div className="xl:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
             <div className="px-4 py-3 space-y-1">
               {navLinks.map((link) => {
                 const isActive = link.matchPrefix ? pathname.startsWith(link.href) : pathname === link.href;

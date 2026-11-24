@@ -152,7 +152,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           {!collapsed && (
             <span className="min-w-0">
               <span className="block text-sm font-bold text-gray-900 dark:text-white leading-tight">{t("سراج", "Siraj")}</span>
-              <span className="block text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{t("لوحة الإدارة", "Admin panel")}</span>
+              <span className="block text-sm text-gray-500 dark:text-gray-400 leading-tight">{t("لوحة الإدارة", "Admin panel")}</span>
             </span>
           )}
         </Link>
@@ -162,7 +162,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         {NAV.map((block, bi) => (
           <div key={bi}>
             {block.labelAr && !collapsed && (
-              <p className="px-3 mb-1.5 text-[11px] font-semibold text-gray-400 dark:text-gray-500">{t(block.labelAr, block.labelEn ?? "")}</p>
+              <p className="px-3 mb-1.5 text-sm font-semibold text-gray-400 dark:text-gray-500">{t(block.labelAr, block.labelEn ?? "")}</p>
             )}
             <ul className="space-y-1">
               {block.items.map((item) => {
@@ -197,7 +197,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <button
           type="button"
           onClick={toggleCollapsed}
-          className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
+          className="hidden lg:flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
           aria-label={t("طي القائمة", "Collapse menu")}
         >
           {collapsed ? <ChevronsRight size={16} className="rtl:rotate-180" /> : <ChevronsLeft size={16} className="rtl:rotate-180" />}

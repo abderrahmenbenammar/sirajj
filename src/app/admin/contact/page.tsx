@@ -66,9 +66,9 @@ export default function AdminContactPage() {
                   <span className="font-medium text-gray-900 dark:text-white truncate">
                     {item.subject} · {item.name}
                   </span>
-                  <span className="text-xs text-gray-400 shrink-0">{item.status}</span>
+                  <span className="text-sm text-gray-400 shrink-0">{item.status}</span>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.email}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{item.email}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{item.message}</p>
                 <div className="flex gap-1 mt-2">
                   {(["new", "read", "replied"] as const).map((status) => (
@@ -87,7 +87,7 @@ export default function AdminContactPage() {
                         type="button"
                         disabled={item.status === status}
                         onClick={() => void markMessage(item.id, status)}
-                        className="text-xs px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
+                        className="text-sm px-2 py-1 rounded-lg text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
                       >
                         {status}
                       </button>

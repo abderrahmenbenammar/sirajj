@@ -60,7 +60,7 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
         >
           <Plus size={14} />
           {t("إضافة سؤال تسميع", "Add a recitation question")}
@@ -70,7 +70,7 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
           onSubmit={submit}
           className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/60"
         >
-          <label htmlFor={`quiz-question-${matnId}`} className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`quiz-question-${matnId}`} className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t("السؤال/المقطع", "Question / passage")}
           </label>
           <input
@@ -84,7 +84,7 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
             placeholder={t("مثال: ما القاعدة الثانية؟", "e.g. What is the second rule?")}
             className="admin-input"
           />
-          <label htmlFor={`quiz-answer-${matnId}`} className="mb-1 mt-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={`quiz-answer-${matnId}`} className="mb-1 mt-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             {t("النص الصحيح", "Correct text")}
           </label>
           <textarea
@@ -114,7 +114,7 @@ export default function NewMatnQuizForm({ matnId }: { matnId: string }) {
               type="button"
               disabled={isPending || isSubmitting}
               onClick={() => setOpen(false)}
-              className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400"
+              className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400"
             >
               {t("إلغاء", "Cancel")}
             </button>

@@ -36,7 +36,7 @@ export default function QuestionCard({
           {t("السؤال", "Question")} {index + 1}
         </span>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+          <label className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
             {t("الدرجة", "Mark")}
             <input
               type="number"
@@ -101,7 +101,7 @@ export default function QuestionCard({
             )}
           </div>
         ))}
-        <button type="button" onClick={addOption} className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
+        <button type="button" onClick={addOption} className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline">
           <Plus size={13} />{t("إضافة خيار", "Add option")}
         </button>
       </div>

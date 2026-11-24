@@ -105,22 +105,22 @@ export default function AdminCategoriesPage() {
                   <>
                     <input value={categoryDraft.nameAr} onChange={(e) => setCategoryDraft({ ...categoryDraft, nameAr: e.target.value })} className="admin-input flex-1" />
                     <input value={categoryDraft.nameEn} onChange={(e) => setCategoryDraft({ ...categoryDraft, nameEn: e.target.value })} className="admin-input flex-1" />
-                    <button type="button" onClick={() => void saveCategoryEdit(category.id)} className="text-xs px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                    <button type="button" onClick={() => void saveCategoryEdit(category.id)} className="text-sm px-2 py-1 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                       {t("حفظ", "Save")}
                     </button>
-                    <button type="button" onClick={() => setEditingCategoryId("")} className="text-xs px-2 py-1 text-gray-500">
+                    <button type="button" onClick={() => setEditingCategoryId("")} className="text-sm px-2 py-1 text-gray-500">
                       {t("إلغاء", "Cancel")}
                     </button>
                   </>
                 ) : (
                   <>
                     <span className="flex-1 text-gray-900 dark:text-white">
-                      {t(category.nameAr, category.nameEn)} <span className="text-xs text-gray-400" dir="ltr">{category.slug}</span>
+                      {t(category.nameAr, category.nameEn)} <span className="text-sm text-gray-400" dir="ltr">{category.slug}</span>
                     </span>
-                    <button type="button" onClick={() => { setEditingCategoryId(category.id); setCategoryDraft({ nameAr: category.nameAr, nameEn: category.nameEn }); }} className="text-xs px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <button type="button" onClick={() => { setEditingCategoryId(category.id); setCategoryDraft({ nameAr: category.nameAr, nameEn: category.nameEn }); }} className="text-sm px-2 py-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
                       {t("تعديل", "Edit")}
                     </button>
-                    <button type="button" onClick={() => void deleteCategory(category)} className="text-xs px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                    <button type="button" onClick={() => void deleteCategory(category)} className="text-sm px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                       {t("حذف", "Delete")}
                     </button>
                   </>

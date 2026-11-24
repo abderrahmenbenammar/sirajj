@@ -164,7 +164,7 @@ export default function AdminCoursesPage() {
                   )}
                   <div className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">{course.titleAr}</span>
-                    <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <span className="block text-sm text-gray-500 dark:text-gray-400 truncate">
                       {course.instructorNameAr || course.instructorNameEn || t("بدون مدرّس", "No instructor")} ·{" "}
                       {t(COURSE_PATH_LABELS[course.path as keyof typeof COURSE_PATH_LABELS]?.ar ?? course.path, COURSE_PATH_LABELS[course.path as keyof typeof COURSE_PATH_LABELS]?.en ?? course.path)} ·{" "}
                       {course.lessons.length} {t("دروس", "lessons")} · {t("المدة", "Duration")}: {formatDurationShort(course.durationSeconds, t)}
@@ -174,7 +174,7 @@ export default function AdminCoursesPage() {
                     <SirajTooltip label={t("فتح بيانات الدورة لتعديلها", "Open the course data for editing")} side="top">
                       <Link
                         href={`/admin/courses/${course.id}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60"
                         aria-label={`${t("تعديل", "Edit")} ${course.titleAr}`}
                       >
                         <BookPlus size={14} />
@@ -184,7 +184,7 @@ export default function AdminCoursesPage() {
                     <SirajTooltip label={t("عرض الدورة", "View course")} side="top">
                       <Link
                         href={`/courses/${course.id}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                         aria-label={`${t("عرض", "View")} ${course.titleAr}`}
                       >
                         <Eye size={14} />
@@ -195,7 +195,7 @@ export default function AdminCoursesPage() {
                       <button
                         type="button"
                         onClick={() => void deleteCourse(course)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-950/60"
                         aria-label={`${t("حذف", "Delete")} ${course.titleAr}`}
                       >
                         <Trash2 size={14} />
@@ -223,7 +223,7 @@ export default function AdminCoursesPage() {
           <textarea placeholder={t("الوصف بالعربية", "Arabic description")} value={courseForm.shortDescriptionAr} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionAr: e.target.value })} className="admin-input min-h-20" />
           <textarea placeholder={t("الوصف بالإنجليزية", "English description")} value={courseForm.shortDescriptionEn} onChange={(e) => setCourseForm({ ...courseForm, shortDescriptionEn: e.target.value })} className="admin-input min-h-20" />
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المسار", "Path")}</label>
             <select required value={courseForm.path} onChange={(e) => setCourseForm({ ...courseForm, path: e.target.value })} className="admin-input">
               {COURSE_PATHS.map((key) => (
                 <option key={key} value={key}>
@@ -233,7 +233,7 @@ export default function AdminCoursesPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المعلم", "Instructor")}</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("المعلم", "Instructor")}</label>
             <div className="grid grid-cols-2 gap-2">
               <input placeholder={t("اسم المعلم بالعربية", "Instructor name (Arabic)")} value={courseForm.instructorNameAr} onChange={(e) => setCourseForm({ ...courseForm, instructorNameAr: e.target.value })} className="admin-input" />
               <input placeholder={t("اسم المعلم بالإنجليزية", "Instructor name (English)")} value={courseForm.instructorNameEn} onChange={(e) => setCourseForm({ ...courseForm, instructorNameEn: e.target.value })} className="admin-input" />
