@@ -61,9 +61,9 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
               {t("شهادة إتمام", "Completion Certificate")}
             </h1>
             <p className="text-base text-gray-400 uppercase tracking-wider mb-2">{t("تُشهد بأن", "This certifies that")}</p>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{certificate.studentName}</h2>
+            <h2 className="text-xl font-medium text-[#0276cc] mb-4">{certificate.studentName}</h2>
             <p className="text-base text-gray-400 uppercase tracking-wider mb-2">{t("قد أتم بنجاح دورة", "has successfully completed the course")}</p>
-            <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mb-6">
+            <h3 className="text-lg font-medium text-[#0276cc] mb-6">
               {t(certificate.course.titleAr, certificate.course.titleEn)}
             </h3>
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400">

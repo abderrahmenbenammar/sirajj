@@ -27,11 +27,11 @@ export const CERT_ZONES: {
   qr: { x: number; y: number; size: number };
   certNumber: CertTextZone;
 } = {
-  // Expanded safe zones so the requested 156pt/110pt fit for normal
-  // names; fit uses the true glyph bbox, not the fontSize line box, and
-  // width is the primary limiter — height only clips real ascenders.
-  studentName: { x: 482, y: 717, w: 1500, h: 240, fontSize: 146, minFontSize: 34, weight: 700, align: "center" },
-  courseName: { x: 82, y: 1015, w: 2300, h: 182, fontSize: 103, minFontSize: 32, weight: 700, align: "center" },
+  // Safe zones sized so normal names/titles fit at the reduced base sizes;
+  // fit uses the true glyph bbox, not the fontSize line box, and width is the
+  // primary limiter — height only clips real ascenders.
+  studentName: { x: 482, y: 717, w: 1500, h: 240, fontSize: 122, minFontSize: 34, weight: 700, align: "center" },
+  courseName: { x: 82, y: 1015, w: 2300, h: 182, fontSize: 86, minFontSize: 32, weight: 700, align: "center" },
   values: [
     { x: 965, y: 1313, w: 429, h: 47 },
     { x: 965, y: 1389, w: 418, h: 47 },
@@ -44,8 +44,10 @@ export const CERT_ZONES: {
 };
 
 // Color constants
-export const COLOR_STUDENT_NAME = "#074142";
-export const COLOR_COURSE_NAME = "#074142";
+// Brand blue #0276cc (rgb 2/255, 118/255, 204/255) for the two main dynamic
+// fields — student name and course title — in every renderer (PDF + image).
+export const COLOR_STUDENT_NAME = "#0276cc";
+export const COLOR_COURSE_NAME = "#0276cc";
 export const COLOR_GRADE = "#01AF66";
 export const COLOR_EVALUATION = "#01AF66";
 export const COLOR_DATE = "#01AF66";

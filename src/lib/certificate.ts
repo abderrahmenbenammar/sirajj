@@ -48,26 +48,27 @@ export const CERTIFICATE_LAYOUT = {
 
   // Student name — fills the visual gap between «تشهد…الطالب» (y=307) and
   // «قد أتم بنجاح دورة» (y=228): baseline 264 keeps ~12 pt clearance both
-  // sides at size 34. Long names shrink down to 18 pt before truncating.
+  // sides at size 28 (one step down from 34 so long names sit cleanly).
+  // Long names shrink down to 18 pt before truncating.
   studentName: {
     baselineY: 264,
-    fontSize: 34,
+    fontSize: 28,
     minFontSize: 18,
     centerX: 420.96, // page center
     maxWidth: 600,
-    color: COLOR_STUDENT_NAME, // #074142 — the template's dark teal ink
+    color: COLOR_STUDENT_NAME, // #0276cc — brand blue
   },
 
   // Course title — fills the gap between «قد أتم بنجاح دورة» (y=228) and
-  // «وأتم متطلبات…» (y=164): baseline 196 at size 26, shrinking for long
-  // titles (maxWidth keeps it clear of both printed lines).
+  // «وأتم متطلبات…» (y=164): baseline 196 at size 21 (one step down from
+  // 26), shrinking for long titles (maxWidth keeps it clear of both lines).
   courseTitle: {
     baselineY: 196,
-    fontSize: 26,
+    fontSize: 21,
     minFontSize: 15,
     centerX: 420.96,
     maxWidth: 640,
-    color: COLOR_COURSE_NAME, // #074142
+    color: COLOR_COURSE_NAME, // #0276cc — brand blue
   },
 
   // Completion date — third pill («تاريخ الإتمام:», pill y 73..95.5). The
