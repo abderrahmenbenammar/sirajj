@@ -156,11 +156,11 @@ export default function NotificationBell() {
         type="button"
         onClick={handleToggle}
         aria-label={t("الإشعارات", "Notifications")}
-        className="relative rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-emerald-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-emerald-400"
+        className="relative rounded-xl p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-emerald-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-emerald-400"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -end-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white shadow-sm ring-2 ring-white dark:ring-gray-900 animate-pulse">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1 text-[11px] font-bold leading-none text-white shadow-sm ring-2 ring-white dark:ring-gray-900 animate-pulse">
             {unreadCount > 9 ? "+9" : unreadCount}
           </span>
         )}

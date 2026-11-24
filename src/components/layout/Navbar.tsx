@@ -71,7 +71,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="safe-top fixed top-0 inset-x-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-300/70 dark:border-gray-800/50">
-        <div className="max-w-[92rem] mx-auto px-4 lg:px-8">
+        <div className="w-full max-w-[96rem] mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-1 sm:gap-1.5 shrink-0" aria-label={t("سراج", "SIRAJ")}>
@@ -80,7 +80,7 @@ export default function Navbar() {
                 alt={t("سراج", "SIRAJ")}
                 width={1254}
                 height={1254}
-                className="h-7 sm:h-8 lg:hidden w-auto object-contain shrink-0"
+                className="h-7 sm:h-8 lg:h-9 w-auto object-contain shrink-0"
               />
               <Image
                 src="/siraj-wordmark.png"
@@ -94,20 +94,21 @@ export default function Navbar() {
                 alt=""
                 width={1254}
                 height={1254}
-                className="h-7 sm:h-8 lg:hidden w-auto object-contain shrink-0"
+                className="h-7 sm:h-8 lg:h-9 w-auto object-contain shrink-0"
               />
             </Link>
 
-            {/* Desktop Nav — single row at xl+ (root 24px needs ~1216px of room;
-                below xl the hamburger drawer carries these links) */}
-            <div className="hidden xl:flex items-center gap-2 whitespace-nowrap">
+            {/* Desktop Nav — the 7 page links, enlarged for readability, single
+                row at xl+ (root 24px needs ~1216px; below xl the hamburger
+                drawer carries these links) */}
+            <div className="hidden xl:flex items-center gap-1.5 xl:gap-2.5 whitespace-nowrap">
               {navLinks.map((link) => {
                 const isActive = link.matchPrefix ? pathname.startsWith(link.href) : pathname === link.href;
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`px-2.5 py-2 rounded-lg text-base font-medium whitespace-nowrap transition-all duration-200 ${
+                    className={`px-3 py-1.5 rounded-lg text-base font-medium whitespace-nowrap transition-all duration-200 ${
                       isActive
                         ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50"
                         : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/50"
@@ -119,13 +120,14 @@ export default function Navbar() {
               })}
             </div>
 
-            {/* Right Actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Left Actions — utility controls stay compact (explicit px sizes
+                so the 24px root doesn't bloat them) */}
+            <div className="flex items-center gap-1.5 shrink-0">
               {/* Search */}
               <SirajTooltip label={t("البحث في الدورات والمكتبة", "Search courses and library")} side="bottom">
                 <button
                   onClick={() => setSearchOpen(true)}
-                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   aria-label={t("بحث", "Search")}
                 >
                   <Search size={18} />
@@ -136,7 +138,7 @@ export default function Navbar() {
               <SirajTooltip label={t("تبديل لغة الواجهة", "Switch interface language")} side="bottom">
                 <button
                   onClick={toggleLang}
-                  className="px-2.5 py-1.5 rounded-lg text-base font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                  className="px-2.5 py-1 rounded-lg text-[14px] font-medium leading-normal text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
                 >
                   {lang === "ar" ? "EN" : "عر"}
                 </button>
@@ -146,7 +148,7 @@ export default function Navbar() {
               <SirajTooltip label={t("التبديل بين الوضع الفاتح والداكن", "Switch between light and dark mode")} side="bottom">
                 <button
                   onClick={toggleTheme}
-                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   aria-label={t("تغيير السمة", "Toggle theme")}
                 >
                   {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
@@ -166,12 +168,12 @@ export default function Navbar() {
                   <SirajTooltip label={t("قائمة الحساب", "Account menu")} side="bottom">
                     <button
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
-                      <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-                        <User size={14} className="text-emerald-700 dark:text-emerald-400" />
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                        <User size={15} className="text-emerald-700 dark:text-emerald-400" />
                       </div>
-                      <span className="hidden sm:block text-base font-medium whitespace-nowrap text-gray-700 dark:text-gray-300 max-w-20 truncate">
+                      <span className="hidden sm:block text-[15px] font-medium leading-normal whitespace-nowrap text-gray-700 dark:text-gray-300">
                         {user?.name?.split(" ").slice(0, 2).join(" ")}
                       </span>
                     </button>
@@ -214,7 +216,7 @@ export default function Navbar() {
               ) : (
                 <Link
                   href="/auth/login"
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-base font-medium whitespace-nowrap rounded-lg transition-colors shadow-lg shadow-emerald-500/20"
+                  className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-[15px] font-medium leading-normal whitespace-nowrap rounded-lg transition-colors shadow-lg shadow-emerald-500/20"
                 >
                   {t("ابدأ رحلة التعلم", "Start Learning")}
                 </Link>
