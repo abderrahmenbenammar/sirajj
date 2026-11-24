@@ -10,7 +10,7 @@ import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import { type ExamListItem } from "@/lib/exams-api";
 import { fetchCourseCertificate, issueCertificate, type CourseCertificateState } from "@/lib/certificates-api";
 import { useEffect, useState } from "react";
-import { Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock } from "lucide-react";
+import { Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock, Download } from "lucide-react";
 import { libraryTypeLabel } from "@/lib/library-types";
 import { formatDurationDetailed } from "@/lib/certificates/layout";
 import SirajLoading from "@/components/ui/SirajLoading";
@@ -25,6 +25,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [certState, setCertState] = useState<CourseCertificateState | null>(null);
   const [issuing, setIssuing] = useState(false);
   const [issueError, setIssueError] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const [loadingCourse, setLoadingCourse] = useState(true);
 
   useEffect(() => {
@@ -58,6 +60,30 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       setIssueError(t("لا تستوفي شروط الشهادة بعد", "Certificate requirements not met yet"));
     } finally {
       setIssuing(false);
+    }
+  };
+
+  // Downloads the official-template PDF without navigating away: fetch the
+  // bytes, hand them to a temporary anchor, then revoke the object URL.
+  const downloadCertificatePdf = async () => {
+    setDownloadingPdf(true);
+    setPdfError("");
+    try {
+      const response = await fetch(`/api/certificates/course/${id}`);
+      if (!response.ok) throw new Error(`certificate-pdf-${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `siraj-certificate-${id}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setPdfError(t("تعذّر تحميل الشهادة، حاول مرة أخرى", "Could not download the certificate, please try again"));
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -250,12 +276,28 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   {t("شهادة الإتمام", "Completion Certificate")}
                 </h2>
                 {certState.certificate ? (
-                  <Link
-                    href={`/certificates/${certState.certificate.id}`}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors"
-                  >
-                    {t("عرض شهادتك", "View your certificate")} · {certState.certificate.certificateCode}
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/certificates/${certState.certificate.id}`}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-colors"
+                    >
+                      {t("عرض شهادتك", "View your certificate")} · {certState.certificate.certificateCode}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={downloadCertificatePdf}
+                      disabled={downloadingPdf}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-800 rounded-xl transition-colors"
+                    >
+                      <Download size={16} aria-hidden="true" />
+                      {downloadingPdf
+                        ? t("جارٍ التحميل...", "Downloading...")
+                        : t("تحميل الشهادة (PDF)", "Download certificate (PDF)")}
+                    </button>
+                    {pdfError && (
+                      <p className="w-full text-sm text-red-600 dark:text-red-400">{pdfError}</p>
+                    )}
+                  </div>
                 ) : certState.eligible ? (
                   <div>
                     <button

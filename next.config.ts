@@ -41,6 +41,16 @@ const nextConfig: NextConfig = {
   // Native canvas rasterizer for certificate images: must stay external so
   // the bundler does not try to inline its platform binary.
   serverExternalPackages: ["@napi-rs/canvas"],
+  // The certificate PDF route reads its blank template and Arabic font from
+  // disk at request time (fs), so tracing must ship them with the bundle.
+  // Keys are route-path globs (brackets escaped for picomatch); values are
+  // resolved from the project root.
+  outputFileTracingIncludes: {
+    "/api/certificates/course/\\[courseId\\]": [
+      "./public/templates/**",
+      "./public/fonts/NotoNaskhArabic-Regular.ttf",
+    ],
+  },
   async headers() {
     return [
       {
