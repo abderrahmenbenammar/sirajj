@@ -80,28 +80,28 @@ export default function Navbar() {
                 alt={t("سراج", "SIRAJ")}
                 width={1254}
                 height={1254}
-                className="h-7 sm:h-8 lg:h-9 w-auto object-contain shrink-0"
+                className="h-7 sm:h-8 lg:h-8 w-auto object-contain shrink-0"
               />
               <Image
                 src="/siraj-wordmark.png"
                 alt=""
                 width={2048}
                 height={2048}
-                className="h-9 sm:h-10 lg:h-12 aspect-[1284/742] w-auto object-cover object-center shrink-0"
+                className="h-9 sm:h-10 lg:h-10 aspect-[1284/742] w-auto object-cover object-center shrink-0"
               />
               <Image
                 src="/siraj-logo.png"
                 alt=""
                 width={1254}
                 height={1254}
-                className="h-7 sm:h-8 lg:h-9 w-auto object-contain shrink-0"
+                className="h-7 sm:h-8 lg:h-8 w-auto object-contain shrink-0"
               />
             </Link>
 
             {/* Desktop Nav — the 7 page links, enlarged for readability, single
                 row at xl+ (root 24px needs ~1216px; below xl the hamburger
                 drawer carries these links) */}
-            <div className="hidden xl:flex items-center gap-1.5 xl:gap-2.5 whitespace-nowrap">
+            <div className="hidden xl:flex items-center gap-1.5 xl:gap-2 whitespace-nowrap">
               {navLinks.map((link) => {
                 const isActive = link.matchPrefix ? pathname.startsWith(link.href) : pathname === link.href;
                 return (
@@ -122,7 +122,7 @@ export default function Navbar() {
 
             {/* Left Actions — utility controls stay compact (explicit px sizes
                 so the 24px root doesn't bloat them) */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               {/* Search */}
               <SirajTooltip label={t("البحث في الدورات والمكتبة", "Search courses and library")} side="bottom">
                 <button
@@ -138,7 +138,7 @@ export default function Navbar() {
               <SirajTooltip label={t("تبديل لغة الواجهة", "Switch interface language")} side="bottom">
                 <button
                   onClick={toggleLang}
-                  className="px-2.5 py-1 rounded-lg text-[14px] font-medium leading-normal text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                  className="px-2 py-1 rounded-lg text-[14px] font-medium leading-normal text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
                 >
                   {lang === "ar" ? "EN" : "عر"}
                 </button>
@@ -168,9 +168,9 @@ export default function Navbar() {
                   <SirajTooltip label={t("قائمة الحساب", "Account menu")} side="bottom">
                     <button
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                      <div className="w-[32px] h-[32px] rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
                         <User size={15} className="text-emerald-700 dark:text-emerald-400" />
                       </div>
                       <span className="hidden sm:block text-[15px] font-medium leading-normal whitespace-nowrap text-gray-700 dark:text-gray-300">
