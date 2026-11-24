@@ -59,7 +59,7 @@ export default function Footer() {
               </button>
             </form>
             {subscribeError && (
-              <p className="text-xs text-red-400 mt-2">{subscribeError}</p>
+              <p className="text-base text-red-400 mt-2">{subscribeError}</p>
             )}
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function Footer() {
       <div className="border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-500">
+            <p className="text-base text-gray-500">
               © {new Date().getFullYear()} {t("سراج | أكاديمية التعليم الإسلامي", "SIRAJ | Islamic Learning Academy")}. {t("جميع الحقوق محفوظة.", "All rights reserved.")}
             </p>
           </div>

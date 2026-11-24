@@ -76,7 +76,7 @@ export default function ProfilePage() {
                 {overview?.user.email || user?.email || ""}
               </p>
               {overview && (
-                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
+                <p className="text-base text-gray-400 mt-1 flex items-center gap-1.5">
                   <Calendar size={12} />
                   {t("عضو منذ", "Member since")} {new Date(overview.user.createdAt).toLocaleDateString("ar")}
                 </p>
@@ -97,7 +97,7 @@ export default function ProfilePage() {
                 {s.icon}
               </div>
               <div className="text-xl font-bold text-gray-900 dark:text-white">{s.value}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{s.label}</div>
+              <div className="text-base text-gray-500 dark:text-gray-400">{s.label}</div>
             </div>
           ))}
         </div>
@@ -124,11 +124,11 @@ export default function ProfilePage() {
                       <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${course.completion}%` }} />
                       </div>
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{course.completion}%</span>
+                      <span className="text-base text-emerald-600 dark:text-emerald-400 font-medium">{course.completion}%</span>
                     </div>
                   </div>
                   {course.status === "completed" ? (
-                    <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg">{t("مكتمل", "Done")}</span>
+                    <span className="text-base px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg">{t("مكتمل", "Done")}</span>
                   ) : (
                     <ArrowLeft size={14} className="text-gray-400" />
                   )}

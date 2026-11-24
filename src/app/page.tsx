@@ -54,13 +54,13 @@ export default function HomePage() {
           <div className="absolute top-20 -start-20 w-72 h-72 bg-emerald-100/30 dark:bg-emerald-900/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 text-base font-normal rounded-full mb-8 border border-emerald-200/50 dark:border-emerald-800/50">
-            <Sparkles size={14} />
+          <div className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 text-base md:text-lg font-normal whitespace-nowrap rounded-full mb-8 border border-emerald-200/50 dark:border-emerald-800/50">
+            <Sparkles size={16} />
             {t("أكاديمية تعليمية إسلامية متكاملة", "A comprehensive Islamic learning academy")}
           </div>
 
           <h1
-            className="text-4xl sm:text-5xl lg:text-6xl font-normal tracking-wide leading-[1.4] text-gray-900 dark:text-white mb-6 font-maghribi"
+            className="text-4xl sm:text-5xl md:text-6xl font-normal tracking-wide leading-tight text-gray-900 dark:text-white mb-6 font-maghribi"
           >
             {t("رحلتك في طلب العلم", "Your Journey in Seeking Knowledge")}
             <br />
@@ -69,7 +69,7 @@ export default function HomePage() {
             </span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-xl sm:text-2xl text-gray-600 dark:text-gray-400 mb-10 leading-loose">
+          <p className="max-w-2xl mx-auto text-xl md:text-2xl text-gray-700 dark:text-slate-200 mb-10 leading-relaxed">
             {t(
               "منصة تعليمية شاملة للعلوم الشرعية تقدم دورات متنوعة ومكتبة رقمية غنية بأقلام العلماء والباحثين.",
               "A comprehensive platform for Islamic sciences offering diverse courses and a rich digital library from scholars and researchers."
@@ -79,14 +79,14 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-lg rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-7 py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-lg md:text-xl whitespace-nowrap rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/30 hover:-translate-y-0.5"
             >
               {t("استكشف الدورات", "Explore Courses")}
               {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
             </Link>
             <Link
               href="/library"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium text-lg rounded-xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-7 py-3.5 bg-white dark:bg-gray-900 text-gray-700 dark:text-slate-200 font-medium text-lg md:text-xl whitespace-nowrap rounded-xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 hover:-translate-y-0.5"
             >
               <BookOpen size={18} />
               {t("تصفح المكتبة", "Browse Library")}

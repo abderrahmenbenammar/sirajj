@@ -38,7 +38,7 @@ interface LessonQAProps {
 const MAX_CONTENT_LENGTH = 2000;
 
 const textareaClass =
-  "w-full resize-y rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500";
+  "w-full resize-y rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500";
 
 function formatRelativeDate(iso: string, locale: string): string {
   const date = new Date(iso);
@@ -83,7 +83,7 @@ function EditForm({ value, onChange, onSave, onCancel, saving, error, rows }: Ed
           type="button"
           onClick={onSave}
           disabled={saving || value.trim().length === 0}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-medium rounded-lg transition-colors disabled:opacity-50"
         >
           {saving ? t("جارٍ الحفظ...", "Saving...") : t("حفظ", "Save")}
         </button>
@@ -91,12 +91,12 @@ function EditForm({ value, onChange, onSave, onCancel, saving, error, rows }: Ed
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-base font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
         >
           {t("إلغاء", "Cancel")}
         </button>
       </div>
-      {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="mt-2 text-base text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }
@@ -324,7 +324,7 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
 
   const authorBadge = (role: string) =>
     role === "ADMIN" ? (
-      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+      <span className="text-base px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
         {t("مشرف", "Admin")}
       </span>
     ) : null;
@@ -373,12 +373,12 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
           </h2>
         </div>
         {status === "ready" && (
-          <span className="text-xs px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+          <span className="text-base px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
             {questions.length}
           </span>
         )}
       </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+      <p className="text-base text-gray-500 dark:text-gray-400 mb-6">
         {t("اطرح سؤالك حول الدرس وسيصلك رد.", "Ask a question about this lesson and get an answer.")}
       </p>
 
@@ -393,22 +393,22 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
             className={textareaClass}
           />
           <div className="mt-3 flex items-center justify-between gap-3">
-            <span className="text-xs text-gray-400">
+            <span className="text-base text-gray-400">
               {draft.trim().length}/{MAX_CONTENT_LENGTH}
             </span>
             <button
               type="submit"
               disabled={submitting || draft.trim().length === 0}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-medium rounded-xl transition-colors disabled:opacity-50"
             >
               <Send size={15} />
               {submitting ? t("جارٍ النشر...", "Posting...") : t("إرسال السؤال", "Post question")}
             </button>
           </div>
-          {formError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{formError}</p>}
+          {formError && <p className="mt-2 text-base text-red-600 dark:text-red-400">{formError}</p>}
         </form>
       ) : (
-        <div className="mb-8 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+        <div className="mb-8 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 px-4 py-3 text-base text-gray-600 dark:text-gray-300">
           <Link
             href="/auth/login"
             className="text-emerald-700 dark:text-emerald-400 font-medium hover:underline"
@@ -419,18 +419,18 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
       )}
 
       {status === "loading" && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 py-4">{t("جارٍ التحميل...", "Loading...")}</p>
+        <p className="text-base text-gray-500 dark:text-gray-400 py-4">{t("جارٍ التحميل...", "Loading...")}</p>
       )}
 
       {status === "error" && (
         <div className="py-4 flex flex-col items-start gap-3">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-base text-gray-600 dark:text-gray-300">
             {t("تعذر تحميل الأسئلة", "Could not load questions")}
           </p>
           <button
             type="button"
             onClick={() => setReloadKey((key) => key + 1)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-base font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
           >
             <MessageCircle size={13} />
             {t("إعادة المحاولة", "Retry")}
@@ -439,7 +439,7 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
       )}
 
       {status === "ready" && questions.length === 0 && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+        <p className="text-base text-gray-500 dark:text-gray-400 py-4">
           {t("لا توجد أسئلة بعد. كن أول من يطرح سؤالًا!", "No questions yet. Be the first to ask!")}
         </p>
       )}
@@ -447,7 +447,7 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
       {status === "ready" && questions.length > 0 && (
         <div className="space-y-6">
           {deleteError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+            <p className="text-base text-red-600 dark:text-red-400">{deleteError}</p>
           )}
           {questions.map((question) => (
             <article
@@ -455,11 +455,11 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
               className="border-t border-gray-100 dark:border-gray-800 pt-6 first:border-t-0 first:pt-0"
             >
               <div className="flex items-center flex-wrap gap-2 mb-1.5">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                <span className="text-base font-medium text-gray-900 dark:text-white">
                   {question.user.name}
                 </span>
                 {authorBadge(question.user.role)}
-                <span className="text-xs text-gray-400">
+                <span className="text-base text-gray-400">
                   {formatRelativeDate(question.createdAt, locale)}
                 </span>
                 {actionButtons(question.user, question.id, null, question.content)}
@@ -476,7 +476,7 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                   rows={3}
                 />
               ) : (
-                <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line leading-relaxed">
+                <p className="text-base text-gray-700 dark:text-gray-200 whitespace-pre-line leading-relaxed">
                   {question.content}
                 </p>
               )}
@@ -489,7 +489,7 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                     setReplyDraft("");
                     setReplyError("");
                   }}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300"
+                  className="inline-flex items-center gap-1.5 text-base font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300"
                 >
                   <MessageCircle size={13} />
                   {t("رد", "Reply")}
@@ -501,11 +501,11 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                   {question.replies.map((reply) => (
                     <div key={reply.id}>
                       <div className="flex items-center flex-wrap gap-2 mb-1">
-                        <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                        <span className="text-base font-medium text-gray-900 dark:text-white">
                           {reply.user.name}
                         </span>
                         {authorBadge(reply.user.role)}
-                        <span className="text-xs text-gray-400">
+                        <span className="text-base text-gray-400">
                           {formatRelativeDate(reply.createdAt, locale)}
                         </span>
                         {actionButtons(reply.user, question.id, reply.id, reply.content)}
@@ -522,7 +522,7 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                           rows={2}
                         />
                       ) : (
-                        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                        <p className="text-base text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
                           {reply.content}
                         </p>
                       )}
@@ -548,7 +548,7 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                     <button
                       type="submit"
                       disabled={replySubmitting || replyDraft.trim().length === 0}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-medium rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Send size={13} />
                       {replySubmitting ? t("جارٍ النشر...", "Posting...") : t("إرسال الرد", "Post reply")}
@@ -556,12 +556,12 @@ export default function LessonQA({ lessonId, currentUser }: LessonQAProps) {
                     <button
                       type="button"
                       onClick={closeReply}
-                      className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      className="px-4 py-2 text-base font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     >
                       {t("إلغاء", "Cancel")}
                     </button>
                   </div>
-                  {replyError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{replyError}</p>}
+                  {replyError && <p className="mt-2 text-base text-red-600 dark:text-red-400">{replyError}</p>}
                 </form>
               )}
             </article>

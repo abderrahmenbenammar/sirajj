@@ -78,20 +78,20 @@ export default function CertificatesPage() {
                       <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center">
                         <Award size={20} className="text-white" />
                       </div>
-                      <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{t("شهادة إتمام", "Completion Certificate")}</span>
+                      <span className="text-base font-medium text-emerald-700 dark:text-emerald-400">{t("شهادة إتمام", "Completion Certificate")}</span>
                     </div>
 
-                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t("تُشهد بأن", "This certifies that")}</p>
+                    <p className="text-base text-gray-400 uppercase tracking-wider mb-2">{t("تُشهد بأن", "This certifies that")}</p>
                     <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>
                       {studentName || user?.name || ""}
                     </h2>
 
-                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t("قد أتم بنجاح دورة", "has successfully completed the course")}</p>
+                    <p className="text-base text-gray-400 uppercase tracking-wider mb-2">{t("قد أتم بنجاح دورة", "has successfully completed the course")}</p>
                     <h3 className="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-400 mb-6">
                       {t(cert.courseTitleAr, cert.courseTitleEn)}
                     </h3>
 
-                    <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex flex-wrap items-center gap-6 text-base text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1.5">
                         <User size={14} />
                         {t("سراج", "Siraj")}
@@ -113,17 +113,17 @@ export default function CertificatesPage() {
 
                 {/* Actions */}
                 <div className="px-8 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50">
-                  <span className="text-xs text-gray-400">
+                  <span className="text-base text-gray-400">
                     {t("رمز التحقق", "Verification code")}: {cert.certificateCode}
                   </span>
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/certificates/${cert.id}`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-base font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 transition-colors"
                     >
                       {t("عرض الشهادة", "View certificate")}
                     </Link>
-                    <a href={`/api/certificates/${cert.id}/pdf`} download={`siraj-certificate-${cert.certificateCode}.pdf`} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-lg transition-colors">
+                    <a href={`/api/certificates/${cert.id}/pdf`} download={`siraj-certificate-${cert.certificateCode}.pdf`} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-base font-medium rounded-lg transition-colors">
                       <Download size={14} />
                       {t("تحميل الشهادة PDF", "Download Certificate PDF")}
                     </a>

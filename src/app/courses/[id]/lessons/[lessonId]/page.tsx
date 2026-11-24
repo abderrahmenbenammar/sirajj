@@ -152,7 +152,7 @@ export default function LessonPage({
     return (
       <div className="py-8 sm:py-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-8">
+          <div className="flex items-center gap-2 text-base text-gray-500 dark:text-gray-400 mb-8">
             <Link href="/courses" className="hover:text-emerald-600 dark:hover:text-emerald-400">{t("الدورات", "Courses")}</Link>
             <span>/</span>
             <Link href={`/courses/${id}`} className="hover:text-emerald-600 dark:hover:text-emerald-400">{t(course.title, course.titleEn)}</Link>
@@ -168,7 +168,7 @@ export default function LessonPage({
               {t("يجب اجتياز الاختبار للمتابعة قبل فتح هذا الدرس.", "You must pass the exam to continue before this lesson unlocks.")}
             </p>
             {lockedInfo.requiredExam && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+              <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
                 {t("الاختبار المطلوب", "Required exam")}: {t(lockedInfo.requiredExam.titleAr, lockedInfo.requiredExam.titleEn)}
               </p>
             )}
@@ -215,7 +215,7 @@ export default function LessonPage({
     <div className="py-8 sm:py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-8">
+        <div className="flex items-center gap-2 text-base text-gray-500 dark:text-gray-400 mb-8">
           <Link href="/courses" className="hover:text-emerald-600 dark:hover:text-emerald-400">{t("الدورات", "Courses")}</Link>
           <span>/</span>
           <Link href={`/courses/${id}`} className="hover:text-emerald-600 dark:hover:text-emerald-400">{t(course.title, course.titleEn)}</Link>
@@ -297,16 +297,16 @@ export default function LessonPage({
                       <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
                         <Play size={32} className="text-white ms-1" />
                       </div>
-                      <span className="text-sm text-gray-400">
+                      <span className="text-base text-gray-400">
                         {t(lesson.title, lesson.titleEn)}
                       </span>
-                      <span className="text-xs text-gray-500">{t("لا يوجد فيديو لهذا الدرس بعد", "No video available for this lesson yet")}</span>
+                      <span className="text-base text-gray-500">{t("لا يوجد فيديو لهذا الدرس بعد", "No video available for this lesson yet")}</span>
                     </div>
                   </div>
                 )}
               </div>
               {embedUrl && (
-                <p className="-mt-4 mb-8 text-sm text-gray-500 dark:text-gray-400">
+                <p className="-mt-4 mb-8 text-base text-gray-500 dark:text-gray-400">
                   {t("إذا لم يعمل التشغيل داخل الصفحة، افتح الفيديو مباشرة على YouTube.", "If playback does not work here, open the video directly on YouTube.")} {" "}
                   <a
                     href={getWatchUrl(videoUrl!)}
@@ -339,7 +339,7 @@ export default function LessonPage({
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {t(lesson.title, lesson.titleEn)}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-base text-gray-500 dark:text-gray-400 mt-0.5">
                 {lesson.duration}{instructorName ? ` · ${instructorName}` : ""}
               </p>
             </div>
@@ -369,7 +369,7 @@ export default function LessonPage({
                 </p>
                 <div className="mt-6 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
                   <FileText size={24} className="text-emerald-500 mb-3" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-base text-gray-600 dark:text-gray-400">
                     {t("انقر هنا لقراءة النص الكامل", "Click here to read the full text")}
                   </p>
                 </div>
@@ -419,7 +419,7 @@ export default function LessonPage({
                 {t("سجل الدخول لتسجيل إتمام الدرس", "Sign in to track lesson completion")}
               </Link>
             )}
-            {completeError && <p className="text-sm text-red-600 dark:text-red-400">{completeError}</p>}
+            {completeError && <p className="text-base text-red-600 dark:text-red-400">{completeError}</p>}
           </div>
         </div>
 
@@ -432,7 +432,7 @@ export default function LessonPage({
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{t("اختبار الدرس", "Lesson Exam")}</h2>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <p className="text-base text-gray-500 dark:text-gray-400 mb-6">
               {t("يجب اجتياز الاختبار للمتابعة", "You must pass the exam to continue")}
             </p>
             {isAuthenticated ? (
@@ -451,7 +451,7 @@ export default function LessonPage({
               </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
                   {exams.map((exam) => `${t(exam.titleAr, exam.titleEn)} (${t("النجاح من", "Pass at")} ${exam.passingScorePercentage}%)`).join(" · ")}
                 </p>
                 <Link
@@ -470,7 +470,7 @@ export default function LessonPage({
           {prevLesson ? (
             <Link
               href={`/courses/${id}/lessons/${prevLesson.id}`}
-              className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
+              className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-base font-medium text-gray-700 dark:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
             >
               {lang === "ar" ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
               {t(prevLesson.title, prevLesson.titleEn)}
@@ -480,7 +480,7 @@ export default function LessonPage({
             examPassed ? (
               <Link
                 href={`/courses/${id}/lessons/${nextLesson.id}`}
-                className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+                className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-base font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
               >
                 {t(nextLesson.title, nextLesson.titleEn)}
                 {lang === "ar" ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
@@ -488,7 +488,7 @@ export default function LessonPage({
             ) : (
               <a
                 href="#lesson-exam"
-                className="flex items-center gap-2 px-5 py-3 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-sm font-medium rounded-xl border border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                className="flex items-center gap-2 px-5 py-3 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-base font-medium rounded-xl border border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
               >
                 <Lock size={16} />
                 {t("يجب اجتياز الاختبار للمتابعة", "You must pass the exam to continue")}
@@ -497,7 +497,7 @@ export default function LessonPage({
           ) : (
             <Link
               href={`/courses/${id}`}
-              className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-colors"
+              className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 text-white text-base font-medium rounded-xl transition-colors"
             >
               {t("العودة للدورة", "Back to Course")}
               {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
@@ -513,22 +513,22 @@ export default function LessonPage({
               <Link
                 key={item.id}
                 href={`/courses/${id}/lessons/${item.id}`}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base transition-colors ${
                   item.id === lessonId
                     ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-medium"
                     : "hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400"
                 }`}
               >
-                <span className="w-6 text-center text-xs font-medium">{i + 1}</span>
+                <span className="w-6 text-center text-base font-medium">{i + 1}</span>
                 {getTypeIcon(item.type)}
                 <span className="flex-1">{t(item.title, item.titleEn)}</span>
                 {item.hasExam && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
+                  <span className="text-base px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
                     {t("اختبار مطلوب", "Exam required")}
                   </span>
                 )}
                 {item.locked && <Lock size={14} className="text-gray-400 shrink-0" />}
-                <span className="text-xs text-gray-400">{item.duration}</span>
+                <span className="text-base text-gray-400">{item.duration}</span>
               </Link>
             ))}
           </div>

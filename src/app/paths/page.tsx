@@ -31,7 +31,7 @@ export default function PathsPage() {
         <div className="max-w-2xl mb-10">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-3">
             <Route size={20} />
-            <span className="text-sm font-semibold">{t("رحلة التعلم", "Learning Journey")}</span>
+            <span className="text-base font-medium">{t("رحلة التعلم", "Learning Journey")}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
             {t("المسارات التعليمية", "Learning Paths")}
@@ -58,14 +58,14 @@ export default function PathsPage() {
                       <BookOpen size={22} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-emerald-300/80">{t(`المسار ${index + 1}`, `Path ${index + 1}`)}</p>
+                      <p className="text-base font-medium uppercase tracking-wider text-gray-600 dark:text-emerald-300/80">{t(`المسار ${index + 1}`, `Path ${index + 1}`)}</p>
                       <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t(group.label.ar, group.label.en)}</h2>
-                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{group.courses.length} {t("دورات", "courses")}</p>
+                      <p className="mt-1 text-base text-gray-600 dark:text-gray-400">{group.courses.length} {t("دورات", "courses")}</p>
                     </div>
                   </div>
                   <Link
                     href={`/courses?path=${group.key}`}
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white bg-white/80 dark:bg-gray-900/60 border border-white/70 dark:border-gray-800/60 rounded-xl px-4 py-2 hover:bg-white dark:hover:bg-gray-900 transition-colors shrink-0"
+                    className="inline-flex items-center gap-2 text-base font-medium text-gray-900 dark:text-white bg-white/80 dark:bg-gray-900/60 border border-white/70 dark:border-gray-800/60 rounded-xl px-4 py-2 hover:bg-white dark:hover:bg-gray-900 transition-colors shrink-0"
                   >
                     {t("تصفح الدورات", "Browse courses")}
                     {lang === "ar" ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
@@ -83,7 +83,7 @@ export default function PathsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-gray-900 dark:text-white truncate">{t(course.title, course.titleEn)}</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{instructorName ? `${instructorName} · ` : ""}{course.lessons} {t("درس", "lessons")}</p>
+                            <p className="text-base text-gray-500 dark:text-gray-400 mt-1">{instructorName ? `${instructorName} · ` : ""}{course.lessons} {t("درس", "lessons")}</p>
                           </div>
                           {lang === "ar" ? <ArrowLeft size={18} /> : <ArrowRight size={18} />}
                         </div>
@@ -92,7 +92,7 @@ export default function PathsPage() {
                       return <Link key={course.id} href={`/courses/${course.id}`}>{content}</Link>;
                     })
                   ) : (
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{t("لا توجد دورات في هذا المسار بعد.", "No courses in this path yet.")}</p>
+                    <p className="text-base text-gray-700 dark:text-gray-300">{t("لا توجد دورات في هذا المسار بعد.", "No courses in this path yet.")}</p>
                   )}
                 </div>
               </section>

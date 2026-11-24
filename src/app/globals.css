@@ -18,8 +18,55 @@
   --color-primary-950: #022c22;
 }
 
-html {
-  scroll-behavior: smooth;
+/* ---------------------------------------------------------------------------
+ * Base typography scale (SIRAJ — readability / low-vision accessibility)
+ * ---------------------------------------------------------------------------
+ * The platform font (Maghribi-Font.ttf) is single-weight with a compact
+ * x-height, so we raise the root size above the 16px default: 17.5px on
+ * mobile, 19.5px on desktop (>=768px). Every rem-based Tailwind size scales
+ * with it (text-base becomes ~17.5/19.5px), which enlarges body copy, cards,
+ * nav links and forms site-wide without touching each component.
+ */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-size: 17.5px;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 19.5px;
+    }
+  }
+
+  body {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Dark-mode contrast lift (SIRAJ — readability / low-vision accessibility)
+ * Mirrors the light-mode block below. Kept OUTSIDE @layer base on purpose:
+ * unlayered rules beat Tailwind's utility layer, so these override the
+ * .text-gray-*/.text-slate-* utilities they target. Elements that already
+ * carry their own dark:text-* override (e.g. deliberately dim empty-state
+ * icons) are excluded via the [class*="dark:text-"] guard. */
+.dark :is(.text-slate-400, .text-slate-500):not([class*="dark:text-"]) {
+  color: var(--color-slate-200);
+}
+
+.dark .text-slate-300:not([class*="dark:text-"]) {
+  color: var(--color-slate-100);
+}
+
+.dark :is(.text-gray-400, .text-gray-500):not([class*="dark:text-"]) {
+  color: var(--color-gray-200);
+}
+
+.dark .text-gray-300:not([class*="dark:text-"]) {
+  color: var(--color-gray-100);
 }
 
 ::selection {
@@ -47,10 +94,6 @@ html {
 
 .dark ::-webkit-scrollbar-thumb {
   background-color: rgba(75, 85, 99, 0.6);
-}
-
-body {
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 /* ---------------------------------------------------------------------------

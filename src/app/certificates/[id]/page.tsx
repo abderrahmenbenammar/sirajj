@@ -56,13 +56,13 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
             <div className="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center mx-auto mb-6">
               <Award size={30} className="text-white" />
             </div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t("منصة سراج", "Siraj Platform")}</p>
+            <p className="text-base text-gray-400 uppercase tracking-wider mb-2">{t("منصة سراج", "Siraj Platform")}</p>
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-6" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>
               {t("شهادة إتمام", "Completion Certificate")}
             </h1>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t("تُشهد بأن", "This certifies that")}</p>
+            <p className="text-base text-gray-400 uppercase tracking-wider mb-2">{t("تُشهد بأن", "This certifies that")}</p>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{certificate.studentName}</h2>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t("قد أتم بنجاح دورة", "has successfully completed the course")}</p>
+            <p className="text-base text-gray-400 uppercase tracking-wider mb-2">{t("قد أتم بنجاح دورة", "has successfully completed the course")}</p>
             <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mb-6">
               {t(certificate.course.titleAr, certificate.course.titleEn)}
             </h3>

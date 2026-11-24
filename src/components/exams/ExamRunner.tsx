@@ -169,27 +169,27 @@ export default function ExamRunner({ examId, initialDetail, embedded = false, co
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mb-6">{t(detail.titleAr, detail.titleEn)}</p>
             <div className={`${embedded ? "text-4xl" : "text-5xl"} font-bold text-gray-900 dark:text-white mb-2`}>{result.scorePercentage}%</div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+            <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
               {t("الدرجة", "Score")}: {result.score} / {result.totalPoints} · {t("الصحيحة", "Correct")}: {result.correctCount} ·{" "}
               {t("المحاولة", "Attempt")} {result.attemptNumber} · {t("المتبقي", "Left")}: {result.attemptsLeft}
               {result.alreadySubmitted && ` · ${t("(نتيجة محفوظة مسبقًا)", "(previously saved)")}`}
             </p>
             {!result.passed && (
-              <p className="mb-6 text-sm font-medium text-amber-700 dark:text-amber-400">
+              <p className="mb-6 text-base font-medium text-amber-700 dark:text-amber-400">
                 {result.attemptsLeft > 0
                   ? t("لم تجتز الاختبار. يجب اجتياز الاختبار للمتابعة، ويمكنك المحاولة مرة أخرى.", "You did not pass the exam. You must pass it to continue, and you can try again.")
                   : t("لم تجتز الاختبار، واستنفدت جميع محاولاتك في هذا الاختبار.", "You did not pass the exam and have used all attempts for it.")}
               </p>
             )}
             {result.passed && embedded && (
-              <p className="mb-6 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              <p className="mb-6 text-base font-medium text-emerald-700 dark:text-emerald-400">
                 {t("أنت مستعد للانتقال للدرس التالي", "You can continue to the next lesson")}
               </p>
             )}
             {review.length > 0 && (
               <div className="text-start space-y-2 mb-8">
                 {review.map((item) => (
-                  <div key={item.questionId} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm">
+                  <div key={item.questionId} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-base">
                     {item.isCorrect ? (
                       <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                     ) : (
@@ -227,7 +227,7 @@ export default function ExamRunner({ examId, initialDetail, embedded = false, co
                 </Link>
               )}
             </div>
-            <p className="mt-6 text-xs text-gray-400">answered: {answered}</p>
+            <p className="mt-6 text-base text-gray-400">answered: {answered}</p>
           </div>
         </div>
       </div>
@@ -242,16 +242,16 @@ export default function ExamRunner({ examId, initialDetail, embedded = false, co
           <h1 className={`${embedded ? "text-xl" : "text-2xl sm:text-3xl"} font-bold text-gray-900 dark:text-white mb-2`}>
             {t(detail.titleAr, detail.titleEn)}
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+          <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
             {t("أجبت عن", "Answered")} {answeredCount} / {questions.length}
           </p>
-          {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {error && <p className="mb-4 text-base text-red-600 dark:text-red-400">{error}</p>}
           <div className="space-y-6">
             {questions.map((question, index) => (
               <div key={question.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 p-6">
-                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                   {index + 1}. {t(question.questionTextAr, question.questionTextEn)}
-                  <span className="ms-2 text-xs font-normal text-emerald-700 dark:text-emerald-400">
+                  <span className="ms-2 text-base font-normal text-emerald-700 dark:text-emerald-400">
                     ({question.points} {t("نقطة", "pt")})
                   </span>
                 </h2>
@@ -272,7 +272,7 @@ export default function ExamRunner({ examId, initialDetail, embedded = false, co
                         onChange={() => choose(question.id, option.id)}
                         className="accent-emerald-600"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{t(option.optionTextAr, option.optionTextEn)}</span>
+                      <span className="text-base text-gray-700 dark:text-gray-300">{t(option.optionTextAr, option.optionTextEn)}</span>
                     </label>
                   ))}
                 </div>
@@ -346,7 +346,7 @@ export default function ExamRunner({ examId, initialDetail, embedded = false, co
               <h2 className="font-bold text-gray-900 dark:text-white mb-3">{t("محاولاتك", "Your attempts")}</h2>
               <div className="space-y-2">
                 {detail.history.map((item) => (
-                  <div key={item.attemptId} className="flex items-center justify-between text-sm p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                  <div key={item.attemptId} className="flex items-center justify-between text-base p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
                     <span className="text-gray-600 dark:text-gray-400">
                       {t("محاولة", "Attempt")} {item.attemptNumber} · {item.score} / {detail.totalPoints}
                     </span>

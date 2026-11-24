@@ -67,7 +67,7 @@ function VerifyForm() {
                     {[result.scoreText, result.gradeText, result.durationText].filter(Boolean).join(" · ")}
                   </p>
                 )}
-                <p className="text-xs text-gray-400">{result.certificateCode} · {result.issueDate ? new Date(result.issueDate).toLocaleDateString("ar") : ""}</p>
+                <p className="text-base text-gray-400">{result.certificateCode} · {result.issueDate ? new Date(result.issueDate).toLocaleDateString("ar") : ""}</p>
               </div>
             </div>
           ) : (

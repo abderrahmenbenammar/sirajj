@@ -74,7 +74,7 @@ function CoursesContent() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("ابحث عن دورة...", "Search for a course...")}
-              className="w-full ps-10 pe-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
+              className="w-full ps-10 pe-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-base text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
           <div className="flex gap-3">
@@ -83,7 +83,7 @@ function CoursesContent() {
               <select
                 value={path}
                 onChange={(e) => setPath(e.target.value)}
-                className="ps-8 pe-8 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-700 dark:text-gray-300 outline-none appearance-none cursor-pointer"
+                className="ps-8 pe-8 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-base text-gray-700 dark:text-gray-300 outline-none appearance-none cursor-pointer"
               >
                 {pathOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>

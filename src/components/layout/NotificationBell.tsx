@@ -170,14 +170,14 @@ export default function NotificationBell() {
       {isOpen && (
         <div className="absolute end-0 mt-2 w-80 sm:w-96 overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900 z-50">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+            <h3 className="text-base font-medium text-gray-900 dark:text-white">
               {t("الإشعارات", "Notifications")}
             </h3>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllAsRead}
-                className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                className="inline-flex items-center gap-1 text-base font-medium text-emerald-600 hover:underline dark:text-emerald-400"
               >
                 <CheckCheck size={14} />
                 {t("قراءة الكل", "Mark all read")}
@@ -187,11 +187,11 @@ export default function NotificationBell() {
 
           <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/60">
             {loading ? (
-              <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="p-6 text-center text-base text-gray-500 dark:text-gray-400">
                 {t("جارٍ التحميل...", "Loading...")}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="p-6 text-center text-base text-gray-500 dark:text-gray-400">
                 {t("لا توجد إشعارات حالياً", "No notifications right now")}
               </div>
             ) : (
@@ -206,17 +206,17 @@ export default function NotificationBell() {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="text-xs font-bold text-gray-900 dark:text-white">
+                    <h4 className="text-base font-medium text-gray-900 dark:text-white">
                       {n.title}
                     </h4>
                     {!n.read && (
                       <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 mt-1" />
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                  <p className="mt-1 text-base text-gray-600 dark:text-gray-300 line-clamp-2">
                     {n.message}
                   </p>
-                  <span className="mt-2 block text-[10px] text-gray-400">
+                  <span className="mt-2 block text-base text-gray-400">
                     {new Date(n.createdAt).toLocaleDateString(
                       lang === "ar" ? "ar" : "en-GB",
                       { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
@@ -234,7 +234,7 @@ export default function NotificationBell() {
                 type="button"
                 onClick={handleEnableNative}
                 disabled={nativeRequesting}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 text-base font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 disabled:opacity-50"
               >
                 <Smartphone size={14} />
                 {nativeRequesting
@@ -242,7 +242,7 @@ export default function NotificationBell() {
                   : t("تفعيل إشعارات التطبيق", "Enable app notifications")}
               </button>
               {nativePermission === "denied" && (
-                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                <p className="mt-1 text-base text-gray-400 dark:text-gray-500">
                   {t(
                     "تم رفض الإذن — فعّله من إعدادات النظام إذا لم تظهر النافذة",
                     "Permission denied — enable it in system settings if no dialog appears",
@@ -256,12 +256,12 @@ export default function NotificationBell() {
           {push.status !== "unsupported" && push.status !== "loading" && (
             <div className="border-t border-gray-100 px-4 py-3 dark:border-gray-800">
               {push.status === "subscribed" ? (
-                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <p className="inline-flex items-center gap-1.5 text-base font-medium text-emerald-600 dark:text-emerald-400">
                   <CheckCheck size={14} />
                   {t("الإشعارات الفورية مفعلة", "Push notifications enabled")}
                 </p>
               ) : push.status === "denied" ? (
-                <p className="text-xs text-gray-400 dark:text-gray-500">
+                <p className="text-base text-gray-400 dark:text-gray-500">
                   {t(
                     "تم رفض إذن الإشعارات — فعّله من إعدادات المتصفح",
                     "Notification permission was blocked — enable it in your browser settings",
@@ -272,7 +272,7 @@ export default function NotificationBell() {
                   type="button"
                   onClick={() => void push.enable()}
                   disabled={push.registering}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 text-base font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 disabled:opacity-50"
                 >
                   <Bell size={14} />
                   {push.registering
@@ -281,7 +281,7 @@ export default function NotificationBell() {
                 </button>
               )}
               {push.error && (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{push.error}</p>
+                <p className="mt-1 text-base text-red-600 dark:text-red-400">{push.error}</p>
               )}
             </div>
           )}

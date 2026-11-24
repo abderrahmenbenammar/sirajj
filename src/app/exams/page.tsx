@@ -57,26 +57,26 @@ export default function ExamsPage() {
                   <ClipboardList size={20} className="text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate">
                     {t(exam.titleAr, exam.titleEn)}
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-base text-gray-500 dark:text-gray-400 mt-1">
                     {t(exam.courseTitleAr, exam.courseTitleEn)} · {exam.questionCount} {t("أسئلة", "questions")} ·{" "}
                     {t("المحاولات المتبقية", "Attempts left")}: {exam.attemptsLeft}
                   </p>
                 </div>
                 {exam.lastResult ? (
                   exam.lastResult.passed ? (
-                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <span className="inline-flex items-center gap-1 text-base px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 shrink-0">
                       <CheckCircle2 size={14} /> {exam.lastResult.scorePercentage}%
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
+                    <span className="inline-flex items-center gap-1 text-base px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
                       <XCircle size={14} /> {exam.lastResult.scorePercentage}%
                     </span>
                   )
                 ) : !exam.available ? (
-                  <span className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 shrink-0">
+                  <span className="text-base px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 shrink-0">
                     {t("غير متاح", "Unavailable")}
                   </span>
                 ) : null}

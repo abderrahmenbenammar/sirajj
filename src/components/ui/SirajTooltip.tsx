@@ -138,7 +138,7 @@ export default function SirajTooltip({ label, side = "top", className = "", disa
           transition: "opacity 150ms ease-out, transform 150ms ease-out",
           pointerEvents: "none",
         }}
-        className="absolute z-50 max-w-[16rem] px-2.5 py-1.5 text-xs font-medium leading-relaxed break-words whitespace-normal rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-emerald-200/80 dark:border-emerald-800/70 shadow-[0_10px_28px_-10px_rgba(2,44,34,0.45)] dark:shadow-[0_10px_28px_-10px_rgba(0,0,0,0.85)]"
+        className="absolute z-50 max-w-[16rem] px-2.5 py-1.5 text-base font-medium leading-relaxed break-words whitespace-normal rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-emerald-200/80 dark:border-emerald-800/70 shadow-[0_10px_28px_-10px_rgba(2,44,34,0.45)] dark:shadow-[0_10px_28px_-10px_rgba(0,0,0,0.85)]"
       >
         {label}
         <span

@@ -177,7 +177,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{t("لغة الواجهة", "Interface Language")}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t("الحالية:", "Current:")} {lang === "ar" ? "العربية" : "English"}</p>
+            <p className="text-base text-gray-500 dark:text-gray-400 mt-0.5">{t("الحالية:", "Current:")} {lang === "ar" ? "العربية" : "English"}</p>
           </div>
           <button
             onClick={toggleLang}
@@ -195,7 +195,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-white">{t("الوضع الداكن", "Dark Mode")}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t("الحالي:", "Current:")} {theme === "dark" ? t("داكن", "Dark") : t("فاتح", "Light")}</p>
+            <p className="text-base text-gray-500 dark:text-gray-400 mt-0.5">{t("الحالي:", "Current:")} {theme === "dark" ? t("داكن", "Dark") : t("فاتح", "Light")}</p>
           </div>
           <button
             onClick={toggleTheme}
@@ -215,15 +215,15 @@ export default function SettingsPage() {
             <p className="text-sm font-medium text-gray-900 dark:text-white">
               {t("نغمة التنبيهات المخصصة", "Custom notification sound")}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-base text-gray-500 dark:text-gray-400 mt-0.5">
               {t("تشغيل نغمة عند وصول إشعارات جديدة", "Play a sound when new notifications arrive")}
             </p>
             {soundError && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{soundError}</p>
+              <p className="text-base text-red-600 dark:text-red-400 mt-1">{soundError}</p>
             )}
           </div>
           {!soundLoaded ? (
-            <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+            <span className="text-base text-gray-400 dark:text-gray-500 whitespace-nowrap">
               {t("جارٍ التحميل...", "Loading...")}
             </span>
           ) : (

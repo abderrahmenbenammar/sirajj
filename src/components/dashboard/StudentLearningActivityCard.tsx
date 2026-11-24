@@ -43,7 +43,7 @@ export default function StudentLearningActivityCard({
             <div className="font-bold tabular-nums leading-tight">
               {numberFormat.format(activity.currentStreak)} {t("أيام", "days")}
             </div>
-            <div className="text-xs opacity-80">{t("سلسلة متتالية", "current streak")}</div>
+            <div className="text-base opacity-80">{t("سلسلة متتالية", "current streak")}</div>
           </div>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function StudentLearningActivityCard({
                   style={{ height }}
                 />
               </div>
-              <span className="truncate text-xs text-gray-500 dark:text-gray-400">{weekday}</span>
+              <span className="truncate text-base text-gray-500 dark:text-gray-400">{weekday}</span>
             </div>
           );
         })}

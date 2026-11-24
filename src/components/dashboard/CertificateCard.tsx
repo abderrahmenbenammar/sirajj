@@ -34,20 +34,20 @@ export default function CertificateCard({
           <Award size={22} />
         </span>
         <div className="min-w-0 flex-1">
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
-            <BadgeCheck size={12} />
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-base font-medium text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">
+            <BadgeCheck size={14} />
             {t("شهادة إتمام", "Completion Certificate")}
           </span>
-          <h3 className="mt-2 truncate text-sm font-bold text-gray-900 dark:text-white">
+          <h3 className="mt-2 truncate text-lg font-medium text-gray-900 dark:text-white">
             {t(certificate.courseTitleAr, certificate.courseTitleEn)}
           </h3>
-          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <Calendar size={13} className="shrink-0" />
+          <p className="mt-1.5 flex items-center gap-1.5 text-base text-gray-500 dark:text-gray-400">
+            <Calendar size={14} className="shrink-0" />
             <time dateTime={certificate.issueDate} suppressHydrationWarning>
               {formattedDate}
             </time>
           </p>
-          <p className="mt-1 truncate text-xs text-gray-400 dark:text-gray-500">
+          <p className="mt-1 truncate text-base text-gray-400 dark:text-gray-500">
             {t("رمز التحقق", "Verification code")}:{" "}
             <span className="font-mono" dir="ltr">
               {certificate.certificateCode}
@@ -58,7 +58,7 @@ export default function CertificateCard({
 
       <Link
         href={`/certificates/${certificate.id}`}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-600 hover:text-white dark:bg-gray-950 dark:text-emerald-400 dark:hover:bg-emerald-600 dark:hover:text-white"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-white px-4 py-2.5 text-base font-medium text-emerald-700 transition-colors hover:bg-emerald-600 hover:text-white dark:bg-gray-950 dark:text-emerald-400 dark:hover:bg-emerald-600 dark:hover:text-white"
       >
         {t("عرض الشهادة", "View Certificate")}
       </Link>

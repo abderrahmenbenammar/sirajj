@@ -157,13 +157,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <div className="lg:col-span-2 space-y-8">
             {/* Hero */}
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 rounded-2xl p-8 sm:p-10 border border-emerald-100 dark:border-emerald-900/30">
-              <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/80 dark:bg-gray-900/80 text-emerald-700 dark:text-emerald-400 inline-block mb-4">
+              <span className="text-base font-medium px-2.5 py-1 rounded-lg bg-white/80 dark:bg-gray-900/80 text-emerald-700 dark:text-emerald-400 inline-block mb-4">
                 {t(course.pathAr, course.pathEn)}
               </span>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
                 {t(course.description, course.descriptionEn)}
               </p>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex flex-wrap items-center gap-4 text-base text-gray-500 dark:text-gray-400">
                 {instructorName && <span className="flex items-center gap-1.5"><Users size={15} /> {instructorName}</span>}
                 <span className="flex items-center gap-1.5"><BookOpen size={15} /> {course.lessons} {t("درس", "lessons")}
                   {course.durationSeconds != null && (
@@ -185,22 +185,22 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     href={`/courses/${course.id}/lessons/${item.id}`}
                     className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
                   >
-                    <span className="text-sm font-medium text-gray-400 w-6 text-center">{i + 1}</span>
+                    <span className="text-base font-medium text-gray-400 w-6 text-center">{i + 1}</span>
                     {getTypeIcon(item.type)}
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                      <span className="text-base font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                         {t(item.title, item.titleEn)}
                       </span>
                     </div>
                       {item.hasExam && (
-                        <span className="text-xs px-2 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg shrink-0">
+                        <span className="text-base px-2 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg shrink-0">
                           {t("اختبار مطلوب", "Exam required")}
                         </span>
                       )}
                       {item.locked && <Lock size={14} className="text-gray-400 shrink-0" />}
-                      <span className="text-xs text-gray-400">{item.duration}</span>
+                      <span className="text-base text-gray-400">{item.duration}</span>
                       {doneSet.has(item.id) && (
-                        <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
+                        <span className="text-base px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
                           {t("مكتمل", "Done")}
                         </span>
                       )}
@@ -215,7 +215,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 {t("المراجع والمصادر", "References & Sources")}
               </h2>
               {course.references.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-base text-gray-500 dark:text-gray-400">
                   {t("لا توجد مراجع لهذه الدورة بعد.", "No references for this course yet.")}
                 </p>
               ) : (
@@ -224,14 +224,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <li key={ref.id}>
                       <Link
                         href={`/library/${ref.id}`}
-                        className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400 rounded-xl p-2 -m-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                        className="flex items-start gap-3 text-base text-gray-600 dark:text-gray-400 rounded-xl p-2 -m-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
                         <span className="min-w-0">
                           <span className="font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                             {t(ref.titleAr, ref.titleEn)}
                           </span>
-                          <span className="block text-xs text-gray-400 mt-0.5">
+                          <span className="block text-base text-gray-400 mt-0.5">
                             {t(libraryTypeLabel(ref.type).ar, libraryTypeLabel(ref.type).en)}
                             {ref.authorName ? ` · ${ref.authorName}` : ""}
                           </span>
@@ -257,10 +257,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                       href={`/exams/${exam.id}`}
                       className="flex items-center justify-between gap-3 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
                     >
-                      <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+                      <span className="text-base font-medium text-gray-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                         {t(exam.titleAr, exam.titleEn)}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-base text-gray-400">
                         {exam.questionCount} {t("أسئلة", "questions")}
                       </span>
                     </Link>

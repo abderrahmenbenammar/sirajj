@@ -84,7 +84,7 @@ export default function ContactPage() {
               <HelpCircle size={18} className="text-emerald-600 dark:text-emerald-400" />
               <div>
                 <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{t("الأسئلة الشائعة", "FAQ")}</span>
-                <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">{t("اطلع على إجابات الأسئلة الأكثر شيوعاً", "Check answers to the most common questions")}</p>
+                <p className="text-base text-emerald-600/70 dark:text-emerald-400/70">{t("اطلع على إجابات الأسئلة الأكثر شيوعاً", "Check answers to the most common questions")}</p>
               </div>
               <ExternalLink size={14} className="text-emerald-400 me-auto" />
             </Link>

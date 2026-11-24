@@ -54,7 +54,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="py-12 sm:py-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-8">
+        <div className="flex items-center gap-2 text-base text-gray-500 dark:text-gray-400 mb-8">
           <Link href="/library" className="hover:text-emerald-600 dark:hover:text-emerald-400">{t("المكتبة", "Library")}</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-white">{t(item.titleAr, item.titleEn)}</span>
@@ -62,13 +62,13 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden">
           <div className="p-8 sm:p-10">
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 mb-4 ${meta.badge}`}>
+            <span className={`text-base font-medium px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 mb-4 ${meta.badge}`}>
               {meta.icon} {t(meta.label, meta.labelEn)}
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4" style={{ fontFamily: "'Noto Naskh Arabic', serif" }}>
               {t(item.titleAr, item.titleEn)}
             </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <div className="flex flex-wrap items-center gap-4 text-base text-gray-500 dark:text-gray-400 mb-6">
               {item.authorName && (
                 <span className="flex items-center gap-1.5"><User size={14} /> {item.authorName}</span>
               )}

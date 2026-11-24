@@ -21,7 +21,7 @@ export default async function MutoonPage() {
         <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
           الحفظ والتسميع
         </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-base text-gray-500 dark:text-gray-400">
           اختر متنًا من المتون ثم سمّع مقاطعه وصحح حفظك بالذكاء الاصطناعي
         </p>
       </div>
@@ -30,7 +30,7 @@ export default async function MutoonPage() {
         <div className="rounded-2xl border border-gray-200/60 bg-white p-10 text-center dark:border-gray-800/60 dark:bg-gray-900">
           <BookOpen size={36} className="mx-auto text-gray-300 dark:text-gray-600" />
           <p className="mt-3 font-bold text-gray-900 dark:text-white">لا توجد متون متاحة بعد</p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-base text-gray-500 dark:text-gray-400">
             عد لاحقًا، سيضيف المشرف نصوص الحفظ قريبًا
           </p>
         </div>
@@ -45,15 +45,15 @@ export default async function MutoonPage() {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white dark:bg-emerald-950 dark:text-emerald-300">
                 <BookOpen size={22} />
               </span>
-              <span className="mt-3 block text-base font-bold text-gray-900 dark:text-white">
+              <span className="mt-3 block text-lg font-medium text-gray-900 dark:text-white">
                 {matn.title}
               </span>
               {matn.description && (
-                <span className="mt-1 line-clamp-2 block text-sm leading-6 text-gray-500 dark:text-gray-400">
+                <span className="mt-1 line-clamp-2 block text-base leading-7 text-gray-500 dark:text-gray-400">
                   {matn.description}
                 </span>
               )}
-              <span className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+              <span className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-base font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 <HelpCircle size={13} />
                 {matn._count.quizzes} {matn._count.quizzes === 1 ? "سؤال" : "أسئلة"}
               </span>

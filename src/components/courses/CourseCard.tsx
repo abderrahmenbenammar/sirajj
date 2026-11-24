@@ -35,13 +35,13 @@ export default function CourseCard({ course, locked = false }: { course: ApiCour
           )}
           {/* Path badge */}
           <div className="absolute top-3 end-3">
-            <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/90 dark:bg-gray-900/90 text-emerald-700 dark:text-emerald-400 backdrop-blur-sm">
+            <span className="text-base font-medium px-2.5 py-1 rounded-lg bg-white/90 dark:bg-gray-900/90 text-emerald-700 dark:text-emerald-400 backdrop-blur-sm">
               {t(course.pathAr, course.pathEn)}
             </span>
           </div>
           {locked && (
             <div className="absolute inset-0 bg-gray-900/35 flex items-center justify-center">
-              <span className="px-3 py-1.5 rounded-lg bg-white/95 text-xs font-semibold text-gray-700">
+              <span className="px-3 py-1.5 rounded-lg bg-white/95 text-base font-medium text-gray-700">
                 {t("مقفل حتى إتمام المستوى السابق", "Locked until the previous level is completed")}
               </span>
             </div>
@@ -50,10 +50,10 @@ export default function CourseCard({ course, locked = false }: { course: ApiCour
 
         {/* Content */}
         <div className="p-5">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
             {t(course.title, course.titleEn)}
           </h3>
-          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-3 text-base text-gray-500 dark:text-gray-400">
             {instructorName && (
               <span className="flex items-center gap-1.5">
                 <User size={13} />
@@ -67,7 +67,7 @@ export default function CourseCard({ course, locked = false }: { course: ApiCour
           </div>
           {progress > 0 && (
             <div className="mt-3">
-              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+              <div className="flex items-center justify-between text-base text-gray-500 dark:text-gray-400 mb-1.5">
                 <span>{t("التقدم", "Progress")}</span>
                 <span className="font-medium text-emerald-600 dark:text-emerald-400">{progress}%</span>
               </div>

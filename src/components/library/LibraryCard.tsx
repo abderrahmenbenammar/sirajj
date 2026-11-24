@@ -51,20 +51,20 @@ export default function LibraryCard({ item }: { item: ApiLibraryItem }) {
             <div className="opacity-40">{getIcon()}</div>
           )}
           <div className="absolute top-3 end-3">
-            <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+            <span className="text-base font-medium px-2.5 py-1 rounded-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
               {t(type === "book" ? "كتاب" : type === "article" ? "مقال" : type === "research" ? "بحث" : "محاضرة",
                  type === "book" ? "Book" : type === "article" ? "Article" : type === "research" ? "Research" : "Lecture")}
             </span>
           </div>
         </div>
         <div className="p-5">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
             {t(item.titleAr, item.titleEn)}
           </h3>
-          {item.authorName && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{item.authorName}</p>}
+          {item.authorName && <p className="text-base text-gray-500 dark:text-gray-400 mb-2">{item.authorName}</p>}
           <div className="flex items-center gap-2">
             {(item.categoryAr || item.categoryEn) && (
-              <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded">
+              <span className="text-base text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded">
                 {t(item.categoryAr ?? "", item.categoryEn ?? "")}
               </span>
             )}

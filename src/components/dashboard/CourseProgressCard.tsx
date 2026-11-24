@@ -31,21 +31,21 @@ export default function CourseProgressCard({ course }: { course: DashboardCourse
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-bold text-gray-900 transition-colors group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
+            <h3 className="truncate text-lg font-medium text-gray-900 transition-colors group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
               {title}
             </h3>
             {course.isCompleted && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
-                <CheckCircle2 size={12} />
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-base font-medium text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
+                <CheckCircle2 size={14} />
                 {t("مكتملة", "Completed")}
               </span>
             )}
           </div>
           {instructor && (
-            <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{instructor}</p>
+            <p className="mt-0.5 truncate text-base text-gray-500 dark:text-gray-400">{instructor}</p>
           )}
         </div>
-        <span className="shrink-0 text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+        <span className="shrink-0 text-base font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
           {course.progress}%
         </span>
       </div>
@@ -65,11 +65,11 @@ export default function CourseProgressCard({ course }: { course: DashboardCourse
         />
       </div>
 
-      <p className="mt-2.5 text-xs text-gray-500 dark:text-gray-400">{progressText}</p>
+      <p className="mt-2.5 text-base text-gray-500 dark:text-gray-400">{progressText}</p>
 
       <Link
         href={`/courses/${course.id}`}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-base font-medium text-white transition-colors hover:bg-emerald-700"
       >
         <Play size={15} />
         {t("متابعة التعلم", "Continue Learning")}

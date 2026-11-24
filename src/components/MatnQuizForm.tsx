@@ -363,7 +363,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
       {/* Top progress bar (active/completed phases only) */}
       {quizState !== "welcome" && (
         <div className="mb-4">
-          <div className="mb-1.5 flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400">
+          <div className="mb-1.5 flex items-center justify-between text-base font-medium text-gray-500 dark:text-gray-400">
             <span>
               {quizState === "completed"
                 ? t("اكتمل الاختبار", "Quiz complete")
@@ -403,11 +403,11 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
             <h2 className="mt-5 text-xl font-extrabold text-gray-900 dark:text-white">
               {title || t("التسميع", "Recitation")}
             </h2>
-            <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300">
+            <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-base font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300">
               <ListChecks size={13} className="shrink-0" />
               {t(`عدد الأسئلة: ${totalQuestions}`, `Questions: ${totalQuestions}`)}
             </span>
-            <p className="mx-auto mt-4 max-w-sm text-sm leading-7 text-gray-600 dark:text-gray-400">
+            <p className="mx-auto mt-4 max-w-sm text-base leading-7 text-gray-600 dark:text-gray-400">
               {t(
                 "راجع المتن سؤالًا بعد سؤال مع تصحيح فوري لكل إجابة — أنت قادر على النجاح، فالله معك",
                 "Review the matn one question at a time with instant feedback — you've got this, God is with you",
@@ -416,7 +416,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
             <button
               type="button"
               onClick={() => setQuizState("active")}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
+              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-base font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
             >
               {t("ابدأ المراجعة 🚀", "Start Review 🚀")}
             </button>
@@ -436,10 +436,10 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                 {currentIndex + 1}
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                <p className="text-base font-medium text-emerald-700 dark:text-emerald-300">
                   {t("السؤال", "Question")}
                 </p>
-                <p className="mt-1 text-sm font-medium leading-7 text-gray-900 dark:text-white">
+                <p className="mt-1 text-lg font-medium leading-7 text-gray-900 dark:text-white">
                   {current.question}
                 </p>
               </div>
@@ -449,7 +449,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
               <>
                 <label
                   htmlFor="matn-answer"
-                  className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  className="mt-4 block text-base font-medium text-gray-700 dark:text-gray-300"
                 >
                   {t("إجابتك", "Your answer")}
                 </label>
@@ -469,7 +469,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
 
             {activeType === "reorder" && (
               <div className="mt-4">
-                <p className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="flex items-center gap-1.5 text-base font-medium text-gray-700 dark:text-gray-300">
                   <GripVertical size={15} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
                   {t(
                     "رتّب الكلمات لتكوين المقطع الصحيح",
@@ -479,7 +479,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                 {/* The student's current arrangement (click a tile to remove it) */}
                 <div className="mt-2 min-h-[3.5rem] rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/60 p-2.5 dark:border-emerald-800 dark:bg-emerald-950/30">
                   {reorderPicks.length === 0 ? (
-                    <p className="p-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+                    <p className="p-1 text-base font-medium text-gray-400 dark:text-gray-500">
                       {t(
                         "انقر الكلمات بالترتيب من لوحة الكلمات أدناه",
                         "Tap the words in order from the word bank below",
@@ -495,7 +495,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                           onClick={() =>
                             setReorderPicks((prev) => prev.filter((_, pos) => pos !== position))
                           }
-                          className="rounded-lg border border-emerald-500 bg-white px-2.5 py-1 text-sm font-bold text-emerald-700 shadow-sm transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-60 dark:border-emerald-700 dark:bg-gray-900 dark:text-emerald-300"
+                          className="rounded-lg border border-emerald-500 bg-white px-2.5 py-1 text-base font-medium text-emerald-700 shadow-sm transition-colors hover:border-red-300 hover:text-red-600 disabled:opacity-60 dark:border-emerald-700 dark:bg-gray-900 dark:text-emerald-300"
                         >
                           {answerWords[wordIndex]}
                         </button>
@@ -513,13 +513,13 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                         type="button"
                         disabled={isGrading || isGraded}
                         onClick={() => setReorderPicks((prev) => [...prev, index])}
-                        className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-emerald-700 dark:hover:text-emerald-400"
+                        className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-base font-medium text-gray-700 shadow-sm transition-colors hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-emerald-700 dark:hover:text-emerald-400"
                       >
                         {answerWords[index]}
                       </button>
                     ))}
                   {reorderPicks.length === answerWords.length && answerWords.length > 0 && (
-                    <span className="flex items-center gap-1 rounded-lg bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    <span className="flex items-center gap-1 rounded-lg bg-emerald-100 px-2 py-1 text-base font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                       <CheckCircle2 size={13} />
                       {t("اكتمل الترتيب", "Ordering complete")}
                     </span>
@@ -530,7 +530,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
 
             {activeType === "fill_blank" && (
               <div className="mt-4">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-base font-medium text-gray-700 dark:text-gray-300">
                   {t("أكمل الكلمات الناقصة من المتن", "Complete the missing words of the matn")}
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3 leading-9 dark:border-gray-700 dark:bg-gray-800">
@@ -568,7 +568,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
 
             {activeType === "mcq" && (
               <div className="mt-4">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p className="text-base font-medium text-gray-700 dark:text-gray-300">
                   {t("اختر المقطع الصحيح من الخيارات", "Choose the correct passage from the options")}
                 </p>
                 <div className="mt-2 space-y-2">
@@ -599,7 +599,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                         >
                           {OPTION_LETTERS[index] ?? index + 1}
                         </span>
-                        <span className="flex-1 text-sm font-medium leading-7 text-gray-900 dark:text-gray-100">
+                        <span className="flex-1 text-base font-medium leading-7 text-gray-900 dark:text-gray-100">
                           {option}
                         </span>
                         {selected && (
@@ -648,16 +648,16 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                     <span dir="ltr">{result.score}%</span>
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-7 text-gray-700 dark:text-gray-300">
+                <p className="mt-2 text-base leading-7 text-gray-700 dark:text-gray-300">
                   {result.feedback}
                 </p>
 
                 {result.score < 100 && (
                   <div className="mt-3 rounded-xl border border-emerald-200/70 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900/80">
-                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                    <p className="text-base font-medium text-emerald-700 dark:text-emerald-300">
                       {t("النص الصحيح للمراجعة:", "Reference correct answer:")}
                     </p>
-                    <p className="mt-1.5 text-sm font-medium leading-8 text-gray-900 dark:text-gray-100">
+                    <p className="mt-1.5 text-base font-medium leading-8 text-gray-900 dark:text-gray-100">
                       {current.correctAnswer}
                     </p>
                   </div>
@@ -669,7 +669,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
               type="button"
               onClick={primaryAction}
               disabled={isGrading || (!isGraded && !canSubmit)}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-base font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGrading ? (
                 <>
@@ -762,25 +762,25 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                      <p className="truncate text-base font-medium text-gray-900 dark:text-white">
                         {question.question}
                       </p>
-                      <p className="mt-0.5 text-xs font-bold text-gray-600 dark:text-gray-300">
+                      <p className="mt-0.5 text-base font-medium text-gray-600 dark:text-gray-300">
                         {answer
                           ? t("درجتك: ", "Your score: ") + `${answer.score}%`
                           : t("لم يُجب", "Unanswered")}
                       </p>
                       {answer?.feedback && (
-                        <p className="mt-1 text-xs leading-6 text-gray-600 dark:text-gray-400">
+                        <p className="mt-1 text-base leading-6 text-gray-600 dark:text-gray-400">
                           {answer.feedback}
                         </p>
                       )}
                       {answer && answer.score < 100 && (
                         <div className="mt-1.5 rounded-lg border border-emerald-200/70 bg-white p-2 dark:border-gray-700 dark:bg-gray-900/80">
-                          <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                          <p className="text-base font-medium text-emerald-700 dark:text-emerald-300">
                             {t("النص الصحيح للمراجعة:", "Reference correct answer:")}
                           </p>
-                          <p className="mt-0.5 text-xs font-medium leading-6 text-gray-900 dark:text-gray-100">
+                          <p className="mt-0.5 text-base font-medium leading-6 text-gray-900 dark:text-gray-100">
                             {question.correctAnswer}
                           </p>
                         </div>
@@ -794,7 +794,7 @@ export default function MatnQuizForm({ title, questions }: MatnQuizFormProps) {
             <button
               type="button"
               onClick={restartQuiz}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition-colors hover:border-emerald-300 hover:text-emerald-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-base font-medium text-gray-700 transition-colors hover:border-emerald-300 hover:text-emerald-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
             >
               <RotateCcw size={16} />
               {t("إعادة الاختبار", "Restart quiz")}

@@ -139,7 +139,7 @@ export default function AboutPage() {
               t("دعم البحث العلمي في العلوم الشرعي المعاصرة", "Supporting scientific research in contemporary religious sciences"),
             ].map((obj, i) => (
               <li key={i} className="flex items-start gap-3 bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                <span className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-base font-medium shrink-0 mt-0.5">
                   {i + 1}
                 </span>
                 <span className="text-gray-600 dark:text-gray-400 leading-relaxed">{obj}</span>

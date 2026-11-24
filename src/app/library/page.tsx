@@ -86,7 +86,7 @@ export default function LibraryPage() {
             <button
               key={t_item.key}
               onClick={() => { setTab(t_item.key); setSearch(""); setCategoryId(""); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-base font-medium transition-all duration-200 ${
                 tab === t_item.key
                   ? "bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
                   : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800 hover:border-emerald-300 dark:hover:border-emerald-700"
@@ -94,7 +94,7 @@ export default function LibraryPage() {
             >
               {t_item.icon}
               {t(t_item.label, t_item.labelEn)}
-              <span className={`text-xs px-1.5 py-0.5 rounded ${tab === t_item.key ? "bg-emerald-600" : "bg-gray-100 dark:bg-gray-800"}`}>
+              <span className={`text-base px-1.5 py-0.5 rounded ${tab === t_item.key ? "bg-emerald-600" : "bg-gray-100 dark:bg-gray-800"}`}>
                 {counts[t_item.key]}
               </span>
             </button>
@@ -110,13 +110,13 @@ export default function LibraryPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("ابحث في المكتبة...", "Search the library...")}
-              className="w-full ps-10 pe-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
+              className="w-full ps-10 pe-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-base text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-sm text-gray-700 dark:text-gray-300 outline-none appearance-none cursor-pointer"
+            className="px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-base text-gray-700 dark:text-gray-300 outline-none appearance-none cursor-pointer"
           >
             <option value="">{t("كل التصنيفات", "All categories")}</option>
             {categories.map((category) => (
