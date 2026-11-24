@@ -1,12 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Play } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Award, CheckCircle2, Play } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { issueCertificate } from "@/lib/certificates-api";
 import type { DashboardCourse } from "./types";
 
 export default function CourseProgressCard({ course }: { course: DashboardCourse }) {
   const { t, lang } = useLang();
+  const router = useRouter();
+  const [requesting, setRequesting] = useState(false);
+  const [certError, setCertError] = useState("");
 
   const title = t(course.titleAr, course.titleEn);
   const instructor =
@@ -17,6 +23,27 @@ export default function CourseProgressCard({ course }: { course: DashboardCourse
     `تم إنجاز ${course.completedLessons} من ${course.totalLessons} دروس`,
     `${course.completedLessons} of ${course.totalLessons} lessons completed`,
   );
+  // 100% completion: isCompleted from the server, progress hitting 100, or
+  // every lesson done (totalLessons > 0 guard so empty courses never match).
+  const isComplete =
+    course.isCompleted ||
+    course.progress >= 100 ||
+    (course.totalLessons > 0 && course.completedLessons >= course.totalLessons);
+
+  // 100% CTA: open the certificate page (the POST endpoint is idempotent, so
+  // it returns the already auto-issued certificate when one exists).
+  const openCertificate = async () => {
+    setRequesting(true);
+    setCertError("");
+    try {
+      const certificate = await issueCertificate(course.id);
+      router.push(`/certificates/${certificate.id}`);
+    } catch {
+      setCertError(t("لا تستوفي شروط الشهادة بعد", "Certificate requirements not met yet"));
+    } finally {
+      setRequesting(false);
+    }
+  };
 
   return (
     <article className="group flex flex-col rounded-2xl border border-gray-200/60 bg-white p-5 transition-all hover:border-emerald-200 hover:shadow-md dark:border-gray-800/60 dark:bg-gray-900 dark:hover:border-emerald-900/60">
@@ -67,13 +94,28 @@ export default function CourseProgressCard({ course }: { course: DashboardCourse
 
       <p className="mt-2.5 text-base text-gray-500 dark:text-gray-400">{progressText}</p>
 
-      <Link
-        href={`/courses/${course.id}`}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-base font-medium text-white transition-colors hover:bg-emerald-700"
-      >
-        <Play size={15} />
-        {t("متابعة التعلم", "Continue Learning")}
-      </Link>
+      {isComplete ? (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void openCertificate()}
+            disabled={requesting}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-base font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+          >
+            <Award size={15} aria-hidden="true" />
+            {requesting ? t("جارٍ الإصدار...", "Issuing...") : t("احصل على شهادتك", "Get your certificate")}
+          </button>
+          {certError && <p className="mt-2 text-base text-red-600 dark:text-red-400">{certError}</p>}
+        </div>
+      ) : (
+        <Link
+          href={`/courses/${course.id}`}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-base font-medium text-white transition-colors hover:bg-emerald-700"
+        >
+          <Play size={15} />
+          {t("متابعة التعلم", "Continue Learning")}
+        </Link>
+      )}
     </article>
   );
 }

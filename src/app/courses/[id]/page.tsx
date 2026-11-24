@@ -10,7 +10,7 @@ import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
 import { type ExamListItem } from "@/lib/exams-api";
 import { fetchCourseCertificate, issueCertificate, type CourseCertificateState } from "@/lib/certificates-api";
 import { useEffect, useState } from "react";
-import { Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock, Download } from "lucide-react";
+import { Clock, Users, BookOpen, PlayCircle, FileText, HelpCircle, Lock, Download, Award } from "lucide-react";
 import { libraryTypeLabel } from "@/lib/library-types";
 import { formatDurationDetailed } from "@/lib/certificates/layout";
 import SirajLoading from "@/components/ui/SirajLoading";
@@ -63,6 +63,17 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  // Sidebar CTA at 100%: open the certificate page directly when one exists
+  // (auto-issued by the lesson/exam hooks), otherwise issue it first — the
+  // POST endpoint is idempotent, so a fast click or a raced hook is safe.
+  const openOrIssueCertificate = async () => {
+    if (certState?.certificate) {
+      router.push(`/certificates/${certState.certificate.id}`);
+      return;
+    }
+    await requestCertificate();
+  };
+
   // Downloads the official-template PDF without navigating away: fetch the
   // bytes, hand them to a temporary anchor, then revoke the object URL.
   const downloadCertificatePdf = async () => {
@@ -106,6 +117,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
   const progress = course.progress || 0;
   const doneSet = new Set(course.completedLessonIds ?? []);
+  // 100% completion: progress hits 100, or every lesson is marked complete
+  // (totalLessons > 0 guard so an empty course is never "complete").
+  const totalLessons = course.lessons;
+  const completedLessons = course.completedLessonIds?.length ?? 0;
+  const isComplete = progress >= 100 || (totalLessons > 0 && completedLessons >= totalLessons);
   const courseExams = exams.filter((exam) => !exam.lessonId);
   // Free-text instructor name: prefer the current language, fall back to the
   // other language, and render nothing (calm empty state) when both are empty.
@@ -303,7 +319,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <button
                       onClick={requestCertificate}
                       disabled={issuing}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-medium rounded-xl transition-colors"
                     >
                       {issuing ? t("جارٍ الإصدار...", "Issuing...") : t("احصل على شهادتك", "Get your certificate")}
                     </button>
@@ -336,12 +352,35 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               )}
 
               {course.curriculum.length > 0 && (
-                <Link
-                  href={`/courses/${course.id}/lessons/${course.curriculum[0].id}`}
-                  className="block w-full text-center py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20 mb-3"
-                >
-                  {progress > 0 ? t("متابعة التعلم", "Continue Learning") : t("ابدأ الدورة", "Start Course")}
-                </Link>
+                isComplete ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void openOrIssueCertificate()}
+                      disabled={issuing}
+                      className="flex w-full items-center justify-center gap-2 text-center py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20 mb-3"
+                    >
+                      <Award size={18} aria-hidden="true" />
+                      {issuing ? t("جارٍ الإصدار...", "Issuing...") : t("احصل على شهادتك", "Get your certificate")}
+                    </button>
+                    {issueError && (
+                      <p className="mb-3 text-center text-sm text-red-600 dark:text-red-400">{issueError}</p>
+                    )}
+                    <Link
+                      href={`/courses/${course.id}/lessons/${course.curriculum[0].id}`}
+                      className="block w-full mb-3 text-center text-base font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline"
+                    >
+                      {t("مراجعة دروس الدورة", "Review course lessons")}
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href={`/courses/${course.id}/lessons/${course.curriculum[0].id}`}
+                    className="block w-full text-center py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20 mb-3"
+                  >
+                    {progress > 0 ? t("متابعة التعلم", "Continue Learning") : t("ابدأ الدورة", "Start Course")}
+                  </Link>
+                )
               )}
 
               <div className="space-y-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
