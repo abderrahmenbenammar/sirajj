@@ -2,14 +2,16 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
 import { useAuth } from "@/lib/auth-context";
 import { fetchCourse, type ApiCourse } from "@/lib/courses-api";
+import { fetchCourseCertificate, issueCertificate } from "@/lib/certificates-api";
 import type { ExamDetail } from "@/lib/exams-api";
 import ExamRunner from "@/components/exams/ExamRunner";
 import LessonVideoPlayer from "@/components/lesson/LessonVideoPlayer";
 import LessonQA from "@/components/lesson/LessonQA";
-import { ArrowLeft, ArrowRight, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle, Lock, ClipboardList } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, Play, ChevronLeft, ChevronRight, BookOpen, HelpCircle, FileText, CheckCircle, Lock, ClipboardList } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
 
 interface GatedLesson {
@@ -44,7 +46,10 @@ export default function LessonPage({
   const [completed, setCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completeError, setCompleteError] = useState("");
+  const [certLoading, setCertLoading] = useState(false);
+  const [certError, setCertError] = useState("");
   const [resumeSeconds, setResumeSeconds] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
     let active = true;
@@ -106,11 +111,45 @@ export default function LessonPage({
       }
       const data: { progress?: number } = await response.json();
       setCompleted(true);
-      setCourse((prev) => (prev ? { ...prev, progress: typeof data.progress === "number" ? data.progress : (prev.progress ?? 0) } : prev));
+      // Instant client sync: fold this lesson into the course progress state so
+      // the post-lesson CTA flips to the certificate the moment the LAST lesson
+      // is completed — no manual reload required.
+      setCourse((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          progress: typeof data.progress === "number" ? data.progress : (prev.progress ?? 0),
+          completedLessonIds: prev.completedLessonIds?.includes(lessonId)
+            ? prev.completedLessonIds
+            : [...(prev.completedLessonIds ?? []), lessonId],
+        };
+      });
     } catch {
       setCompleteError(t("تعذر تسجيل الإكمال، حاول مجددًا", "Could not record completion, try again"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Same certificate action as the course page: open the already auto-issued
+  // certificate (issued server-side by the lesson-complete / exam-submit
+  // hooks), or issue it first — the POST endpoint is idempotent, so a fast
+  // click or a raced hook is safe.
+  const openCertificate = async () => {
+    setCertLoading(true);
+    setCertError("");
+    try {
+      const existing = await fetchCourseCertificate(id);
+      if (existing?.certificate) {
+        router.push(`/certificates/${existing.certificate.id}`);
+        return;
+      }
+      const certificate = await issueCertificate(id);
+      router.push(`/certificates/${certificate.id}`);
+    } catch {
+      setCertError(t("تعذر فتح الشهادة، حاول مجددًا", "Could not open the certificate, try again"));
+    } finally {
+      setCertLoading(false);
     }
   };
 
@@ -136,6 +175,18 @@ export default function LessonPage({
   const prevLesson = lessonIndex > 0 ? course.curriculum[lessonIndex - 1] : null;
   const nextLesson = lessonIndex >= 0 && lessonIndex < course.curriculum.length - 1 ? course.curriculum[lessonIndex + 1] : null;
   const nextHref = nextLesson ? `/courses/${id}/lessons/${nextLesson.id}` : undefined;
+
+  // 100% completion: server progress hits 100, or every curriculum lesson is
+  // marked complete (totalLessons > 0 guard so an empty course never matches).
+  const totalLessons = course.curriculum.length;
+  const doneLessons = course.completedLessonIds?.length ?? 0;
+  const courseComplete =
+    (course.progress ?? 0) >= 100 || (totalLessons > 0 && doneLessons >= totalLessons);
+  // Final video AND the whole course finished → offer the certificate instead
+  // of "العودة للدورة". Reaching the last video with earlier lessons
+  // incomplete (progress < 100) keeps the back-to-course link so the student
+  // is guided to finish the rest.
+  const showCertCta = !nextLesson && completed && courseComplete;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -494,6 +545,27 @@ export default function LessonPage({
                 {t("يجب اجتياز الاختبار للمتابعة", "You must pass the exam to continue")}
               </a>
             )
+          ) : showCertCta ? (
+            <div className="flex flex-col items-end gap-2">
+              <button
+                type="button"
+                onClick={() => void openCertificate()}
+                disabled={certLoading}
+                className="flex items-center gap-2 px-5 py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-base font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+              >
+                <Award size={16} aria-hidden="true" />
+                {certLoading ? t("جارٍ الإصدار...", "Issuing...") : t("الحصول على الشهادة", "Get the Certificate")}
+              </button>
+              {certError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{certError}</p>
+              )}
+              <Link
+                href={`/courses/${id}`}
+                className="text-sm font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline"
+              >
+                {t("العودة لصفحة الدورة", "Back to course page")}
+              </Link>
+            </div>
           ) : (
             <Link
               href={`/courses/${id}`}
