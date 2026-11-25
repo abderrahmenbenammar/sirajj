@@ -1,0 +1,170 @@
+
+> siraj@0.1.0 build
+> prisma generate && next build
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Ô£ö Generated Prisma Client (v6.19.3) to .\node_modules\@prisma\client in 269ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+
+Ôû▓ Next.js 16.3.3 (Turbopack)
+- Environments: .env.local, .env
+Ô£ô Running next.config.ts took 58ms
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 3.7s
+  Running TypeScript ...
+  Finished TypeScript in 8.5s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/68) ...
+  Generating static pages using 7 workers (17/68) 
+  Generating static pages using 7 workers (34/68) 
+  Generating static pages using 7 workers (51/68) 
+Ô£ô Generating static pages using 7 workers (68/68) in 1256ms
+  Finalizing page optimization ...
+Turbopack build encountered 1 warning:
+./src/app/contact/page.tsx:32:26
+Warning: Module not found: Can't resolve './components/ui/SirajDialog'
+  30 | ...       throw new Error(body && typeof body.error === "string" ? body.error : "send-fail...
+  31 | ...     }
+> 32 | ...     const { notify } = require("./components/ui/SirajDialog").useSirajMessage
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  33 | ...       ?.() ?? { notify: () => {} };
+  34 | ...     notify(t("Ï¬┘à ÏÑÏ▒Ï│Ïº┘ä Ï▒Ï│Ïº┘äÏ¬┘â Ï¿┘åÏ¼ÏºÏ¡", "Your message has been sent successfully"), "suc...
+  35 | ...     setForm({ ...form, subject: "", message: "" });
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/contact/page.tsx [Client Component Browser]
+    ./src/app/contact/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/contact/page.tsx [Client Component SSR]
+    ./src/app/contact/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+Route (app)
+Ôöî Ôùï /
+Ôö£ Ôùï /_not-found
+Ôö£ Ôùï /about
+Ôö£ Ôùï /admin
+Ôö£ Ôùï /admin/categories
+Ôö£ Ôùï /admin/certificates
+Ôö£ Ôùï /admin/contact
+Ôö£ Ôùï /admin/courses
+Ôö£ ãÆ /admin/courses/[courseId]
+Ôö£ Ôùï /admin/exams
+Ôö£ Ôùï /admin/faqs
+Ôö£ Ôùï /admin/library
+Ôö£ ãÆ /admin/mutoon
+Ôö£ ãÆ /admin/mutoon/new
+Ôö£ Ôùï /admin/newsletter
+Ôö£ Ôùï /admin/settings
+Ôö£ Ôùï /admin/users
+Ôö£ ãÆ /api/admin/categories
+Ôö£ ãÆ /api/admin/categories/[categoryId]
+Ôö£ ãÆ /api/admin/certificates
+Ôö£ ãÆ /api/admin/contact
+Ôö£ ãÆ /api/admin/contact/[messageId]
+Ôö£ ãÆ /api/admin/courses
+Ôö£ ãÆ /api/admin/courses/[courseId]
+Ôö£ ãÆ /api/admin/courses/[courseId]/calculate-duration
+Ôö£ ãÆ /api/admin/courses/[courseId]/refresh-duration
+Ôö£ ãÆ /api/admin/exams
+Ôö£ ãÆ /api/admin/exams/[examId]
+Ôö£ ãÆ /api/admin/faqs
+Ôö£ ãÆ /api/admin/faqs/[faqId]
+Ôö£ ãÆ /api/admin/generate-matn-quizzes
+Ôö£ ãÆ /api/admin/lessons
+Ôö£ ãÆ /api/admin/lessons/[lessonId]
+Ôö£ ãÆ /api/admin/lessons/reorder
+Ôö£ ãÆ /api/admin/library
+Ôö£ ãÆ /api/admin/library/[itemId]
+Ôö£ ãÆ /api/admin/newsletter
+Ôö£ ãÆ /api/admin/options/[optionId]
+Ôö£ ãÆ /api/admin/questions/[questionId]
+Ôö£ ãÆ /api/admin/quizzes
+Ôö£ ãÆ /api/admin/upload
+Ôö£ ãÆ /api/admin/upload/presigned
+Ôö£ ãÆ /api/admin/users
+Ôö£ ãÆ /api/admin/users/[userId]
+Ôö£ ãÆ /api/attempts/[id]
+Ôö£ ãÆ /api/attempts/[id]/answers
+Ôö£ ãÆ /api/attempts/[id]/submit
+Ôö£ ãÆ /api/auth/[...nextauth]
+Ôö£ ãÆ /api/auth/forgot-password
+Ôö£ ãÆ /api/auth/register
+Ôö£ ãÆ /api/auth/reset-password
+Ôö£ ãÆ /api/auth/update-profile
+Ôö£ ãÆ /api/categories
+Ôö£ ãÆ /api/certificates/[id]
+Ôö£ ãÆ /api/certificates/[id]/image
+Ôö£ ãÆ /api/certificates/[id]/pdf
+Ôö£ ãÆ /api/certificates/course/[courseId]
+Ôö£ ãÆ /api/contact
+Ôö£ ãÆ /api/courses
+Ôö£ ãÆ /api/courses/[id]
+Ôö£ ãÆ /api/courses/[id]/certificate
+Ôö£ ãÆ /api/courses/[id]/lessons/[lessonId]
+Ôö£ ãÆ /api/exams
+Ôö£ ãÆ /api/exams/[id]
+Ôö£ ãÆ /api/exams/[id]/start
+Ôö£ ãÆ /api/faqs
+Ôö£ ãÆ /api/grade-matn
+Ôö£ ãÆ /api/lessons/[id]/complete
+Ôö£ ãÆ /api/lessons/[id]/progress
+Ôö£ ãÆ /api/lessons/[id]/questions
+Ôö£ ãÆ /api/lessons/[id]/questions/[questionId]
+Ôö£ ãÆ /api/library
+Ôö£ ãÆ /api/library/[id]
+Ôö£ ãÆ /api/me/overview
+Ôö£ ãÆ /api/newsletter
+Ôö£ ãÆ /api/notifications
+Ôö£ ãÆ /api/notifications/devices
+Ôö£ ãÆ /api/notifications/mark-read
+Ôö£ ãÆ /api/notifications/subscribe
+Ôö£ ãÆ /api/verify/[code]
+Ôö£ Ôùï /apple-icon.png
+Ôö£ Ôùï /auth/forgot-password
+Ôö£ Ôùï /auth/login
+Ôö£ Ôùï /auth/register
+Ôö£ Ôùï /auth/reset-password
+Ôö£ ãÆ /certificates/[id]
+Ôö£ Ôùï /contact
+Ôö£ Ôùï /courses
+Ôö£ ãÆ /courses/[id]
+Ôö£ ãÆ /courses/[id]/lessons/[lessonId]
+Ôö£ ãÆ /dashboard
+Ôö£ Ôùï /dashboard/certificates
+Ôö£ ãÆ /dashboard/mutoon
+Ôö£ ãÆ /dashboard/mutoon/[matnId]
+Ôö£ Ôùï /dashboard/profile
+Ôö£ Ôùï /dashboard/settings
+Ôö£ Ôùï /exams
+Ôö£ ãÆ /exams/[id]
+Ôö£ Ôùï /faq
+Ôö£ Ôùï /icon.png
+Ôö£ Ôùï /library
+Ôö£ ãÆ /library/[id]
+Ôö£ Ôùï /manifest.webmanifest
+Ôö£ Ôùï /offline
+Ôö£ Ôùï /paths
+Ôö£ Ôùï /privacy
+Ôö£ Ôùï /terms
+Ôöö Ôùï /verify
+
+
+ãÆ Proxy (Middleware)
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+

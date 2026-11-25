@@ -1,5 +1,6 @@
 "use client";
 
+import { GlowWindow, WindowEdgeGlow } from "./glow-window";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleCheck, CircleAlert, TriangleAlert, Info, X } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
@@ -78,37 +79,43 @@ export default function SirajDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="presentation">
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-hidden="true"
-        onClick={onClose}
-        className="absolute inset-0 cursor-default bg-gray-900/40 dark:bg-black/60"
-      />
+    <GlowWindow>
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="siraj-dialog-title"
-        aria-describedby="siraj-dialog-message"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") onClose();
-          if (event.key === "Enter") {
-            event.preventDefault();
-            (onConfirm ?? onClose)();
-          }
-        }}
-        className="relative w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+        className="
+          relative
+          w-full max-w-sm
+          rounded-2xl
+          border-2
+          border-emerald-500/10
+          bg-white
+          p-6
+          shadow-lg
+          dark:border-gray-700
+          dark:bg-gray-900
+        "
       >
+        <WindowEdgeGlow />
         <button
           type="button"
+          tabIndex={-1}
+          aria-hidden="true"
           onClick={onClose}
-          aria-label={t("إغلاق", "Close")}
-          className="absolute end-3 top-3 rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          className="absolute inset-0 cursor-default bg-gray-900/40 dark:bg-black/60"
+        />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="siraj-dialog-title"
+          aria-describedby="siraj-dialog-message"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") onClose();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              (onConfirm ?? onClose)();
+            }
+          }}
+          className="flex flex-col items-center gap-3 text-center"
         >
-          <X size={16} />
-        </button>
-        <div className="flex flex-col items-center gap-3 text-center">
           <span className={`flex h-14 w-14 items-center justify-center rounded-full ${meta.iconClass}`}>
             <Icon size={28} />
           </span>
@@ -145,7 +152,7 @@ export default function SirajDialog({
           </div>
         </div>
       </div>
-    </div>
+    </GlowWindow>
   );
 }
 

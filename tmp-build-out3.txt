@@ -1,0 +1,66 @@
+
+> siraj@0.1.0 build
+> prisma generate && next build
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Ô£ö Generated Prisma Client (v6.19.3) to .\node_modules\@prisma\client in 304ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+
+Ôû▓ Next.js 16.3.3 (Turbopack)
+- Environments: .env.local, .env
+Ô£ô Running next.config.ts took 65ms
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 9.9s
+  Running TypeScript ...
+src/components/ui/glow-effects.tsx(18,6): error TS2322: Type '{ children: Element; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; suppressContentEditableWarning?: boolean | undefined; suppressHydrationWarning?: boolean | undefined; ... 273 more ...; className: string; }' is not assignable to type 'Omit<HTMLMotionProps<"div">, "ref">'.
+  Types of property 'onDrag' are incompatible.
+    Type 'DragEventHandler<HTMLDivElement> | undefined' is not assignable to type '((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void) | undefined'.
+      Type 'DragEventHandler<HTMLDivElement>' is not assignable to type '(event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void'.
+        Types of parameters 'event' and 'event' are incompatible.
+          Type 'MouseEvent | TouchEvent | PointerEvent' is not assignable to type 'DragEvent<HTMLDivElement>'.
+            Type 'MouseEvent' is missing the following properties from type 'DragEvent<HTMLDivElement>': dataTransfer, nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+src/components/ui/glow-effects.tsx(45,6): error TS2322: Type '{ children: Element[]; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; suppressContentEditableWarning?: boolean | undefined; suppressHydrationWarning?: boolean | undefined; ... 273 more ...; className: string; }' is not assignable to type 'Omit<HTMLMotionProps<"div">, "ref">'.
+  Types of property 'onDrag' are incompatible.
+    Type 'DragEventHandler<HTMLDivElement> | undefined' is not assignable to type '((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void) | undefined'.
+      Type 'DragEventHandler<HTMLDivElement>' is not assignable to type '(event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void'.
+        Types of parameters 'event' and 'event' are incompatible.
+          Type 'MouseEvent | TouchEvent | PointerEvent' is not assignable to type 'DragEvent<HTMLDivElement>'.
+            Type 'MouseEvent' is missing the following properties from type 'DragEvent<HTMLDivElement>': dataTransfer, nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+src/components/ui/glow-effects.tsx(192,13): error TS2304: Cannot find name 'textareaProps'.
+src/components/ui/index.tsx(1,26): error TS2300: Duplicate identifier 'WindowEdgeGlow'.
+src/components/ui/index.tsx(1,83): error TS2300: Duplicate identifier 'GlowWindow'.
+src/components/ui/index.tsx(1,113): error TS2300: Duplicate identifier 'WindowEdgeGlow'.
+src/components/ui/index.tsx(2,10): error TS2300: Duplicate identifier 'GlowWindow'.
+Failed to type check.
+
+Turbopack build encountered 1 warning:
+./src/app/contact/page.tsx:32:26
+Warning: Module not found: Can't resolve './components/ui/SirajDialog'
+  30 | ...       throw new Error(body && typeof body.error === "string" ? body.error : "send-fail...
+  31 | ...     }
+> 32 | ...     const { notify } = require("./components/ui/SirajDialog").useSirajMessage
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  33 | ...       ?.() ?? { notify: () => {} };
+  34 | ...     notify(t("Ï¬┘à ÏÑÏ▒Ï│Ïº┘ä Ï▒Ï│Ïº┘äÏ¬┘â Ï¿┘åÏ¼ÏºÏ¡", "Your message has been sent successfully"), "suc...
+  35 | ...     setForm({ ...form, subject: "", message: "" });
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/contact/page.tsx [Client Component Browser]
+    ./src/app/contact/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/contact/page.tsx [Client Component SSR]
+    ./src/app/contact/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+

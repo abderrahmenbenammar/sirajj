@@ -1,6 +1,8 @@
 /* Siraj PWA Service Worker — App Router compatible, no external deps. */
 
-const CACHE_VERSION = "siraj-v1";
+// v2: purge caches that may still hold HTML/CSS from before the digits-only
+// font face (siraj-digits.ttf) was introduced to fix Eastern Arabic numerals.
+const CACHE_VERSION = "siraj-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

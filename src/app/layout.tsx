@@ -82,6 +82,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${notoNaskhArabic.variable} ${maghribiFont.variable}`}
     >
       <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased font-sans">
+        {/* Digits-only Noto subset (see globals.css @font-face "sirajDigits").
+            Preloaded so it always beats the 116 KB Maghribi face to first
+            paint — otherwise ASCII digits could briefly render as Eastern
+            Arabic numerals (٠-٩) from Maghribi's outlines. crossorigin
+            matches the anonymous-CORS mode of CSS-initiated font fetches. */}
+        <link
+          rel="preload"
+          as="font"
+          href="/fonts/siraj-digits.ttf"
+          crossOrigin="anonymous"
+        />
         <ServiceWorkerRegister />
         <Providers>
           <PushNativeBootstrap />

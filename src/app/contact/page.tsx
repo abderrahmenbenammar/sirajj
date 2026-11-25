@@ -2,16 +2,18 @@
 
 import { useLang } from "@/lib/lang-context";
 import { useState } from "react";
-import { useAuth } from "@/lib/auth-context";
 import { Mail, Phone, MapPin, Send, HelpCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
+import { RadialBorderInput, RadialBorderTextarea } from "@/components/ui/input";
 
 export default function ContactPage() {
   const { t } = useLang();
-  const { user } = useAuth();
-  const { dialog, notify } = useSirajMessage();
-  const [form, setForm] = useState({ name: user?.name || "", email: user?.email || "", subject: "", message: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,10 +29,12 @@ export default function ContactPage() {
         const body = await response.json().catch(() => null);
         throw new Error(body && typeof body.error === "string" ? body.error : "send-failed");
       }
+      const { notify } = require("./components/ui/SirajDialog").useSirajMessage
+        ?.() ?? { notify: () => {} };
       notify(t("تم إرسال رسالتك بنجاح", "Your message has been sent successfully"), "success");
       setForm({ ...form, subject: "", message: "" });
     } catch (err) {
-      notify(err instanceof Error ? err.message : "send-failed", "error");
+      alert(err instanceof Error ? err.message : "send-failed");
     } finally {
       setSending(false);
     }
@@ -73,7 +77,7 @@ export default function ContactPage() {
               <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3">
                 <MapPin size={18} />
               </div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{t("الموقع", "Location")}</h3>
+              <h3 className="font-semibold text-gray-900 dark-text-white mb-1">{t("الموقع", "Location")}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">{t("الرياض، المملكة العربية السعودية", "Riyadh, Saudi Arabia")}</p>
             </div>
 
@@ -100,46 +104,50 @@ export default function ContactPage() {
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("الاسم", "Name")}</label>
-                    <input
+                    <RadialBorderInput
+                      dir="rtl"
                       type="text"
                       required
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus-border-emerald-500 transition-colors"
                       placeholder={t("اسمك الكامل", "Your full name")}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("البريد الإلكتروني", "Email")}</label>
-                    <input
+                    <RadialBorderInput
+                      dir="rtl"
                       type="email"
                       required
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus-border-emerald-500 transition-colors"
                       placeholder={t("بريدك الإلكتروني", "Your email address")}
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("الموضوع", "Subject")}</label>
-                  <input
+                  <RadialBorderInput
+                    dir="rtl"
                     type="text"
                     required
                     value={form.subject}
                     onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus-border-emerald-500 transition-colors"
                     placeholder={t("موضوع الرسالة", "Message subject")}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("الرسالة", "Message")}</label>
-                  <textarea
-                    required
+                  <RadialBorderTextarea
+                    dir="rtl"
                     rows={5}
+                    required
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors resize-none"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus-border-emerald-500 transition-colors resize-none"
                     placeholder={t("اكتب رسالتك هنا...", "Write your message here...")}
                   />
                 </div>
@@ -148,8 +156,7 @@ export default function ContactPage() {
                   disabled={sending}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20"
                 >
-                  <Send size={16} />
-                  {t("إرسال الرسالة", "Send Message")}
+                  <Send size={16} />{t("إرسال الرسالة", "Send Message")}
                 </button>
               </form>
             </div>
@@ -174,7 +181,6 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
-      <SirajDialog {...dialog} />
     </div>
   );
 }

@@ -2,9 +2,10 @@
 
 import { useLang } from "@/lib/lang-context";
 import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, Mail, CheckCircle } from "lucide-react";
+import Link from "next/link";
+import { RadialBorderInput } from "@/components/ui/input";
 
 export default function ForgotPasswordPage() {
   const { t, lang } = useLang();
@@ -82,12 +83,13 @@ export default function ForgotPasswordPage() {
                 </label>
                 <div className="relative">
                   <Mail size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
+                  <RadialBorderInput
+                    dir="rtl"
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full ps-10 pe-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full ps-10 pe-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 outline-none focus-border-emerald-500 transition-colors"
                     placeholder="you@example.com"
                   />
                 </div>

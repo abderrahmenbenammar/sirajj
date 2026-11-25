@@ -2,9 +2,32 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------------------------------------------------------------------------
+ * Digit routing face — fixes Eastern Arabic numerals (٠-٩) in the UI
+ * ---------------------------------------------------------------------------
+ * Maghribi-Font.ttf draws ASCII digits (U+0030-0039) and "%" (U+0025) as
+ * Eastern Arabic numerals (٠-٩ / ٪) baked into its glyph outlines, and the
+ * font ships no `locl` GSUB feature, so no locale or CSS font feature can
+ * disable it. This 5 KB digits-only subset of Noto Naskh Arabic
+ * (public/fonts/siraj-digits.ttf, generated with fonttools from
+ * NotoNaskhArabic-Regular.ttf) claims exactly those code points and is
+ * listed BEFORE Maghribi in every font stack below, so digits and "%"
+ * render Western while Arabic text keeps using Maghribi.
+ * font-display: block guarantees the Eastern fallback glyphs never flash;
+ * layout.tsx preloads the face so the block period is effectively zero.
+ */
+@font-face {
+  font-family: "sirajDigits";
+  src: url("/fonts/siraj-digits.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0025, U+0030-0039, U+0660-0669, U+066A, U+06F0-06F9;
+}
+
 @theme inline {
-  --font-sans: var(--font-maghribi-file), var(--font-noto-naskh), system-ui, sans-serif;
-  --font-maghribi: var(--font-maghribi-file), var(--font-noto-naskh), system-ui, sans-serif;
+  --font-sans: "sirajDigits", var(--font-maghribi-file), var(--font-noto-naskh), system-ui, sans-serif;
+  --font-maghribi: "sirajDigits", var(--font-maghribi-file), var(--font-noto-naskh), system-ui, sans-serif;
   --color-primary-50: #ecfdf5;
   --color-primary-100: #d1fae5;
   --color-primary-200: #a7f3d0;

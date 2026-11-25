@@ -1,0 +1,48 @@
+
+> siraj@0.1.0 build
+> prisma generate && next build
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Ô£ö Generated Prisma Client (v6.19.3) to .\node_modules\@prisma\client in 410ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+
+Ôû▓ Next.js 16.3.3 (Turbopack)
+- Environments: .env.local, .env
+Ô£ô Running next.config.ts took 56ms
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 3.6s
+  Running TypeScript ...
+src/components/ui/glow-effects.tsx(190,13): error TS2304: Cannot find name 'textareaProps'.
+Failed to type check.
+
+Turbopack build encountered 1 warning:
+./src/app/contact/page.tsx:32:26
+Warning: Module not found: Can't resolve './components/ui/SirajDialog'
+  30 | ...       throw new Error(body && typeof body.error === "string" ? body.error : "send-fail...
+  31 | ...     }
+> 32 | ...     const { notify } = require("./components/ui/SirajDialog").useSirajMessage
+     |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  33 | ...       ?.() ?? { notify: () => {} };
+  34 | ...     notify(t("Ï¬┘à ÏÑÏ▒Ï│Ïº┘ä Ï▒Ï│Ïº┘äÏ¬┘â Ï¿┘åÏ¼ÏºÏ¡", "Your message has been sent successfully"), "suc...
+  35 | ...     setForm({ ...form, subject: "", message: "" });
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/contact/page.tsx [Client Component Browser]
+    ./src/app/contact/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/contact/page.tsx [Client Component SSR]
+    ./src/app/contact/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
