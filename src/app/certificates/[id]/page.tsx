@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { use, useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import { fetchCertificate, type CertificateDetail } from "@/lib/certificates-api";
 import { Award, BadgeCheck, Calendar, Clock, Download, Printer } from "lucide-react";
 import SirajLoading from "@/components/ui/SirajLoading";
@@ -76,7 +77,7 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
               </span>
               <span className="flex items-center gap-1.5">
                 <Calendar size={14} />
-                {new Date(certificate.issueDate).toLocaleDateString("ar")}
+                {formatDate(certificate.issueDate)}
               </span>
               <span className="flex items-center gap-1.5">
                 <BadgeCheck size={14} />

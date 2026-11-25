@@ -5,6 +5,7 @@ import { Capacitor, type PermissionState } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Bell, CheckCheck, Smartphone } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { latinDigitsLocale } from "@/lib/format";
 import { usePushSubscription } from "@/lib/push-subscription";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { ensurePushPermission } from "@/lib/push-permissions";
@@ -218,7 +219,7 @@ export default function NotificationBell() {
                   </p>
                   <span className="mt-2 block text-base text-gray-400">
                     {new Date(n.createdAt).toLocaleDateString(
-                      lang === "ar" ? "ar" : "en-GB",
+                      latinDigitsLocale(lang === "ar" ? "ar" : "en-GB"),
                       { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
                     )}
                   </span>

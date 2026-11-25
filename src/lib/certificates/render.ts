@@ -22,6 +22,7 @@ import {
   COLOR_QR_FOREGROUND,
   COLOR_QR_BACKGROUND,
 } from "./layout";
+import { toWesternDigits } from "../format";
 import { computeFinalScore } from "./score";
 
 // Deterministic certificate image generation on the immutable template.
@@ -253,7 +254,7 @@ export async function renderCertificateImage(data: CertificateRenderData): Promi
 
   ctx.textBaseline = "middle";
   for (const item of placed) {
-    const text = stripBidiControls(item.text);
+    const text = toWesternDigits(stripBidiControls(item.text));
     const size = fitFontSize(ctx, item.text, item.zone);
     ctx.font = `${item.zone.weight} ${size}px "${fontFor(item.zone.weight)}"`;
     ctx.direction = item.direction;

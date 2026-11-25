@@ -1,3 +1,5 @@
+import { formatDate } from "@/lib/format";
+
 // Central certificate layout — single source of truth for geometry, fonts,
 // grading and formatting. Coordinates are the APPROVED final table on the
 // native template reference 2464x1728 (see measurement report). The 2048x1436
@@ -104,7 +106,8 @@ export function formatDurationDetailed(totalSeconds: number | null): string {
 }
 
 export function formatDateAr(date: Date): string {
-  return date.toLocaleDateString("ar");
+  // ar-u-nu-latn: Arabic month names with International (0-9) digits.
+  return formatDate(date);
 }
 
 export function verifyUrlFor(certificateCode: string): string {

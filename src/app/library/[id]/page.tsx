@@ -3,6 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import { fetchLibraryItem, type ApiLibraryItem } from "@/lib/library-api";
 import { useEffect, useState } from "react";
 import { BookOpen, FileText, Search, Mic, User, Calendar, ExternalLink } from "lucide-react";
@@ -78,7 +79,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                 </span>
               )}
               {item.publishedAt && (
-                <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(item.publishedAt).toLocaleDateString("ar")}</span>
+                <span className="flex items-center gap-1.5"><Calendar size={14} /> {formatDate(item.publishedAt)}</span>
               )}
             </div>
             {(item.descriptionAr || item.descriptionEn) && (

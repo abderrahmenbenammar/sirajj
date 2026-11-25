@@ -2,6 +2,7 @@
 
 import { Flame, Sparkles } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { latinDigitsLocale } from "@/lib/format";
 import type { DashboardLearningActivity } from "./types";
 
 export default function StudentLearningActivityCard({
@@ -10,7 +11,7 @@ export default function StudentLearningActivityCard({
   activity: DashboardLearningActivity;
 }) {
   const { lang, t } = useLang();
-  const numberFormat = new Intl.NumberFormat(lang === "ar" ? "ar" : "en");
+  const numberFormat = new Intl.NumberFormat(latinDigitsLocale(lang === "ar" ? "ar" : "en"));
   const peak = Math.max(...activity.days.map((day) => day.count), 1);
   const chartDescription = t(
     `أكملت ${activity.completedThisWeek} درساً خلال آخر 7 أيام.`,

@@ -9,6 +9,7 @@ import {
   COLOR_DATE,
   COLOR_STUDENT_NAME,
 } from "./certificates/layout";
+import { toWesternDigits } from "./format";
 
 // ---------------------------------------------------------------------------
 // Official template PDF (A4 landscape, single page, 841.92 x 594.96 pt).
@@ -117,7 +118,9 @@ export interface CertificatePdfData {
 const BIDI_MARKS = /[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
 function cleanText(text: string): string {
-  return text.replace(BIDI_MARKS, "").replace(/\s+/g, " ").trim();
+  // toWesternDigits first: any Eastern/Persian digit or ٪ that slips into a
+  // name, title, date or serial becomes ASCII before shaping/ordering.
+  return toWesternDigits(text).replace(BIDI_MARKS, "").replace(/\s+/g, " ").trim();
 }
 
 // Codepoints that belong to RTL runs. Arabic-Indic digits (U+0660..0669,
@@ -207,11 +210,14 @@ export function formatCompletionDate(date: Date): string {
   try {
     // Latin digits (-nu-latn) keep the number runs LTR-safe in the layout;
     // month names come from the same locale the rest of the app displays.
-    return new Intl.DateTimeFormat("ar-u-nu-latn", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(date);
+    // toWesternDigits is the hard guarantee that only 0-9 can ever be drawn.
+    return toWesternDigits(
+      new Intl.DateTimeFormat("ar-u-nu-latn", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(date)
+    );
   } catch {
     return date.toISOString().slice(0, 10);
   }

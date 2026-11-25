@@ -15,6 +15,7 @@ import {
   COLOR_QR_FOREGROUND,
   COLOR_STUDENT_NAME,
 } from "./layout";
+import { toWesternDigits } from "../format";
 
 const PAGE_WIDTH_PT = 841.89;
 const PAGE_HEIGHT_PT = 595.28;
@@ -104,7 +105,7 @@ function drawText(
     direction?: "rtl" | "ltr";
   },
 ) {
-  const text = clean(textValue);
+  const text = toWesternDigits(clean(textValue));
   if (!text.trim()) return;
   const bold = options.weight === 700;
   const size = fitFontSize(context, text, {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Award, BookOpen, Film, GraduationCap, Mail, Plus, Users } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import StatCard from "@/components/admin/StatCard";
 import PageHeader from "@/components/admin/PageHeader";
 import { CardSkeleton } from "@/components/admin/AdminSkeleton";
@@ -206,7 +207,7 @@ export default function AdminDashboardPage() {
                       className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
                     >
                       <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{item.text}</span>
-                      <span className="text-sm text-gray-400 shrink-0">{new Date(item.date).toLocaleDateString("ar")}</span>
+                      <span className="text-sm text-gray-400 shrink-0">{formatDate(item.date)}</span>
                     </Link>
                   ))}
                 </div>

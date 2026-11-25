@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { User, Mail, Calendar, BookOpen, Award, ArrowLeft } from "lucide-react";
@@ -78,7 +79,7 @@ export default function ProfilePage() {
               {overview && (
                 <p className="text-base text-gray-400 mt-1 flex items-center gap-1.5">
                   <Calendar size={12} />
-                  {t("عضو منذ", "Member since")} {new Date(overview.user.createdAt).toLocaleDateString("ar")}
+                  {t("عضو منذ", "Member since")} {formatDate(overview.user.createdAt)}
                 </p>
               )}
             </div>

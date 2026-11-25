@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { MessageCircle, Pencil, Send, Trash2 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { latinDigitsLocale } from "@/lib/format";
 
 interface QAUser {
   id: string;
@@ -45,12 +46,12 @@ function formatRelativeDate(iso: string, locale: string): string {
   if (Number.isNaN(date.getTime())) return "";
   const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
   const absolute = Math.abs(diffSeconds);
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const rtf = new Intl.RelativeTimeFormat(latinDigitsLocale(locale), { numeric: "auto" });
   if (absolute < 60) return rtf.format(diffSeconds, "second");
   if (absolute < 60 * 60) return rtf.format(Math.round(diffSeconds / 60), "minute");
   if (absolute < 24 * 60 * 60) return rtf.format(Math.round(diffSeconds / 3600), "hour");
   if (absolute < 7 * 24 * 60 * 60) return rtf.format(Math.round(diffSeconds / (24 * 60 * 60)), "day");
-  return date.toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" });
+  return date.toLocaleDateString(latinDigitsLocale(locale), { year: "numeric", month: "long", day: "numeric" });
 }
 
 // Top-level (module scope, not nested in the parent) so React keeps the

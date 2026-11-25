@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { Award, Calendar, User, ArrowLeft, BadgeCheck, Download } from "lucide-react";
@@ -98,7 +99,7 @@ export default function CertificatesPage() {
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Calendar size={14} />
-                        {new Date(cert.issueDate).toLocaleDateString("ar")}
+                        {formatDate(cert.issueDate)}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <BadgeCheck size={14} />

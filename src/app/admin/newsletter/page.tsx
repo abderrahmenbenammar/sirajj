@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import PageHeader from "@/components/admin/PageHeader";
 import { ListSkeleton } from "@/components/admin/AdminSkeleton";
 import type { AdminSubscriber } from "@/components/admin/types";
@@ -58,7 +59,7 @@ export default function AdminNewsletterPage() {
                 <span className="text-gray-900 dark:text-white truncate" dir="ltr">
                   {sub.email}
                 </span>
-                <span className="text-sm text-gray-400 shrink-0">{new Date(sub.subscribedAt).toLocaleDateString("ar")}</span>
+                <span className="text-sm text-gray-400 shrink-0">{formatDate(sub.subscribedAt)}</span>
               </div>
             ))}
           </div>

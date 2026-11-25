@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Users, X } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import PageHeader from "@/components/admin/PageHeader";
 import StatCard from "@/components/admin/StatCard";
 import { ListSkeleton } from "@/components/admin/AdminSkeleton";
@@ -135,7 +136,7 @@ export default function AdminUsersPage() {
                           </SirajTooltip>
                         </td>
                         <td className="p-3">{subscriber.email}</td>
-                        <td className="p-3">{new Date(subscriber.createdAt).toLocaleDateString("ar")}</td>
+                        <td className="p-3">{formatDate(subscriber.createdAt)}</td>
                         <td className="p-3">{subscriber._count.courseProgress}</td>
                         <td className="p-3">
                           <span className={`text-sm px-2 py-0.5 rounded-lg ${subscriber.role === "ADMIN" ? "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
@@ -203,7 +204,7 @@ export default function AdminUsersPage() {
               <div className="grid sm:grid-cols-3 gap-3 mb-6 text-sm">
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                   <span className="block text-sm text-gray-500 mb-1">{t("تاريخ التسجيل", "Joined")}</span>
-                  {new Date(selectedSubscriber.createdAt).toLocaleDateString("ar")}
+                  {formatDate(selectedSubscriber.createdAt)}
                 </div>
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
                   <span className="block text-sm text-gray-500 mb-1">{t("المزوّد", "Provider")}</span>
@@ -237,7 +238,7 @@ export default function AdminUsersPage() {
                       <span className="text-gray-700 dark:text-gray-300">
                         {item.lesson.course.titleAr}: {item.lesson.titleAr}
                       </span>
-                      <span className="text-emerald-600">{new Date(item.completedAt).toLocaleDateString("ar")}</span>
+                      <span className="text-emerald-600">{formatDate(item.completedAt)}</span>
                     </div>
                   ))}
                 </div>

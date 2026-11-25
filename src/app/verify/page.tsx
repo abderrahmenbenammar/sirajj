@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import { verifyCertificate, type Verification } from "@/lib/certificates-api";
 import { BadgeCheck, ShieldAlert } from "lucide-react";
 import { Suspense } from "react";
@@ -67,7 +68,7 @@ function VerifyForm() {
                     {[result.scoreText, result.gradeText, result.durationText].filter(Boolean).join(" · ")}
                   </p>
                 )}
-                <p className="text-base text-gray-400">{result.certificateCode} · {result.issueDate ? new Date(result.issueDate).toLocaleDateString("ar") : ""}</p>
+                <p className="text-base text-gray-400">{result.certificateCode} · {result.issueDate ? formatDate(result.issueDate) : ""}</p>
               </div>
             </div>
           ) : (

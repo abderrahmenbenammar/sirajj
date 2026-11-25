@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Award, BadgeCheck, Calendar } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { latinDigitsLocale } from "@/lib/format";
 import type { DashboardCertificate } from "./types";
 
 export default function CertificateCard({
@@ -17,7 +18,7 @@ export default function CertificateCard({
   // server/browser timezone. `suppressHydrationWarning` guards the <time>
   // text against minor ICU/CLDR version differences between Node and browser.
   const formattedDate = new Date(certificate.issueDate).toLocaleDateString(
-    lang === "ar" ? "ar" : "en-GB",
+    latinDigitsLocale(lang === "ar" ? "ar" : "en-GB"),
     { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" },
   );
 

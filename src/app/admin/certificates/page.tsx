@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import PageHeader from "@/components/admin/PageHeader";
 import { ListSkeleton } from "@/components/admin/AdminSkeleton";
 import SirajDialog, { useSirajMessage } from "@/components/ui/SirajDialog";
@@ -75,7 +76,7 @@ export default function AdminCertificatesPage() {
                     {cert.student.fullName} · {cert.course.titleAr}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {cert.certificateCode} · {new Date(cert.issueDate).toLocaleDateString("ar")}
+                    {cert.certificateCode} · {formatDate(cert.issueDate)}
                   </span>
                 </div>
                 <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{cert.student.email}</span>

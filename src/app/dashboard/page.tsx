@@ -94,7 +94,7 @@ export default async function DashboardPage() {
       return {
         dateKey,
         count: completedByDay.get(dateKey) ?? 0,
-        weekdayAr: new Intl.DateTimeFormat("ar", {
+        weekdayAr: new Intl.DateTimeFormat("ar-u-nu-latn", {
           weekday: "short",
           timeZone: "UTC",
         }).format(date),

@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { ArrowRight, BookPlus, Film, GraduationCap, ImagePlus, ListPlus, Trash2, Users } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
+import { formatDate } from "@/lib/format";
 import { uploadFileDirect } from "@/lib/admin-upload";
 import { COURSE_PATHS, COURSE_PATH_LABELS } from "@/lib/course-paths";
 import { formatDurationDetailed } from "@/lib/certificates/layout";
@@ -456,7 +457,7 @@ export default function AdminCourseEditorPage() {
                 <div key={cert.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm">
                   <div className="min-w-0">
                     <span className="block text-gray-900 dark:text-white truncate">{cert.student.fullName}</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{cert.certificateCode} · {new Date(cert.issueDate).toLocaleDateString("ar")}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{cert.certificateCode} · {formatDate(cert.issueDate)}</span>
                   </div>
                   <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{cert.student.email}</span>
                 </div>
